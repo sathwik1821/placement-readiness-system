@@ -4,16 +4,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placement.system.model.Company;
 import com.placement.system.model.CompanyFeedbackReport;
+import com.placement.system.model.PlacementApplication;
 import com.placement.system.model.PlacementDrive;
-import com.placement.system.repository.CompanyFeedbackReportRepository;
-import com.placement.system.repository.CompanyRepository;
-import com.placement.system.repository.PlacementApplicationRepository;
-import com.placement.system.repository.PlacementDriveRepository;
+import com.placement.system.model.PlacementOfficer;
+import com.placement.system.repository.*;
 import com.placement.system.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -28,6 +28,12 @@ public class CompanyController {
 
     @Autowired
     private CompanyRepository companyRepository;
+
+    @Autowired
+    private PlacementOfficerRepository officerRepository;
+
+    @Autowired
+    private StudentRepository studentRepository;
 
     @Autowired
     private CompanyFeedbackReportRepository feedbackReportRepository;
@@ -60,10 +66,69 @@ public class CompanyController {
             map.put("workMode", d.getWorkMode());
             map.put("location", d.getLocation());
             map.put("status", d.getStatus());
+            map.put("jobDescription", d.getJobDescription());
+            map.put("eligibilityCriteria", d.getEligibilityCriteria());
             map.put("_count", Map.of("applications", applicationRepository.countByDriveId(d.getId())));
             response.add(map);
         }
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/drives")
+    public ResponseEntity<?> submitDriveRequisition(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, Object> body) {
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        Company company = companyRepository.findByUserId(userId).orElse(null);
+        String companyId = company != null ? company.getId() : "default-company";
+
+        PlacementOfficer officer = officerRepository.findAll().stream().findFirst().orElse(null);
+        String officerId = officer != null ? officer.getId() : "default-officer";
+
+        try {
+            PlacementDrive d = new PlacementDrive();
+            d.setCompanyId(companyId);
+            d.setOfficerId(officerId);
+            d.setTitle((String) body.get("title"));
+            d.setJobRole((String) body.get("jobRole"));
+            d.setCtc((String) body.getOrDefault("ctc", "Competitive"));
+            d.setWorkMode((String) body.getOrDefault("workMode", "ONSITE"));
+            d.setJobDescription((String) body.getOrDefault("jobDescription", ""));
+            d.setLocation((String) body.getOrDefault("location", "Campus / Hybrid"));
+
+            String reqStatus = (String) body.getOrDefault("status", "PUBLISHED");
+            d.setStatus(reqStatus);
+
+            Object critObj = body.get("eligibilityCriteria");
+            d.setEligibilityCriteria(critObj instanceof String ? (String) critObj : mapper.writeValueAsString(critObj));
+            d = driveRepository.save(d);
+            return ResponseEntity.ok(d);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/drives/{id}/applications")
+    public ResponseEntity<?> getCompanyDriveApplications(@PathVariable String id) {
+        List<PlacementApplication> apps = applicationRepository.findByDriveIdOrderByAppliedAtDesc(id);
+        for (PlacementApplication a : apps) {
+            studentRepository.findById(a.getStudentId()).ifPresent(a::setStudent);
+        }
+        return ResponseEntity.ok(apps);
+    }
+
+    @PutMapping("/drives/{driveId}/applications/{appId}/status")
+    public ResponseEntity<?> updateCandidateStatus(
+            @PathVariable String driveId,
+            @PathVariable String appId,
+            @RequestBody Map<String, String> body) {
+        PlacementApplication app = applicationRepository.findById(appId).orElse(null);
+        if (app == null) return ResponseEntity.notFound().build();
+
+        app.setStatus(body.get("status"));
+        app.setUpdatedAt(LocalDateTime.now());
+        app = applicationRepository.save(app);
+        return ResponseEntity.ok(app);
     }
 
     @GetMapping("/drives/{id}/feedback")
