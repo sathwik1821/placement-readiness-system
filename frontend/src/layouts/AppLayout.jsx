@@ -71,16 +71,18 @@ export default function AppLayout({ children }) {
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       {/* Sidebar Navigation */}
       <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-sm z-20">
-        <div className="p-6 border-b border-slate-100 flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm ring-4 ring-blue-50">
-            <GraduationCap className="w-6 h-6 stroke-[2.2]" />
-          </div>
-          <div>
-            <h1 className="text-base font-black text-slate-900 tracking-tight leading-tight">PlacementAI</h1>
-            <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block mt-0.5">
-              {portalBadge}
-            </span>
-          </div>
+        <div className="p-6 border-b border-slate-100">
+          <NavLink to="/" className="flex items-center gap-3.5 hover:opacity-90 transition-opacity">
+            <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm ring-4 ring-blue-50">
+              <GraduationCap className="w-6 h-6 stroke-[2.2]" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Ascend</h1>
+              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block mt-0.5">
+                {portalBadge}
+              </span>
+            </div>
+          </NavLink>
         </div>
 
         <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto">

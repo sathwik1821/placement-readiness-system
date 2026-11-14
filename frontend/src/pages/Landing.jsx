@@ -14,7 +14,12 @@ import {
   Sparkles,
   BarChart3,
   BookOpen,
-  Play
+  Play,
+  RotateCcw,
+  Sliders,
+  Award,
+  HelpCircle,
+  Briefcase
 } from 'lucide-react';
 
 export default function Landing() {
@@ -22,14 +27,18 @@ export default function Landing() {
   const { login } = useAuthStore();
   const [quickLoginLoading, setQuickLoginLoading] = useState(false);
 
-  // Interactive Live Calculator Sandbox States
+  // Playable Element 1: Interactive Readiness Sandbox
+  const [targetRole, setTargetRole] = useState('Software Developer');
   const [calcCgpa, setCalcCgpa] = useState(8.2);
   const [calcDsa, setCalcDsa] = useState(78);
   const [calcCore, setCalcCore] = useState(74);
   const [calcAptitude, setCalcAptitude] = useState(82);
   const [calcInterview, setCalcInterview] = useState(75);
 
-  // Active Portal Tab in Showcase
+  // Playable Element 2: Interactive AI Interview Rubric Simulator
+  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(2); // default to Senior answer
+
+  // Active Stakeholder Portal Tab
   const [activePortalTab, setActivePortalTab] = useState('STUDENT');
 
   const handleQuickLogin = async (email, password, role) => {
@@ -51,42 +60,86 @@ export default function Landing() {
     }
   };
 
+  // Role Benchmark multipliers
+  const roleWeights = {
+    'Software Developer': { cgpa: 0.20, dsa: 0.25, core: 0.20, apt: 0.15, interview: 0.20 },
+    'Full Stack Engineer': { cgpa: 0.15, dsa: 0.20, core: 0.25, apt: 0.15, interview: 0.25 },
+    'Systems Engineer': { cgpa: 0.20, dsa: 0.20, core: 0.30, apt: 0.15, interview: 0.15 },
+    'Data Analyst': { cgpa: 0.20, dsa: 0.15, core: 0.20, apt: 0.25, interview: 0.20 }
+  };
+
+  const currentW = roleWeights[targetRole] || roleWeights['Software Developer'];
+
   const computedSandboxScore = Math.round(
-    ((calcCgpa / 10.0) * 100 * 0.20) +
-    (calcDsa * 0.25) +
-    (calcCore * 0.20) +
-    (calcAptitude * 0.15) +
-    (calcInterview * 0.20)
+    ((calcCgpa / 10.0) * 100 * currentW.cgpa) +
+    (calcDsa * currentW.dsa) +
+    (calcCore * currentW.core) +
+    (calcAptitude * currentW.apt) +
+    (calcInterview * currentW.interview)
   );
 
   const radius = 62;
   const circumference = 2 * Math.PI * radius;
   const dashoffset = circumference - (computedSandboxScore / 100) * circumference;
 
+  // Interactive Playable Mini-Drill Data
+  const sampleAnswers = [
+    {
+      title: 'Vague / Naive Strategy',
+      badge: 'HIGH OUTAGE RISK',
+      badgeColor: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
+      text: 'I would restart the Redis cache cluster whenever the flash sale starts, increase server RAM, and ask users to refresh if the query times out.',
+      techScore: 38,
+      commScore: 48,
+      verdict: 'Lacks distributed synchronization. Re-querying without locks causes severe database stampede under concurrent traffic.'
+    },
+    {
+      title: 'Intermediate Strategy',
+      badge: 'MODERATE LATENCY',
+      badgeColor: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
+      text: 'I would extend cache TTL by 2 hours and set up an async background worker to re-fetch product stock from the relational database.',
+      techScore: 68,
+      commScore: 76,
+      verdict: 'Reasonable caching intuition, but does not address thundering herd when an unexpected cold-cache miss occurs.'
+    },
+    {
+      title: 'Senior Architectural Strategy',
+      badge: 'TIER-1 ARCHITECTURE',
+      badgeColor: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
+      text: 'I would implement distributed mutex locks (e.g., Redlock) on cache misses so only a single thread recalculates the value while others await. Paired with probabilistic early refresh and stale-while-revalidate headers.',
+      techScore: 96,
+      commScore: 93,
+      verdict: 'Outstanding mastery. Successfully protects backend persistence layer from concurrent thundering herd spikes.'
+    }
+  ];
+
+  const currentAnswer = sampleAnswers[selectedAnswerIndex];
+
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans">
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar with Home Redirect */}
       <nav className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          {/* Brand Logo with Home Redirect */}
+          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm ring-1 ring-blue-400">
               <GraduationCap className="w-6 h-6 stroke-[2.2]" />
             </div>
             <div>
-              <span className="text-lg font-black tracking-tight text-white block leading-none">
-                PlacementAI
+              <span className="text-xl font-black tracking-tight text-white block leading-none">
+                Ascend
               </span>
               <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mt-0.5 block">
-                Academic & Recruitment OS
+                Campus Placement Platform
               </span>
             </div>
-          </div>
+          </Link>
 
           <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-300">
-            <a href="#features" className="hover:text-blue-400 transition-colors">Key Features</a>
-            <a href="#calculator" className="hover:text-blue-400 transition-colors">Readiness Sandbox</a>
-            <a href="#interview" className="hover:text-blue-400 transition-colors">AI Mock Interview</a>
-            <a href="#portals" className="hover:text-blue-400 transition-colors">4 Role Portals</a>
+            <a href="#theme" className="hover:text-blue-400 transition-colors">Theme & Vision</a>
+            <a href="#calculator" className="hover:text-blue-400 transition-colors">Readiness Lab</a>
+            <a href="#simulator" className="hover:text-blue-400 transition-colors">AI Drill Simulator</a>
+            <a href="#portals" className="hover:text-blue-400 transition-colors">Stakeholder Portals</a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -112,12 +165,12 @@ export default function Landing() {
       <header className="relative pt-20 pb-24 px-6 border-b border-slate-800">
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.12]">
-            Bridge University Learning with <br className="hidden sm:inline" />
-            <span className="text-blue-400">Industry Hiring Benchmarks</span>
+            Empower Campus Careers with <br className="hidden sm:inline" />
+            <span className="text-blue-400">Calibrated Placement Intelligence</span>
           </h1>
 
           <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-xl mx-auto leading-relaxed">
-            An explainable institutional platform combining calibrated multi-factor readiness scoring, real-time voice AI mock interviews, mathematical skill deficit prioritization, and end-to-end campus drive operations.
+            Ascend unifies explainable multi-factor readiness scoring, real-time voice AI mock interviews, mathematical skill deficit ranking, and institutional campus recruitment operations.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -141,7 +194,7 @@ export default function Landing() {
               href="#calculator"
               className="px-5 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 font-bold text-xs sm:text-sm transition-all"
             >
-              Try Readiness Sandbox
+              Try Readiness Lab
             </a>
           </div>
 
@@ -156,7 +209,7 @@ export default function Landing() {
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
               <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-400 block">450+</span>
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider mt-1 block">
-                Curated CS Items
+                Curated Problems
               </span>
             </div>
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
@@ -175,401 +228,354 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Interactive Readiness Sandbox Section */}
+      {/* Project Theme & Academic Context Section */}
+      <section id="theme" className="py-20 px-6 border-b border-slate-800 bg-slate-950">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Project Theme & Purpose
+            </h2>
+            <p className="text-sm text-slate-300 mt-3 leading-relaxed">
+              Why traditional academic evaluation fails to reflect hiring readiness.
+            </p>
+          </div>
+
+          <div className="p-8 sm:p-10 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
+            <div className="space-y-4 text-sm sm:text-base text-slate-200 leading-relaxed font-normal max-w-xl">
+              <p>
+                University engineering curricula excel at teaching foundational theory, data structures, and discrete mathematics. However, competitive industry recruitment rounds prioritize high-throughput problem-solving speed, concurrency isolation trade-offs, system scalability, and structured verbal delivery.
+              </p>
+              <p className="text-slate-300">
+                <strong className="text-white font-bold">Ascend</strong> bridges this critical institutional divide. It transforms subjective placement preparation into a deterministic, mathematical discipline:
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-800">
+              <div className="space-y-1.5">
+                <span className="text-xs font-black text-blue-400 uppercase tracking-wider block">
+                  1. Mathematical Deficit Modeling
+                </span>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Computes exact skill gaps using <code className="text-blue-300 font-mono font-bold">Deficit = Benchmark - Observed</code>, ensuring students remediate high-impact bottlenecks first.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider block">
+                  2. Voice AI Interview Simulation
+                </span>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Real-time conversational evaluation combining speech-to-text input, dynamic context-aware follow-ups, and automated NLP rubric scoring.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-xs font-black text-amber-400 uppercase tracking-wider block">
+                  3. Recruitment Operations Lifecycle
+                </span>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Automated drive publishing with deterministic eligibility boundaries (CGPA, branches, backlog caps) for transparent institutional hiring.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Playable Feature 1: The Interactive Placement Readiness Lab */}
       <section id="calculator" className="py-20 px-6 border-b border-slate-800 bg-slate-950">
         <div className="max-w-5xl mx-auto">
           <div className="text-center max-w-xl mx-auto mb-12">
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Interactive Placement Readiness Calculator
+              Interactive Placement Readiness Lab
             </h2>
             <p className="text-sm text-slate-300 mt-3 leading-relaxed">
-              Experience the multi-factor scoring engine in real-time. Adjust candidate metrics to see how academic standing, technical proficiency, and interview composure combine into an actionable placement rating.
+              Select a target role and drag the candidate competency sliders to observe the multi-factor scoring engine recalculate in real-time.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-sm">
-            {/* Sliders Controls Column */}
-            <div className="lg:col-span-7 space-y-5">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    Cumulative Grade Point Average (CGPA)
-                  </span>
-                  <span className="text-sm font-mono font-bold text-blue-400">{calcCgpa} / 10.0</span>
-                </div>
-                <input
-                  type="range"
-                  min="5.0"
-                  max="10.0"
-                  step="0.1"
-                  value={calcCgpa}
-                  onChange={(e) => setCalcCgpa(parseFloat(e.target.value))}
-                  className="w-full accent-blue-500 cursor-pointer"
-                />
-                <span className="text-xs text-slate-400 block mt-0.5">Weight: 20% of Placement Composite</span>
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-sm space-y-8">
+            {/* Playable Role Benchmark Switcher */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-blue-400 stroke-[2.5]" />
+                <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+                  Target Career Benchmark:
+                </span>
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    Data Structures & Algorithms Score
-                  </span>
-                  <span className="text-sm font-mono font-bold text-emerald-400">{calcDsa}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={calcDsa}
-                  onChange={(e) => setCalcDsa(parseInt(e.target.value))}
-                  className="w-full accent-emerald-500 cursor-pointer"
-                />
-                <span className="text-xs text-slate-400 block mt-0.5">Weight: 25% • Tree, Graph, DP & Hash Optimizations</span>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    Core CS Fundamentals (DBMS, OS, Networks)
-                  </span>
-                  <span className="text-sm font-mono font-bold text-blue-400">{calcCore}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={calcCore}
-                  onChange={(e) => setCalcCore(parseInt(e.target.value))}
-                  className="w-full accent-blue-500 cursor-pointer"
-                />
-                <span className="text-xs text-slate-400 block mt-0.5">Weight: 20% • Transaction Isolation, Memory & Protocols</span>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    Foundational Aptitude (Quantitative & Logical)
-                  </span>
-                  <span className="text-sm font-mono font-bold text-amber-400">{calcAptitude}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={calcAptitude}
-                  onChange={(e) => setCalcAptitude(parseInt(e.target.value))}
-                  className="w-full accent-amber-500 cursor-pointer"
-                />
-                <span className="text-xs text-slate-400 block mt-0.5">Weight: 15% • Analytical Reasoning Speed</span>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    AI Mock Interview Verbal & Depth Score
-                  </span>
-                  <span className="text-sm font-mono font-bold text-indigo-400">{calcInterview}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={calcInterview}
-                  onChange={(e) => setCalcInterview(parseInt(e.target.value))}
-                  className="w-full accent-indigo-500 cursor-pointer"
-                />
-                <span className="text-xs text-slate-400 block mt-0.5">Weight: 20% • Technical Conviction & STAR Communication</span>
+              <div className="flex flex-wrap gap-2">
+                {['Software Developer', 'Full Stack Engineer', 'Systems Engineer', 'Data Analyst'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setTargetRole(r)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      targetRole === r
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Gauge Output Column */}
-            <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 lg:pl-10 lg:border-l border-slate-800 text-center">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 block">
-                Calibrated Placement Index
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Sliders Controls Column */}
+              <div className="lg:col-span-7 space-y-5">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      Academic Standing (CGPA)
+                    </span>
+                    <span className="text-sm font-mono font-bold text-blue-400">{calcCgpa} / 10.0</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5.0"
+                    max="10.0"
+                    step="0.1"
+                    value={calcCgpa}
+                    onChange={(e) => setCalcCgpa(parseFloat(e.target.value))}
+                    className="w-full accent-blue-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.cgpa * 100)}% of Composite</span>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      Data Structures & Algorithms
+                    </span>
+                    <span className="text-sm font-mono font-bold text-emerald-400">{calcDsa}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={calcDsa}
+                    onChange={(e) => setCalcDsa(parseInt(e.target.value))}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.dsa * 100)}% • Tree, Graph, DP & Hash Optimizations</span>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      Core Computer Science Fundamentals
+                    </span>
+                    <span className="text-sm font-mono font-bold text-blue-400">{calcCore}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={calcCore}
+                    onChange={(e) => setCalcCore(parseInt(e.target.value))}
+                    className="w-full accent-blue-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.core * 100)}% • DBMS, OS Kernel, Concurrency</span>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      Foundational Quantitative Aptitude
+                    </span>
+                    <span className="text-sm font-mono font-bold text-amber-400">{calcAptitude}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={calcAptitude}
+                    onChange={(e) => setCalcAptitude(parseInt(e.target.value))}
+                    className="w-full accent-amber-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.apt * 100)}% • Analytical Reasoning Speed</span>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      AI Mock Interview Verbal Composure
+                    </span>
+                    <span className="text-sm font-mono font-bold text-indigo-400">{calcInterview}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={calcInterview}
+                    onChange={(e) => setCalcInterview(parseInt(e.target.value))}
+                    className="w-full accent-indigo-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.interview * 100)}% • Technical Depth & STAR Delivery</span>
+                </div>
+              </div>
+
+              {/* Gauge Output Column */}
+              <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 lg:pl-10 lg:border-l border-slate-800 text-center">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 block">
+                  Calibrated {targetRole} Index
+                </span>
+
+                <div className="relative w-44 h-44 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r={radius}
+                      fill="transparent"
+                      stroke="#1e293b"
+                      strokeWidth="14"
+                    />
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r={radius}
+                      fill="transparent"
+                      stroke={
+                        computedSandboxScore >= 75
+                          ? '#059669'
+                          : computedSandboxScore >= 55
+                          ? '#d97706'
+                          : '#dc2626'
+                      }
+                      strokeWidth="14"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={dashoffset}
+                      strokeLinecap="round"
+                      className="transition-all duration-300"
+                    />
+                  </svg>
+                  <div className="absolute flex flex-col items-center">
+                    <span className="text-4xl font-black font-mono text-white">
+                      {computedSandboxScore}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                      / 100 PTS
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <span
+                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full border ${
+                      computedSandboxScore >= 75
+                        ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                        : computedSandboxScore >= 55
+                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                        : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                    }`}
+                  >
+                    {computedSandboxScore >= 75
+                      ? 'Placement Ready (Tier-1)'
+                      : computedSandboxScore >= 55
+                      ? 'Developing Competency'
+                      : 'Critical Skill Gap'}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-300 mt-4 leading-relaxed max-w-xs">
+                  {computedSandboxScore >= 75
+                    ? `Candidate meets competitive benchmark requirements for ${targetRole} recruitment cycles.`
+                    : computedSandboxScore >= 55
+                    ? `Moderate readiness for ${targetRole}. Focus targeted drill hours on lower-scoring sections.`
+                    : `High deficit identified for ${targetRole}. System automatically prioritizes remedial curriculum.`}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Playable Feature 2: Interactive AI Interview Drill Simulator */}
+      <section id="simulator" className="py-20 px-6 border-b border-slate-800 bg-slate-950">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Playable AI Mock Interview Evaluator
+            </h2>
+            <p className="text-sm text-slate-300 mt-3 leading-relaxed">
+              Test how the AI rubric evaluator scores candidate verbal responses. Click an answer below to trigger instant evaluation feedback.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {/* Live Question Bar */}
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
+              <span className="text-xs font-black uppercase tracking-wider text-blue-400 block mb-1">
+                Interviewer Question (Software Architecture Round):
+              </span>
+              <p className="text-base sm:text-lg font-bold text-white">
+                "How would you address cache stampede and thundering herd when thousands of concurrent requests query an expired cache key during peak traffic?"
+              </p>
+            </div>
+
+            {/* Clickable Candidate Answer Scenarios */}
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block mb-3">
+                Select an answer to simulate real-time AI evaluation:
               </span>
 
-              <div className="relative w-44 h-44 flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r={radius}
-                    fill="transparent"
-                    stroke="#1e293b"
-                    strokeWidth="14"
-                  />
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r={radius}
-                    fill="transparent"
-                    stroke={
-                      computedSandboxScore >= 75
-                        ? '#059669'
-                        : computedSandboxScore >= 55
-                        ? '#d97706'
-                        : '#dc2626'
-                    }
-                    strokeWidth="14"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={dashoffset}
-                    strokeLinecap="round"
-                    className="transition-all duration-300"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center">
-                  <span className="text-4xl font-black font-mono text-white">
-                    {computedSandboxScore}
-                  </span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                    / 100 PTS
-                  </span>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {sampleAnswers.map((ans, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedAnswerIndex(idx)}
+                    className={`p-5 rounded-2xl text-left border transition-all ${
+                      selectedAnswerIndex === idx
+                        ? 'border-blue-500 bg-slate-900 text-white shadow-sm ring-1 ring-blue-500'
+                        : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-black uppercase tracking-wider">
+                        {ans.title}
+                      </span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${ans.badgeColor}`}>
+                        {ans.badge}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed font-mono line-clamp-3">
+                      "{ans.text}"
+                    </p>
+                  </button>
+                ))}
               </div>
+            </div>
 
-              <div className="mt-4">
-                <span
-                  className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full border ${
-                    computedSandboxScore >= 75
-                      ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                      : computedSandboxScore >= 55
-                      ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                      : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                  }`}
-                >
-                  {computedSandboxScore >= 75
-                    ? 'Placement Ready (Tier-1)'
-                    : computedSandboxScore >= 55
-                    ? 'Developing Competency'
-                    : 'Critical Skill Gap'}
+            {/* Live Evaluation Feedback Output */}
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-8 space-y-2">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-400 block">
+                  AI Rubric Diagnostic Synthesis:
                 </span>
-              </div>
-
-              <p className="text-xs text-slate-300 mt-4 leading-relaxed max-w-xs">
-                {computedSandboxScore >= 75
-                  ? 'Strong candidate profile. Qualifies for high-tier campus recruitment drives and priority recruiter review.'
-                  : computedSandboxScore >= 55
-                  ? 'Moderate readiness. Remedial curriculum recommended in algorithm optimization and mock drills.'
-                  : 'High-risk deficit identified. System automatically assigns fundamental practice tracks.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Abstract Core Features Grid */}
-      <section id="features" className="py-20 px-6 border-b border-slate-800">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-14">
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Designed for Campus Recruitment Excellence
-            </h2>
-            <p className="text-sm text-slate-300 mt-3 leading-relaxed">
-              Every workflow from the engineering abstract implemented with enterprise rigor — zero black boxes, zero hallucinations.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 text-blue-400">
-                  <TrendingUp className="w-5 h-5 stroke-[2.2]" />
-                  <h3 className="text-base font-black text-white">
-                    Calibrated Readiness Index
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Synthesizes academic CGPA, multi-category assessments, and mock interview performance into an explainable 0–100% composite index.
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs font-bold text-blue-400">
-                Multi-Factor Synthesis
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 text-rose-400">
-                  <BarChart3 className="w-5 h-5 stroke-[2.2]" />
-                  <h3 className="text-base font-black text-white">
-                    Mathematical Deficit Ranking
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Calculates exact competency gaps using <code className="text-rose-300 font-mono">Deficit = Benchmark - Observed</code>. Prioritizes critical bottlenecks for urgent remediation.
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs font-bold text-rose-400">
-                Deterministic Gaps
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 text-emerald-400">
-                  <Bot className="w-5 h-5 stroke-[2.2]" />
-                  <h3 className="text-base font-black text-white">
-                    Voice-Enabled Mock Interview
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Interactive technical & behavioral simulations with Web Speech voice input, question readout, webcam preview, and automated NLP rubric evaluation.
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs font-bold text-emerald-400">
-                Real-Time Speech & Text
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 text-purple-400">
-                  <BookOpen className="w-5 h-5 stroke-[2.2]" />
-                  <h3 className="text-base font-black text-white">
-                    Curated Remedial Pathways
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Content-based recommendation mapping specific skill gaps directly to algorithmic practice, system design architectures, and interactive tutorials.
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs font-bold text-purple-400">
-                Targeted Learning
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 text-amber-400">
-                  <Building2 className="w-5 h-5 stroke-[2.2]" />
-                  <h3 className="text-base font-black text-white">
-                    Eligibility Pre-Validation
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Automated pre-validation against recruitment criteria (minimum CGPA, department restrictions, backlog limits) with transparent qualification feedback.
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs font-bold text-amber-400">
-                Fair Campus Recruitment
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 text-cyan-400">
-                  <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
-                  <h3 className="text-base font-black text-white">
-                    Accreditation Compliance
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Aggregated institutional statistics, batch placement funnels, and recruiter export sheets providing defensible records for accreditation audits.
-                </p>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs font-bold text-cyan-400">
-                Governance Ready
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* AI Mock Interview Spotlight */}
-      <section id="interview" className="py-20 px-6 border-b border-slate-800 bg-slate-950">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-                Practice High-Stakes Tech & Behavioral Interviews
-              </h2>
-              <p className="text-sm text-slate-300 mt-4 leading-relaxed max-w-lg">
-                Don't let your first interview experience happen in front of a hiring manager. Our AI interview simulator adapts questions dynamically, listens via voice speech recognition, and breaks down your response into actionable rubric scores.
-              </p>
-
-              <div className="space-y-4 mt-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-md bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Dynamic Contextual Follow-ups</h3>
-                    <p className="text-xs text-slate-300 mt-0.5">The evaluator probes deeper into your answer, challenging cache invalidations, distributed transactions, or complexity tradeoffs.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Web Speech Voice Interaction</h3>
-                    <p className="text-xs text-slate-300 mt-0.5">Speak directly using your microphone with real-time speech-to-text, paired with automated audio question readout.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Granular NLP Rubric Evaluation</h3>
-                    <p className="text-xs text-slate-300 mt-0.5">Scores Technical Depth and Communication Clarity separately, providing exact keyword tips to reach senior competency.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <button
-                  onClick={() => handleQuickLogin('arjun@student.edu', 'Student@123', 'STUDENT')}
-                  className="btn-primary bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 px-6 rounded-xl shadow-sm flex items-center gap-2"
-                >
-                  <Bot className="w-4 h-4" />
-                  <span>Start a Mock Interview Session</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Visual Preview Box */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <span className="text-xs font-bold text-slate-200">Live AI Evaluation Session</span>
-                </div>
-                <span className="text-xs font-mono text-blue-400 font-bold">Turn 2 of 4</span>
-              </div>
-
-              <div className="border-l-2 border-blue-500 pl-4 py-1">
-                <span className="text-xs font-black uppercase tracking-wider text-blue-400 block mb-1">
-                  AI Interviewer (Software Developer Track):
-                </span>
-                <p className="text-xs font-bold text-slate-100 leading-snug">
-                  "How would you address cache stampede and thundering herd when hundreds of concurrent requests request an expired cache key?"
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                  {currentAnswer.verdict}
                 </p>
               </div>
 
-              <div className="border-l-2 border-emerald-500 pl-4 py-1">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-400 block mb-1">
-                  Candidate Verbal Answer:
-                </span>
-                <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                  "I would implement mutex locking on cache misses so only one thread computes the value while others wait, paired with probabilistic early expiration..."
-                </p>
-              </div>
-
-              <div className="border-l-2 border-slate-700 pl-4 py-1 text-xs">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-emerald-300 text-xs uppercase tracking-wider">
-                    Rubric Scoring
+              <div className="md:col-span-4 flex items-center justify-around border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6 text-center">
+                <div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    Technical Depth
                   </span>
-                  <span className="font-mono font-bold text-emerald-400">
-                    Tech: 92% • Comm: 88%
+                  <span className="text-3xl font-black font-mono text-emerald-400 mt-1 block">
+                    {currentAnswer.techScore}%
                   </span>
                 </div>
-                <p className="text-xs text-slate-300">
-                  Exceptional answer; correctly identified lock synchronization and probabilistic refresh techniques.
-                </p>
+                <div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                    Communication
+                  </span>
+                  <span className="text-3xl font-black font-mono text-blue-400 mt-1 block">
+                    {currentAnswer.commScore}%
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -846,15 +852,15 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-10 px-6 border-t border-slate-800 bg-slate-950 text-slate-400 text-xs">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
               <GraduationCap className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-bold text-slate-200 block text-sm">PlacementAI</span>
-              <span className="text-xs text-slate-400">Student Success & Placement Readiness System</span>
+              <span className="font-bold text-slate-200 block text-sm">Ascend</span>
+              <span className="text-xs text-slate-400">Campus Placement & Career Readiness Platform</span>
             </div>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-6 font-semibold text-slate-300">
             <span>Spring Boot 3.3.4 (Java 21)</span>

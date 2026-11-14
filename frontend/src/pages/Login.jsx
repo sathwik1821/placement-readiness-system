@@ -52,14 +52,16 @@ export default function Login() {
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-6 text-gray-100">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <GraduationCap className="w-8 h-8 text-blue-500" />
-            <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-              PlacementAI
+          <Link to="/" className="inline-flex items-center justify-center gap-3 mb-2 hover:opacity-90 transition-opacity">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm ring-4 ring-blue-500/20">
+              <GraduationCap className="w-6 h-6 stroke-[2.2]" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-white">
+              Ascend
             </h1>
-          </div>
-          <p className="text-sm font-semibold text-slate-300">
-            Student Success & Placement Readiness System
+          </Link>
+          <p className="text-sm font-bold text-slate-300">
+            Campus Placement & Career Readiness Platform
           </p>
           <p className="mt-1 text-xs text-slate-400">
             Explainable Skill Analytics, AI Mock Interviews & Placement Operations
