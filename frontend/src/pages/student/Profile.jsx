@@ -87,7 +87,7 @@ export default function Profile() {
       ]);
 
       // Trigger analysis recalculation
-      await api.post('/analysis/generate').catch(() => {});
+      await api.post('/analysis/generate').catch(() => { });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {

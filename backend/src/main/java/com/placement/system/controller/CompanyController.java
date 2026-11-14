@@ -96,7 +96,7 @@ public class CompanyController {
             d.setJobDescription((String) body.getOrDefault("jobDescription", ""));
             d.setLocation((String) body.getOrDefault("location", "Campus / Hybrid"));
 
-            String reqStatus = (String) body.getOrDefault("status", "PUBLISHED");
+            String reqStatus = (String) body.getOrDefault("status", "PENDING_TPO_APPROVAL");
             d.setStatus(reqStatus);
 
             Object critObj = body.get("eligibilityCriteria");

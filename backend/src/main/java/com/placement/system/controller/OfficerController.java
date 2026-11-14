@@ -88,6 +88,19 @@ public class OfficerController {
         }
     }
 
+    @PutMapping("/drives/{id}/status")
+    public ResponseEntity<?> updateDriveStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
+        PlacementDrive drive = driveRepository.findById(id).orElse(null);
+        if (drive == null) return ResponseEntity.notFound().build();
+
+        String newStatus = body.get("status");
+        if (newStatus != null && !newStatus.isBlank()) {
+            drive.setStatus(newStatus.toUpperCase());
+            drive = driveRepository.save(drive);
+        }
+        return ResponseEntity.ok(drive);
+    }
+
     @GetMapping("/drives/{id}/applications")
     public ResponseEntity<?> getDriveApplications(@PathVariable String id) {
         List<PlacementApplication> apps = applicationRepository.findByDriveIdOrderByAppliedAtDesc(id);
