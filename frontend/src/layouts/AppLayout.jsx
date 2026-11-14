@@ -16,7 +16,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 
-export default function AppLayout({ children }) {
+function AppLayout({ children }) {
   const { role, logout, user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -149,3 +149,6 @@ export default function AppLayout({ children }) {
     </div>
   );
 }
+
+export default AppLayout;
+
