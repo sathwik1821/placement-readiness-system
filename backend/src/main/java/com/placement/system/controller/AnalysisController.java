@@ -1,0 +1,177 @@
+package com.placement.system.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.placement.system.model.*;
+import com.placement.system.repository.*;
+import com.placement.system.service.JwtService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.*;
+
+@RestController
+@RequestMapping("/api/analysis")
+public class AnalysisController {
+
+    @Autowired
+    private AnalysisReportRepository reportRepository;
+
+    @Autowired
+    private LearningRecommendationRepository recommendationRepository;
+
+    @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private CareerGoalRepository careerGoalRepository;
+
+    @Autowired
+    private TestAttemptRepository attemptRepository;
+
+    @Autowired
+    private TestCategoryRepository categoryRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @GetMapping("/report")
+    public ResponseEntity<?> getLatestReport(@RequestHeader("Authorization") String authHeader) {
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        Student student = studentRepository.findByUserId(userId).orElse(null);
+        if (student == null) return ResponseEntity.notFound().build();
+
+        AnalysisReport report = reportRepository.findFirstByStudentIdOrderByGeneratedAtDesc(student.getId())
+                .orElseGet(() -> generateReportInternal(student));
+
+        report.setRecommendations(recommendationRepository.findByAnalysisReportId(report.getId()));
+        return ResponseEntity.ok(report);
+    }
+
+    @PostMapping("/generate")
+    public ResponseEntity<?> generateReport(@RequestHeader("Authorization") String authHeader) {
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        Student student = studentRepository.findByUserId(userId).orElse(null);
+        if (student == null) return ResponseEntity.notFound().build();
+
+        AnalysisReport report = generateReportInternal(student);
+        report.setRecommendations(recommendationRepository.findByAnalysisReportId(report.getId()));
+        return ResponseEntity.ok(report);
+    }
+
+    private AnalysisReport generateReportInternal(Student student) {
+        CareerGoal goal = careerGoalRepository.findByStudentId(student.getId()).orElse(null);
+        String targetRole = goal != null ? goal.getTargetRole() : "Software Developer";
+
+        List<TestAttempt> completed = attemptRepository.findByStudentIdAndStatusOrderByCompletedAtDesc(student.getId(), "COMPLETED");
+        Map<String, Double> categoryScores = new HashMap<>();
+
+        for (TestAttempt a : completed) {
+            categoryRepository.findById(a.getTestCategoryId()).ifPresent(cat -> {
+                categoryScores.putIfAbsent(cat.getName(), a.getPercentageScore());
+            });
+        }
+
+        Map<String, Double> weights = Map.of(
+            "Quantitative Aptitude", 0.15,
+            "Logical Reasoning", 0.15,
+            "Verbal Ability", 0.10,
+            "Data Structures & Algorithms", 0.15,
+            "OOP Concepts", 0.10,
+            "DBMS", 0.10,
+            "Operating Systems", 0.05,
+            "Computer Networks", 0.05
+        );
+
+        double weightedSum = 0.0;
+        double totalWeight = 0.0;
+        Map<String, Object> breakdown = new HashMap<>();
+
+        for (Map.Entry<String, Double> entry : weights.entrySet()) {
+            String cat = entry.getKey();
+            double w = entry.getValue();
+            double sc = categoryScores.getOrDefault(cat, 50.0);
+            weightedSum += sc * w;
+            totalWeight += w;
+            breakdown.put(cat, Map.of("score", Math.round(sc), "weight", w, "attempted", categoryScores.containsKey(cat)));
+        }
+
+        double cgpaFactor = Math.min(100.0, Math.max(0.0, (student.getCgpa() / 10.0) * 100.0));
+        weightedSum += cgpaFactor * 0.15;
+        totalWeight += 0.15;
+        breakdown.put("Academic Standing (CGPA)", Map.of("score", Math.round(cgpaFactor), "weight", 0.15, "attempted", true));
+
+        double readinessScore = Math.min(100.0, Math.max(10.0, Math.round(weightedSum / totalWeight)));
+
+        Map<String, Integer> benchmarks = Map.of(
+            "Data Structures & Algorithms", 75,
+            "Quantitative Aptitude", 70,
+            "Logical Reasoning", 70,
+            "DBMS", 75,
+            "OOP Concepts", 70,
+            "Operating Systems", 65,
+            "Computer Networks", 65,
+            "Verbal Ability", 65
+        );
+
+        List<Map<String, Object>> strengths = new ArrayList<>();
+        List<Map<String, Object>> skillGaps = new ArrayList<>();
+
+        for (Map.Entry<String, Integer> b : benchmarks.entrySet()) {
+            String skill = b.getKey();
+            int benchmark = b.getValue();
+            double sc = categoryScores.getOrDefault(skill, 50.0);
+            if (sc >= benchmark) {
+                strengths.add(Map.of("skill", skill, "score", Math.round(sc), "level", sc >= 85 ? "Mastery" : "Proficient"));
+            } else {
+                double deficit = benchmark - sc;
+                skillGaps.add(Map.of(
+                    "skill", skill,
+                    "observed", Math.round(sc),
+                    "required", benchmark,
+                    "deficit", Math.round(deficit),
+                    "priority", deficit >= 20 ? "HIGH" : deficit >= 10 ? "MEDIUM" : "LOW"
+                ));
+            }
+        }
+
+        skillGaps.sort((a, b) -> ((Number) b.get("deficit")).intValue() - ((Number) a.get("deficit")).intValue());
+
+        String aiFeedback = "Your calculated Placement Readiness Score is " + Math.round(readinessScore) + "/100 for " + targetRole + ". ";
+        if (!strengths.isEmpty()) {
+            aiFeedback += "You demonstrate verified strength in " + strengths.get(0).get("skill") + ". ";
+        }
+        if (!skillGaps.isEmpty()) {
+            Map<String, Object> top = skillGaps.get(0);
+            aiFeedback += "Prioritize remedial modules in " + top.get("skill") + " (" + top.get("observed") + "% observed vs " + top.get("required") + "% expected threshold).";
+        } else {
+            aiFeedback += "Your competencies are balanced across primary hiring benchmarks.";
+        }
+
+        try {
+            AnalysisReport r = new AnalysisReport();
+            r.setStudentId(student.getId());
+            r.setReadinessScore(readinessScore);
+            r.setReadinessBreakdown(mapper.writeValueAsString(breakdown));
+            r.setStrengths(mapper.writeValueAsString(strengths));
+            r.setSkillGaps(mapper.writeValueAsString(skillGaps));
+            r.setAiFeedback(aiFeedback);
+            r = reportRepository.save(r);
+
+            // Add recommendations
+            for (int i = 0; i < Math.min(3, skillGaps.size()); i++) {
+                String gapName = (String) skillGaps.get(i).get("skill");
+                String prio = (String) skillGaps.get(i).get("priority");
+                recommendationRepository.save(new LearningRecommendation(
+                    r.getId(), gapName, "PRACTICE", gapName + " Curated Mastery Modules", "https://leetcode.com", prio
+                ));
+            }
+            return r;
+        } catch (Exception e) {
+            throw new RuntimeException("Error synthesizing analysis report", e);
+        }
+    }
+}
