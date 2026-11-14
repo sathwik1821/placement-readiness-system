@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import AppLayout from './layouts/AppLayout';
 
 import Login from './pages/Login';
+import Landing from './pages/Landing';
 import StudentDashboard from './pages/student/Dashboard';
 import Tests from './pages/student/Tests';
 import TakeTest from './pages/student/TakeTest';
@@ -72,7 +73,8 @@ export default function App() {
           path="/login"
           element={isAuthenticated ? <Navigate to={roleHome} replace /> : <Login />}
         />
-        <Route path="/" element={<Navigate to={defaultRedirect} replace />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/landing" element={<Landing />} />
 
         {/* Student Portal Routes */}
         <Route
