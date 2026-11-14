@@ -64,7 +64,7 @@ public class AnalysisController {
 
     private AnalysisReport generateReportInternal(Student student) {
         CareerGoal goal = careerGoalRepository.findByStudentId(student.getId()).orElse(null);
-        String targetRole = goal != null ? goal.getTargetRole() : "Software Developer";
+        String targetRole = goal != null && goal.getTargetRole() != null ? goal.getTargetRole() : "Java Full Stack Developer";
 
         List<TestAttempt> completed = attemptRepository.findByStudentIdAndStatusOrderByCompletedAtDesc(student.getId(), "COMPLETED");
         Map<String, Double> categoryScores = new HashMap<>();
@@ -75,16 +75,8 @@ public class AnalysisController {
             });
         }
 
-        Map<String, Double> weights = Map.of(
-            "Quantitative Aptitude", 0.15,
-            "Logical Reasoning", 0.15,
-            "Verbal Ability", 0.10,
-            "Data Structures & Algorithms", 0.15,
-            "OOP Concepts", 0.10,
-            "DBMS", 0.10,
-            "Operating Systems", 0.05,
-            "Computer Networks", 0.05
-        );
+        Map<String, Double> weights = getRoleWeights(targetRole);
+        Map<String, Integer> benchmarks = getRoleBenchmarks(targetRole);
 
         double weightedSum = 0.0;
         double totalWeight = 0.0;
@@ -105,17 +97,6 @@ public class AnalysisController {
         breakdown.put("Academic Standing (CGPA)", Map.of("score", Math.round(cgpaFactor), "weight", 0.15, "attempted", true));
 
         double readinessScore = Math.min(100.0, Math.max(10.0, Math.round(weightedSum / totalWeight)));
-
-        Map<String, Integer> benchmarks = Map.of(
-            "Data Structures & Algorithms", 75,
-            "Quantitative Aptitude", 70,
-            "Logical Reasoning", 70,
-            "DBMS", 75,
-            "OOP Concepts", 70,
-            "Operating Systems", 65,
-            "Computer Networks", 65,
-            "Verbal Ability", 65
-        );
 
         List<Map<String, Object>> strengths = new ArrayList<>();
         List<Map<String, Object>> skillGaps = new ArrayList<>();
@@ -172,6 +153,88 @@ public class AnalysisController {
             return r;
         } catch (Exception e) {
             throw new RuntimeException("Error synthesizing analysis report", e);
+        }
+    }
+
+    private Map<String, Double> getRoleWeights(String role) {
+        String normalized = role != null ? role.trim() : "Java Full Stack Developer";
+        if (normalized.contains("MERN") || normalized.equalsIgnoreCase("MERN Full Stack Developer")) {
+            return Map.of(
+                "Web Frontend & React", 0.25,
+                "Node.js & Backend Architecture", 0.20,
+                "DBMS", 0.15,
+                "Data Structures & Algorithms", 0.15,
+                "OOP Concepts", 0.10,
+                "Logical Reasoning", 0.15
+            );
+        } else if (normalized.contains("AI") || normalized.contains("ML") || normalized.equalsIgnoreCase("AI / ML Engineer")) {
+            return Map.of(
+                "Machine Learning & Python", 0.30,
+                "Data Structures & Algorithms", 0.20,
+                "Quantitative Aptitude", 0.20,
+                "DBMS", 0.15,
+                "Logical Reasoning", 0.15
+            );
+        } else if (normalized.contains("Data Analyst") || normalized.equalsIgnoreCase("Data Analyst")) {
+            return Map.of(
+                "Data Analytics & BI (SQL/Tableau)", 0.25,
+                "DBMS", 0.25,
+                "Quantitative Aptitude", 0.20,
+                "Logical Reasoning", 0.15,
+                "Verbal Ability", 0.15
+            );
+        } else {
+            // Default: Java Full Stack Developer
+            return Map.of(
+                "Java & Spring Boot", 0.20,
+                "Data Structures & Algorithms", 0.15,
+                "DBMS", 0.15,
+                "Web Frontend & React", 0.15,
+                "OOP Concepts", 0.10,
+                "Quantitative Aptitude", 0.10,
+                "Logical Reasoning", 0.10
+            );
+        }
+    }
+
+    private Map<String, Integer> getRoleBenchmarks(String role) {
+        String normalized = role != null ? role.trim() : "Java Full Stack Developer";
+        if (normalized.contains("MERN") || normalized.equalsIgnoreCase("MERN Full Stack Developer")) {
+            return Map.of(
+                "Web Frontend & React", 85,
+                "Node.js & Backend Architecture", 80,
+                "DBMS", 75,
+                "Data Structures & Algorithms", 70,
+                "OOP Concepts", 75,
+                "Logical Reasoning", 70
+            );
+        } else if (normalized.contains("AI") || normalized.contains("ML") || normalized.equalsIgnoreCase("AI / ML Engineer")) {
+            return Map.of(
+                "Machine Learning & Python", 85,
+                "Data Structures & Algorithms", 75,
+                "Quantitative Aptitude", 80,
+                "DBMS", 70,
+                "Logical Reasoning", 75
+            );
+        } else if (normalized.contains("Data Analyst") || normalized.equalsIgnoreCase("Data Analyst")) {
+            return Map.of(
+                "Data Analytics & BI (SQL/Tableau)", 85,
+                "DBMS", 80,
+                "Quantitative Aptitude", 75,
+                "Logical Reasoning", 75,
+                "Verbal Ability", 70
+            );
+        } else {
+            // Default: Java Full Stack Developer
+            return Map.of(
+                "Java & Spring Boot", 80,
+                "Data Structures & Algorithms", 75,
+                "DBMS", 75,
+                "Web Frontend & React", 70,
+                "OOP Concepts", 75,
+                "Quantitative Aptitude", 70,
+                "Logical Reasoning", 70
+            );
         }
     }
 }

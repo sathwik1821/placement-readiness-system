@@ -127,7 +127,12 @@ public class DatabaseSeeder {
                 new TestCategory("DBMS", "TECHNICAL", "Computer Science", "SQL joins, ACID guarantees, 3NF normalization, and indexing."),
                 new TestCategory("OOP Concepts", "TECHNICAL", "Computer Science", "SOLID principles, encapsulation, polymorphism, design patterns."),
                 new TestCategory("Operating Systems", "TECHNICAL", "Computer Science", "Processes, virtual memory, threads, synchronization, deadlocks."),
-                new TestCategory("Computer Networks", "TECHNICAL", "Computer Science", "TCP/IP models, routing protocols, sockets, and security.")
+                new TestCategory("Computer Networks", "TECHNICAL", "Computer Science", "TCP/IP models, routing protocols, sockets, and security."),
+                new TestCategory("Java & Spring Boot", "TECHNICAL", "Java Full Stack", "Core Java, JVM memory, Spring Boot REST APIs, JPA/Hibernate, Microservices."),
+                new TestCategory("Web Frontend & React", "TECHNICAL", "Full Stack Web", "React hooks, state management, component lifecycles, Virtual DOM, CSS/Tailwind."),
+                new TestCategory("Node.js & Backend Architecture", "TECHNICAL", "MERN Stack", "Express routing, asynchronous event loops, MongoDB/Mongoose, JWT security."),
+                new TestCategory("Machine Learning & Python", "TECHNICAL", "AI / Data Science", "Supervised/unsupervised models, scikit-learn, neural networks, loss functions."),
+                new TestCategory("Data Analytics & BI (SQL/Tableau)", "TECHNICAL", "Analytics", "Complex SQL window functions, aggregation, ETL pipelines, BI metrics.")
             );
 
             for (TestCategory c : categories) {
@@ -171,6 +176,52 @@ public class DatabaseSeeder {
                     "Identify the missing number in the numerical progression: 7, 14, 28, 56, ?",
                     mapper.writeValueAsString(List.of("84", "96", "112", "124")),
                     "112", "EASY", "Number Series", 1, 0.25);
+
+            // Seed Role-Specific Track Questions
+            addQuestionIfMissing(questionRepository, catMap.get("Java & Spring Boot"),
+                    "In Spring Boot, which annotation is primarily used to inject bean dependencies automatically into fields or constructors?",
+                    mapper.writeValueAsString(List.of("@Autowired", "@Injectable", "@ComponentBinding", "@ResourceRef")),
+                    "@Autowired", "EASY", "Spring IoC & DI", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Java & Spring Boot"),
+                    "What is the key functional difference between JVM and JRE in the Java ecosystem?",
+                    mapper.writeValueAsString(List.of("JVM executes bytecode; JRE provides the execution environment and standard class libraries", "JRE compiles source code; JVM converts to binary", "JVM is only used on Windows; JRE is cross-platform", "There is no difference")),
+                    "JVM executes bytecode; JRE provides the execution environment and standard class libraries", "MEDIUM", "Java Internals", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Web Frontend & React"),
+                    "In React 18, which React hook should be utilized to perform side effects such as data subscriptions or manual DOM modifications?",
+                    mapper.writeValueAsString(List.of("useState", "useEffect", "useMemo", "useContext")),
+                    "useEffect", "EASY", "React Hooks", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Web Frontend & React"),
+                    "What is the fundamental architectural benefit of the React Virtual DOM during state changes?",
+                    mapper.writeValueAsString(List.of("Diffs changes in-memory and minimizes expensive real-DOM re-paint operations", "Directly binds to GPU hardware acceleration", "Eliminates JavaScript runtime overhead", "Stores component state permanently in local storage")),
+                    "Diffs changes in-memory and minimizes expensive real-DOM re-paint operations", "MEDIUM", "Virtual DOM Reconciliation", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Node.js & Backend Architecture"),
+                    "How does Node.js successfully handle thousands of concurrent client requests despite its single-threaded JavaScript execution model?",
+                    mapper.writeValueAsString(List.of("Through an asynchronous, non-blocking Event Loop powered by libuv", "By spawning native OS threads for every incoming TCP socket", "By utilizing synchronous thread sleep routines", "Through multi-core CPU time slicing")),
+                    "Through an asynchronous, non-blocking Event Loop powered by libuv", "MEDIUM", "Node.js Event Loop", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Machine Learning & Python"),
+                    "Which classical machine learning algorithm finds the optimal decision hyperplane that maximizes the geometric margin between data classes?",
+                    mapper.writeValueAsString(List.of("Support Vector Machines (SVM)", "K-Means Clustering", "Naive Bayes Classifier", "Linear Regression")),
+                    "Support Vector Machines (SVM)", "MEDIUM", "Classification Algorithms", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Machine Learning & Python"),
+                    "In deep neural network training, which activation function mitigates the vanishing gradient problem commonly found in Sigmoid units?",
+                    mapper.writeValueAsString(List.of("Rectified Linear Unit (ReLU)", "Hyperbolic Tangent (Tanh)", "Softmax", "Binary Step Function")),
+                    "Rectified Linear Unit (ReLU)", "MEDIUM", "Neural Activation Functions", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Data Analytics & BI (SQL/Tableau)"),
+                    "Which ANSI SQL window function assigns a contiguous sequential integer to each row within a window partition starting at 1?",
+                    mapper.writeValueAsString(List.of("ROW_NUMBER()", "DENSE_RANK()", "LEAD()", "PARTITION_INDEX()")),
+                    "ROW_NUMBER()", "EASY", "SQL Analytical Window Functions", 1, 0.25);
+
+            addQuestionIfMissing(questionRepository, catMap.get("Data Analytics & BI (SQL/Tableau)"),
+                    "In business intelligence enterprise data modeling, what architectural pattern connects a central fact table directly to surrounding dimension tables?",
+                    mapper.writeValueAsString(List.of("Star Schema", "Snowflake Schema (Normalized)", "Galaxy Constellation", "Relational 3NF")),
+                    "Star Schema", "MEDIUM", "Dimensional Data Modeling", 1, 0.25);
 
             // 6. External Jobs
             if (jobRepository.count() == 0) {

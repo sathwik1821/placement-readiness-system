@@ -36,7 +36,7 @@ export default function MockInterview() {
   const [evaluating, setEvaluating] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const [targetRole, setTargetRole] = useState('Software Developer');
+  const [targetRole, setTargetRole] = useState('Java Full Stack Developer');
   const [interviewType, setInterviewType] = useState('TECHNICAL');
 
   // Voice Speech Recognition & TTS States
@@ -305,10 +305,10 @@ export default function MockInterview() {
                 onChange={(e) => setTargetRole(e.target.value)}
                 className="input font-semibold"
               >
-                <option value="Software Developer">Software Developer (SDE-1)</option>
-                <option value="Full Stack Developer">Full Stack Web Engineer</option>
-                <option value="Systems Engineer">Systems & Embedded Engineer</option>
-                <option value="Data Analyst">Data Analyst & Quantitative Trainee</option>
+                <option value="Java Full Stack Developer">Java Full Stack Developer (Spring Boot, Microservices, React)</option>
+                <option value="MERN Full Stack Developer">MERN Full Stack Developer (React, Node.js, Express, MongoDB)</option>
+                <option value="AI / ML Engineer">AI / ML Engineer (Python, Transformers, Deep Learning)</option>
+                <option value="Data Analyst">Data Analyst (Advanced SQL, Data Warehousing, BI)</option>
               </select>
             </div>
 

@@ -28,7 +28,7 @@ export default function Landing() {
   const [quickLoginLoading, setQuickLoginLoading] = useState(false);
 
   // Playable Element 1: Interactive Readiness Sandbox
-  const [targetRole, setTargetRole] = useState('Software Developer');
+  const [targetRole, setTargetRole] = useState('Java Full Stack Developer');
   const [calcCgpa, setCalcCgpa] = useState(8.2);
   const [calcDsa, setCalcDsa] = useState(78);
   const [calcCore, setCalcCore] = useState(74);
@@ -62,13 +62,13 @@ export default function Landing() {
 
   // Role Benchmark multipliers
   const roleWeights = {
-    'Software Developer': { cgpa: 0.20, dsa: 0.25, core: 0.20, apt: 0.15, interview: 0.20 },
-    'Full Stack Engineer': { cgpa: 0.15, dsa: 0.20, core: 0.25, apt: 0.15, interview: 0.25 },
-    'Systems Engineer': { cgpa: 0.20, dsa: 0.20, core: 0.30, apt: 0.15, interview: 0.15 },
+    'Java Full Stack Developer': { cgpa: 0.15, dsa: 0.20, core: 0.25, apt: 0.15, interview: 0.25 },
+    'MERN Full Stack Developer': { cgpa: 0.15, dsa: 0.15, core: 0.30, apt: 0.15, interview: 0.25 },
+    'AI / ML Engineer': { cgpa: 0.20, dsa: 0.25, core: 0.25, apt: 0.20, interview: 0.10 },
     'Data Analyst': { cgpa: 0.20, dsa: 0.15, core: 0.20, apt: 0.25, interview: 0.20 }
   };
 
-  const currentW = roleWeights[targetRole] || roleWeights['Software Developer'];
+  const currentW = roleWeights[targetRole] || roleWeights['Java Full Stack Developer'];
 
   const computedSandboxScore = Math.round(
     ((calcCgpa / 10.0) * 100 * currentW.cgpa) +
@@ -305,7 +305,7 @@ export default function Landing() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {['Software Developer', 'Full Stack Engineer', 'Systems Engineer', 'Data Analyst'].map((r) => (
+                {['Java Full Stack Developer', 'MERN Full Stack Developer', 'AI / ML Engineer', 'Data Analyst'].map((r) => (
                   <button
                     key={r}
                     onClick={() => setTargetRole(r)}

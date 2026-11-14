@@ -9,25 +9,66 @@ import {
   ArrowRight,
   BookOpen,
   Code2,
-  Cpu
+  Cpu,
+  Sparkles,
+  Layers,
+  Check
 } from 'lucide-react';
 
 export default function Tests() {
   const [categories, setCategories] = useState([]);
   const [attempts, setAttempts] = useState([]);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [startingId, setStartingId] = useState(null);
+  const [filterMode, setFilterMode] = useState('RECOMMENDED'); // 'RECOMMENDED' or 'ALL'
   const navigate = useNavigate();
+
+  const ROLE_RECOMMENDED_TESTS = {
+    'Java Full Stack Developer': [
+      'Java & Spring Boot',
+      'Web Frontend & React',
+      'Data Structures & Algorithms',
+      'DBMS',
+      'OOP Concepts',
+      'Quantitative Aptitude',
+      'Logical Reasoning'
+    ],
+    'MERN Full Stack Developer': [
+      'Web Frontend & React',
+      'Node.js & Backend Architecture',
+      'DBMS',
+      'Data Structures & Algorithms',
+      'OOP Concepts',
+      'Logical Reasoning'
+    ],
+    'AI / ML Engineer': [
+      'Machine Learning & Python',
+      'Data Structures & Algorithms',
+      'Quantitative Aptitude',
+      'DBMS',
+      'Logical Reasoning'
+    ],
+    'Data Analyst': [
+      'Data Analytics & BI (SQL/Tableau)',
+      'DBMS',
+      'Quantitative Aptitude',
+      'Logical Reasoning',
+      'Verbal Ability'
+    ]
+  };
 
   useEffect(() => {
     async function loadAssessments() {
       try {
-        const [catRes, attRes] = await Promise.all([
+        const [catRes, attRes, profRes] = await Promise.all([
           api.get('/assessments/categories'),
-          api.get('/assessments/attempts').catch(() => ({ data: [] }))
+          api.get('/assessments/attempts').catch(() => ({ data: [] })),
+          api.get('/students/profile').catch(() => ({ data: null }))
         ]);
         setCategories(catRes.data || []);
         setAttempts(attRes.data || []);
+        setProfile(profRes.data);
       } catch (err) {
         console.error('Failed loading tests data', err);
       } finally {
@@ -63,45 +104,101 @@ export default function Tests() {
     );
   }
 
-  const commonTests = categories.filter((c) => c.type === 'COMMON');
-  const techTests = categories.filter((c) => c.type === 'TECHNICAL');
+  const rawRole = profile?.careerGoal?.targetRole || 'Java Full Stack Developer';
+  const targetRole = ROLE_RECOMMENDED_TESTS[rawRole] ? rawRole : 'Java Full Stack Developer';
+  const recommendedList = ROLE_RECOMMENDED_TESTS[targetRole] || [];
+
+  const isRecommended = (catName) => recommendedList.some((r) => r.toLowerCase() === catName.toLowerCase());
+
+  const displayedCategories = filterMode === 'RECOMMENDED'
+    ? categories.filter((c) => isRecommended(c.name))
+    : categories;
+
+  const commonTests = displayedCategories.filter((c) => c.type === 'COMMON');
+  const techTests = displayedCategories.filter((c) => c.type === 'TECHNICAL');
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-          Placement Assessment Suites
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Objective timed evaluations mapped to your career goal benchmark competency vectors.
-        </p>
+    <div className="space-y-8 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            Placement Assessment Suites
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
+            Timed diagnostic tests calibrated directly against your target career track: <strong className="text-blue-700">{targetRole}</strong>.
+          </p>
+        </div>
+
+        {/* Filter Switcher */}
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+          <button
+            type="button"
+            onClick={() => setFilterMode('RECOMMENDED')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              filterMode === 'RECOMMENDED'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Recommended for {targetRole.split(' ')[0]}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode('ALL')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              filterMode === 'ALL'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>All Suites ({categories.length})</span>
+          </button>
+        </div>
       </div>
 
-      {/* Foundational Tests */}
+      {/* Technical Domain Tests */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-          <BookOpen className="w-5 h-5 text-blue-600" />
-          <h2 className="text-base font-bold text-gray-900">
-            Common Foundational Assessments
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+          <Code2 className="w-5 h-5 text-blue-600 stroke-[2.2]" />
+          <h2 className="text-base font-bold text-slate-900">
+            Technical & Engineering Modules
           </h2>
-          <span className="text-xs text-gray-500">
-            (Aptitude, Reasoning, Verbal & Communication)
+          <span className="text-xs font-bold text-slate-500">
+            ({techTests.length} Modules Available)
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {commonTests.map((cat) => {
+          {techTests.map((cat) => {
             const latest = getLatestAttempt(cat.id);
             const isStarting = startingId === cat.id;
+            const isRec = isRecommended(cat.name);
 
             return (
               <div
                 key={cat.id}
-                className="card bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
+                className={`bg-white border rounded-2xl p-5 hover:shadow-xs transition-all flex flex-col justify-between ${
+                  isRec ? 'border-blue-300 ring-1 ring-blue-500/10' : 'border-slate-200/90'
+                }`}
               >
                 <div>
                   <div className="flex justify-between items-start gap-2 mb-2">
-                    <h3 className="text-sm font-bold text-gray-900">{cat.name}</h3>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                          {cat.department || 'Computer Science'}
+                        </span>
+                        {isRec && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 border border-blue-200 flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            <span>Track Core</span>
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-900">{cat.name}</h3>
+                    </div>
+
                     {latest ? (
                       <span
                         className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
@@ -115,14 +212,16 @@ export default function Tests() {
                         Score: {latest.percentageScore}%
                       </span>
                     ) : (
-                      <span className="badge-gray text-xs">Unattempted</span>
+                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                        Unattempted
+                      </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-600 mb-4 leading-relaxed">{cat.description}</p>
+                  <p className="text-xs text-slate-600 mb-4 leading-relaxed">{cat.description}</p>
                 </div>
 
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span>{cat._count?.questions || 10} Questions</span>
@@ -133,7 +232,7 @@ export default function Tests() {
                   <button
                     onClick={() => handleStartTest(cat.id)}
                     disabled={isStarting}
-                    className="btn-primary text-xs py-1.5 px-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-sm flex items-center gap-1.5 font-semibold"
+                    className="text-xs py-1.5 px-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-xs flex items-center gap-1.5 font-bold transition-colors cursor-pointer"
                   >
                     {isStarting ? (
                       <span>Loading...</span>
@@ -156,36 +255,43 @@ export default function Tests() {
         </div>
       </section>
 
-      {/* Technical Domain Tests */}
+      {/* Foundational Tests */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-          <Code2 className="w-5 h-5 text-blue-600" />
-          <h2 className="text-base font-bold text-gray-900">
-            Domain-Specific Technical Assessments
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+          <BookOpen className="w-5 h-5 text-blue-600 stroke-[2.2]" />
+          <h2 className="text-base font-bold text-slate-900">
+            Common Foundational Assessments
           </h2>
-          <span className="text-xs text-gray-500">
-            (Data Structures, DBMS, OOP, Operating Systems, Networks)
+          <span className="text-xs font-bold text-slate-500">
+            (Aptitude, Reasoning & Verbal Ability)
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {techTests.map((cat) => {
+          {commonTests.map((cat) => {
             const latest = getLatestAttempt(cat.id);
             const isStarting = startingId === cat.id;
+            const isRec = isRecommended(cat.name);
 
             return (
               <div
                 key={cat.id}
-                className="card bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
+                className={`bg-white border rounded-2xl p-5 hover:shadow-xs transition-all flex flex-col justify-between ${
+                  isRec ? 'border-blue-300 ring-1 ring-blue-500/10' : 'border-slate-200/90'
+                }`}
               >
                 <div>
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <div>
-                      <h3 className="text-sm font-bold text-gray-900">{cat.name}</h3>
-                      <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider block mt-0.5">
-                        Domain: {cat.domain || 'Core Engineering'}
-                      </span>
+                      {isRec && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-1 mb-1">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          <span>Track Core</span>
+                        </span>
+                      )}
+                      <h3 className="text-sm font-bold text-slate-900">{cat.name}</h3>
                     </div>
+
                     {latest ? (
                       <span
                         className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
@@ -199,25 +305,27 @@ export default function Tests() {
                         Score: {latest.percentageScore}%
                       </span>
                     ) : (
-                      <span className="badge-gray text-xs">Unattempted</span>
+                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                        Unattempted
+                      </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-600 mb-4 leading-relaxed">{cat.description}</p>
+                  <p className="text-xs text-slate-600 mb-4 leading-relaxed">{cat.description}</p>
                 </div>
 
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span>{cat._count?.questions || 10} Questions</span>
                     </span>
-                    <span>• Timed 25m</span>
+                    <span>• Timed 20m</span>
                   </div>
 
                   <button
                     onClick={() => handleStartTest(cat.id)}
                     disabled={isStarting}
-                    className="btn-primary text-xs py-1.5 px-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-sm flex items-center gap-1.5 font-semibold"
+                    className="text-xs py-1.5 px-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-xs flex items-center gap-1.5 font-bold transition-colors cursor-pointer"
                   >
                     {isStarting ? (
                       <span>Loading...</span>

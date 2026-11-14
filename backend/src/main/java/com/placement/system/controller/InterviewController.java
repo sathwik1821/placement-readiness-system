@@ -36,33 +36,33 @@ public class InterviewController {
 
     // Categorized domain question banks
     private static final Map<String, List<String>> ROLE_QUESTIONS = Map.of(
-        "Software Developer", List.of(
-            "Can you explain how a Hash Map handles collision resolution internally, and discuss the performance difference between separate chaining and open addressing?",
-            "How would you design a scalable rate limiter for a distributed microservices architecture handling 100,000 requests per second?",
-            "Explain the difference between optimistic and pessimistic locking in database transactions, and describe a scenario where each is preferred.",
-            "What happens under the hood when a thread enters a synchronized block or acquires a mutex lock in a multi-threaded system?",
-            "How do you approach identifying and resolving memory leaks in a long-running production service?"
+        "Java Full Stack Developer", List.of(
+            "How does the JVM Garbage Collector manage memory across Eden, Survivor, and Tenured spaces, and how do you diagnose OutOfMemoryError?",
+            "Explain the difference between @Component, @Service, and @Repository in Spring Boot, and how Spring manages bean lifecycles.",
+            "How would you design a scalable microservices architecture using Spring Boot, Spring Cloud Eureka, and a resilient Circuit Breaker (Resilience4j)?",
+            "Explain optimistic vs pessimistic locking in JPA/Hibernate transactions and how to resolve dirty read race conditions in high-throughput databases.",
+            "How do you implement secure stateless JWT authentication and CORS configurations in Spring Security?"
         ),
-        "Full Stack Developer", List.of(
-            "Explain how the React Virtual DOM diffing algorithm (Reconciliation) optimizes UI updates, and what pitfalls can cause unnecessary re-renders.",
+        "MERN Full Stack Developer", List.of(
+            "Explain how the React Virtual DOM diffing algorithm (Reconciliation) optimizes UI updates, and what pitfalls can cause unnecessary component re-renders.",
+            "How does the Node.js Event Loop process microtasks (process.nextTick, Promise callbacks) vs macrotasks (setTimeout, setImmediate)?",
+            "In MongoDB, when would you choose document referencing with populate() versus embedded subdocuments, and how do indexes affect write performance?",
             "Compare REST and GraphQL architectures. Under what specific product and network constraints would you select GraphQL over REST?",
-            "How do you implement secure stateless JWT authentication with refresh token rotation and defend against XSS and CSRF attacks?",
-            "Walk me through how a browser renders a web page from the initial DNS lookup to painting pixels on the screen.",
-            "How would you optimize a slow database query involving a three-table JOIN in an e-commerce platform?"
+            "How do you design a state management architecture in React (Zustand or Redux Toolkit) with optimistic UI updates and async error handling?"
         ),
-        "Systems Engineer", List.of(
-            "What is the difference between kernel space and user space, and what triggers an operating system context switch?",
-            "Explain virtual memory management, page tables, and how a Translation Lookaside Buffer (TLB) accelerates memory translation.",
-            "How do interrupt service routines (ISRs) handle hardware interrupts without causing race conditions with scheduled user threads?",
-            "What is the significance of cache coherence protocols (such as MESI) in multi-core symmetric multiprocessing architectures?",
-            "How would you implement a lock-free ring buffer for low-latency inter-process communication?"
+        "AI / ML Engineer", List.of(
+            "Explain the bias-variance tradeoff in predictive modeling, and discuss how regularization (L1 Lasso vs L2 Ridge) mitigates model overfitting.",
+            "What mathematical problem does the Backpropagation algorithm solve in Deep Neural Networks, and why is the chain rule of calculus essential?",
+            "Describe the difference between Precision and Recall. In an autonomous fraud detection or medical diagnosis system, which metric would you optimize and why?",
+            "How do Transformer architectures with Self-Attention mechanisms overcome the sequential bottleneck of Recurrent Neural Networks (RNNs)?",
+            "Walk me through your pipeline for handling skewed multimodal tabular datasets with severe class imbalances and data leakage."
         ),
         "Data Analyst", List.of(
             "Explain the difference between WHERE and HAVING in SQL, and demonstrate how you would use a window function like DENSE_RANK() or ROW_NUMBER().",
-            "What is the bias-variance tradeoff in predictive modeling, and how does regularization (L1 Lasso vs L2 Ridge) mitigate overfitting?",
             "How do you detect, validate, and handle skewed distributions and missing values in high-dimensional tabular datasets?",
-            "Describe the difference between Precision and Recall. In a fraudulent transaction detection system, which metric would you prioritize and why?",
-            "How would you design an automated ETL pipeline that validates data quality and schema conformity before ingestion into a data warehouse?"
+            "In business intelligence, what is the architectural difference between a Star Schema and a Snowflake Schema for an OLAP data warehouse?",
+            "How would you design an automated ETL pipeline that validates data quality, schema conformity, and data freshness before ingestion into dashboards?",
+            "Explain the difference between correlation and causation in exploratory business data analysis with an industry example."
         ),
         "BEHAVIORAL", List.of(
             "Tell me about a challenging engineering project where you encountered an unexpected technical failure right before a critical deadline. How did you resolve it?",
@@ -78,7 +78,7 @@ public class InterviewController {
         String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
         if (studentId == null) return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found. Complete profile first."));
 
-        String role = body.getOrDefault("targetRole", "Software Developer");
+        String role = body.getOrDefault("targetRole", "Java Full Stack Developer");
         String type = body.getOrDefault("interviewType", "TECHNICAL");
 
         MockInterviewSession session = new MockInterviewSession();
@@ -90,7 +90,10 @@ public class InterviewController {
 
         List<String> pool = "BEHAVIORAL".equalsIgnoreCase(type)
             ? ROLE_QUESTIONS.get("BEHAVIORAL")
-            : ROLE_QUESTIONS.getOrDefault(role, ROLE_QUESTIONS.get("Software Developer"));
+            : ROLE_QUESTIONS.getOrDefault(role, ROLE_QUESTIONS.get("Java Full Stack Developer"));
+        if (pool == null || pool.isEmpty()) {
+            pool = ROLE_QUESTIONS.get("Java Full Stack Developer");
+        }
 
         String firstQ = pool.get(new Random().nextInt(pool.size()));
 

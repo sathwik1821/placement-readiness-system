@@ -135,27 +135,26 @@ export default function Profile() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="label">Target Industry Job Role</label>
+              <label className="label">Target Industry Career Role</label>
               <select
                 value={careerGoal.targetRole}
                 onChange={(e) => setCareerGoal({ ...careerGoal, targetRole: e.target.value })}
-                className="input"
+                className="input font-bold text-slate-900"
               >
-                <option value="Software Developer">Software Developer (SDE-1)</option>
-                <option value="Full Stack Developer">Full Stack Engineer</option>
-                <option value="Systems Engineer">Systems & Embedded Engineer</option>
-                <option value="Data Analyst">Data Analyst & Quantitative Trainee</option>
-                <option value="DevOps Engineer">DevOps & Cloud Automation Engineer</option>
+                <option value="Java Full Stack Developer">Java Full Stack Developer (Spring Boot + React)</option>
+                <option value="MERN Full Stack Developer">MERN Full Stack Developer (React + Node + Mongo)</option>
+                <option value="AI / ML Engineer">AI / ML Engineer (Python + Neural Networks)</option>
+                <option value="Data Analyst">Data Analyst (SQL + PowerBI + Pandas)</option>
               </select>
             </div>
 
             <div>
-              <label className="label">Domain Track</label>
+              <label className="label">Specialized Domain Track</label>
               <input
                 type="text"
                 value={careerGoal.targetDomain}
                 onChange={(e) => setCareerGoal({ ...careerGoal, targetDomain: e.target.value })}
-                placeholder="e.g. Distributed Cloud Systems"
+                placeholder="e.g. Distributed Enterprise Architectures"
                 className="input"
               />
             </div>
