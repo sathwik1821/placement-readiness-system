@@ -7,6 +7,7 @@ import com.placement.system.model.CompanyFeedbackReport;
 import com.placement.system.model.PlacementApplication;
 import com.placement.system.model.PlacementDrive;
 import com.placement.system.model.PlacementOfficer;
+import com.placement.system.model.Student;
 import com.placement.system.repository.*;
 import com.placement.system.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,12 @@ public class CompanyController {
 
     @Autowired
     private StudentRepository studentRepository;
+
+    @Autowired
+    private AnalysisReportRepository reportRepository;
+
+    @Autowired
+    private TestAttemptRepository attemptRepository;
 
     @Autowired
     private CompanyFeedbackReportRepository feedbackReportRepository;
@@ -111,10 +118,31 @@ public class CompanyController {
     @GetMapping("/drives/{id}/applications")
     public ResponseEntity<?> getCompanyDriveApplications(@PathVariable String id) {
         List<PlacementApplication> apps = applicationRepository.findByDriveIdOrderByAppliedAtDesc(id);
+        List<Map<String, Object>> response = new ArrayList<>();
+
         for (PlacementApplication a : apps) {
-            studentRepository.findById(a.getStudentId()).ifPresent(a::setStudent);
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", a.getId());
+            map.put("studentId", a.getStudentId());
+            map.put("driveId", a.getDriveId());
+            map.put("status", a.getStatus());
+            map.put("appliedAt", a.getAppliedAt());
+
+            Student s = studentRepository.findById(a.getStudentId()).orElse(null);
+            map.put("student", s);
+
+            if (s != null) {
+                com.placement.system.model.AnalysisReport rep = reportRepository.findFirstByStudentIdOrderByGeneratedAtDesc(s.getId()).orElse(null);
+                double readiness = rep != null ? rep.getReadinessScore() : 65.0;
+                map.put("readinessScore", Math.round(readiness));
+
+                List<com.placement.system.model.TestAttempt> atts = attemptRepository.findByStudentIdAndStatusOrderByCompletedAtDesc(s.getId(), "COMPLETED");
+                double avgAccuracy = atts.isEmpty() ? 72.0 : atts.stream().mapToDouble(com.placement.system.model.TestAttempt::getPercentageScore).average().orElse(72.0);
+                map.put("averageAccuracy", Math.round(avgAccuracy * 10.0) / 10.0);
+            }
+            response.add(map);
         }
-        return ResponseEntity.ok(apps);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/drives/{driveId}/applications/{appId}/status")

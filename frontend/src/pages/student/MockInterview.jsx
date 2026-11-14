@@ -143,17 +143,23 @@ export default function MockInterview() {
     };
   }, []);
 
-  // Load Past Sessions
+  // Load Past Sessions & Student Profile Target Role
   useEffect(() => {
-    async function fetchSessions() {
+    async function fetchInitialData() {
       try {
-        const res = await api.get('/interviews/sessions');
-        setSessions(res.data || []);
+        const [profRes, sessRes] = await Promise.all([
+          api.get('/students/profile').catch(() => ({ data: null })),
+          api.get('/interviews/sessions').catch(() => ({ data: [] }))
+        ]);
+        if (profRes.data?.careerGoal?.targetRole) {
+          setTargetRole(profRes.data.careerGoal.targetRole);
+        }
+        setSessions(sessRes.data || []);
       } catch (err) {
-        console.error('Failed fetching interview sessions', err);
+        console.error('Failed fetching interview data', err);
       }
     }
-    fetchSessions();
+    fetchInitialData();
   }, []);
 
   const handleStartInterview = async () => {
@@ -298,18 +304,18 @@ export default function MockInterview() {
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="label">Target Job Role</label>
-              <select
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
-                className="input font-semibold"
-              >
-                <option value="Java Full Stack Developer">Java Full Stack Developer (Spring Boot, Microservices, React)</option>
-                <option value="MERN Full Stack Developer">MERN Full Stack Developer (React, Node.js, Express, MongoDB)</option>
-                <option value="AI / ML Engineer">AI / ML Engineer (Python, Transformers, Deep Learning)</option>
-                <option value="Data Analyst">Data Analyst (Advanced SQL, Data Warehousing, BI)</option>
-              </select>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Interview Role Track (From Student Profile)
+                </span>
+                <span className="text-sm font-black text-slate-900 mt-0.5 block">
+                  {targetRole}
+                </span>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                Auto-Calibrated
+              </span>
             </div>
 
             <div>

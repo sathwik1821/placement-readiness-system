@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
-import { Users, Filter, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
+import { Users, Filter, CheckCircle2, XCircle, ArrowLeft, Lock, ShieldAlert } from 'lucide-react';
 
 export default function Applications() {
   const { driveId } = useParams();
@@ -101,83 +101,114 @@ export default function Applications() {
         </div>
       </div>
 
-      <div className="card bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
-          <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-600" />
-            <span>Applicant Roster ({applications.length} Candidates)</span>
-          </h2>
-        </div>
+      {(() => {
+        const currentDrive = drives.find((d) => d.id === selectedDriveId);
+        const isRecruiterPushed = Boolean(currentDrive?.companyId);
 
-        {applications.length === 0 ? (
-          <div className="text-center py-10 text-gray-400 text-xs">
-            No student applications logged for this recruitment drive yet.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-200">
-                <tr>
-                  <th className="py-3 px-4">Candidate Name</th>
-                  <th className="py-3 px-4">Department</th>
-                  <th className="py-3 px-4">Academic CGPA</th>
-                  <th className="py-3 px-4">Target Role</th>
-                  <th className="py-3 px-4">Current Pipeline Stage</th>
-                  <th className="py-3 px-4 text-right">Update Selection Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {applications.map((app) => {
-                  const student = app.student;
-                  return (
-                    <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-gray-900">
-                        {student?.name}
-                        <span className="block text-xs font-normal text-gray-400">
-                          {student?.user?.email}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-gray-600">{student?.department}</td>
-                      <td className="py-3.5 px-4 font-bold text-gray-900">{student?.cgpa}</td>
-                      <td className="py-3.5 px-4 text-slate-800 font-semibold">
-                        {student?.careerGoal?.targetRole || 'Software'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`font-semibold px-2.5 py-0.5 rounded-full text-xs ${
-                            app.status === 'SELECTED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : app.status === 'SHORTLISTED'
-                              ? 'bg-blue-100 text-blue-800'
-                              : app.status === 'NOT_SELECTED'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {app.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <select
-                          value={app.status}
-                          onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
-                          className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
-                        >
-                          {stages.map((stg) => (
-                            <option key={stg} value={stg}>
-                              {stg.replace('_', ' ')}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+        return (
+          <div className="card bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            {isRecruiterPushed && (
+              <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center gap-2.5">
+                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>Corporate Recruiter Governed Drive:</strong> Candidate shortlisting and selection decisions for this drive are managed directly by the corporate recruiter. Institutional TPO view is strictly read-only for compliance tracking.
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-600" />
+                <span>Applicant Roster ({applications.length} Candidates)</span>
+              </h2>
+              {isRecruiterPushed && (
+                <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  <span>Corporate Managed</span>
+                </span>
+              )}
+            </div>
+
+            {applications.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 text-xs">
+                No student applications logged for this recruitment drive yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50 text-gray-500 uppercase tracking-wider font-semibold border-b border-gray-200">
+                    <tr>
+                      <th className="py-3 px-4">Candidate Name</th>
+                      <th className="py-3 px-4">Department</th>
+                      <th className="py-3 px-4">Academic CGPA</th>
+                      <th className="py-3 px-4">Target Role</th>
+                      <th className="py-3 px-4">Current Pipeline Stage</th>
+                      <th className="py-3 px-4 text-right">
+                        {isRecruiterPushed ? 'Authority' : 'Update Selection Status'}
+                      </th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {applications.map((app) => {
+                      const student = app.student;
+                      return (
+                        <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-gray-900">
+                            {student?.name}
+                            <span className="block text-xs font-normal text-gray-400">
+                              {student?.user?.email}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-gray-600">{student?.department}</td>
+                          <td className="py-3.5 px-4 font-bold text-gray-900">{student?.cgpa}</td>
+                          <td className="py-3.5 px-4 text-slate-800 font-semibold">
+                            {student?.careerGoal?.targetRole || 'Software'}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`font-semibold px-2.5 py-0.5 rounded-full text-xs ${
+                                app.status === 'SELECTED'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : app.status === 'SHORTLISTED'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : app.status === 'NOT_SELECTED'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {app.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            {isRecruiterPushed ? (
+                              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 inline-flex items-center gap-1">
+                                <Lock className="w-3 h-3 text-slate-400" />
+                                <span>Recruiter Managed</span>
+                              </span>
+                            ) : (
+                              <select
+                                value={app.status}
+                                onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
+                                className="px-2.5 py-1 text-xs border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                              >
+                                {stages.map((stg) => (
+                                  <option key={stg} value={stg}>
+                                    {stg.replace('_', ' ')}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 }

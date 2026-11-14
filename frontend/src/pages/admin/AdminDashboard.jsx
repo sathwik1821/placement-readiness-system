@@ -19,7 +19,9 @@ import {
   Server,
   Database,
   KeyRound,
-  Sparkles
+  Sparkles,
+  FolderPlus,
+  AlertCircle
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -58,6 +60,43 @@ export default function AdminDashboard() {
   });
   const [submittingQ, setSubmittingQ] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Assessment Suite Creation State
+  const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
+  const [newCategory, setNewCategory] = useState({
+    name: '',
+    type: 'TECHNICAL',
+    department: 'Computer Science',
+    description: ''
+  });
+  const [submittingCat, setSubmittingCat] = useState(false);
+  const [categoryError, setCategoryError] = useState('');
+
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    setCategoryError('');
+    if (!newCategory.name.trim()) {
+      setCategoryError('Please enter a test suite title.');
+      return;
+    }
+    setSubmittingCat(true);
+    try {
+      const res = await api.post('/admin/categories', newCategory);
+      setCategories((prev) => [...prev, res.data]);
+      setShowCreateCategoryModal(false);
+      setNewCategory({
+        name: '',
+        type: 'TECHNICAL',
+        department: 'Computer Science',
+        description: ''
+      });
+      alert('New assessment suite created successfully!');
+    } catch (err) {
+      setCategoryError('Failed creating suite: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSubmittingCat(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -357,7 +396,19 @@ export default function AdminDashboard() {
                   Test Category Repositories
                 </h2>
               </div>
-              <span className="text-xs font-semibold text-slate-500">{categories.length} Active Domains</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500">{categories.length} Active Domains</span>
+                <button
+                  onClick={() => {
+                    setCategoryError('');
+                    setShowCreateCategoryModal(true);
+                  }}
+                  className="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  <span>+ Suite</span>
+                </button>
+              </div>
             </div>
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {categories.map((cat) => {
@@ -426,10 +477,21 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => {
+                  setCategoryError('');
+                  setShowCreateCategoryModal(true);
+                }}
+                className="btn-primary text-xs py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center gap-1.5 font-semibold shrink-0 cursor-pointer"
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+                <span>Create Suite</span>
+              </button>
+
+              <button
+                onClick={() => {
                   setFormError('');
                   setShowAddModal(true);
                 }}
-                className="btn-primary text-xs py-1.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center gap-1.5 font-semibold shrink-0"
+                className="btn-primary text-xs py-1.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center gap-1.5 font-semibold shrink-0 cursor-pointer"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Add Question</span>
@@ -823,6 +885,114 @@ export default function AdminDashboard() {
                   className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 transition-colors"
                 >
                   {submittingQ ? 'Saving Question...' : 'Save to Bank'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Create Assessment Suite / Category */}
+      {showCreateCategoryModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <FolderPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900">Create Assessment Suite</h3>
+                  <p className="text-xs text-gray-500">Add a new test track or company-specific assessment domain</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateCategoryModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {categoryError && (
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{categoryError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateCategory} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Suite / Track Name *
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  placeholder="e.g. Java Spring Core, Verbal Reasoning, Amazon SDE-1 Assessment"
+                  className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Category Type
+                  </label>
+                  <select
+                    value={newCategory.type}
+                    onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
+                    className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                  >
+                    <option value="TECHNICAL">TECHNICAL (Core Engineering / Code)</option>
+                    <option value="COMMON">COMMON (Verbal / Logical / Aptitude)</option>
+                    <option value="COMPANY">COMPANY (Corporate Shortlisting)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Target Domain / Dept
+                  </label>
+                  <input
+                    type="text"
+                    value={newCategory.department}
+                    onChange={(e) => setNewCategory({ ...newCategory, department: e.target.value })}
+                    placeholder="e.g. Computer Science, General, SDE"
+                    className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Description / Syllabus Summary
+                </label>
+                <textarea
+                  rows={2}
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                  placeholder="e.g. Evaluates object-oriented programming, Spring Boot microservices, JPA/Hibernate, and concurrency."
+                  className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none font-normal"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCategoryModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingCat}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {submittingCat ? 'Creating Suite...' : 'Create Assessment Suite'}
                 </button>
               </div>
             </form>

@@ -36,8 +36,7 @@ function AppLayout({ children }) {
   ];
 
   const officerLinks = [
-    { to: '/officer', icon: LayoutDashboard, label: 'Placement Console' },
-    { to: '/officer/drives', icon: Building2, label: 'Manage Drives' },
+    { to: '/officer', icon: LayoutDashboard, label: 'Placement Console & Drives' },
     { to: '/officer/drives/new', icon: GraduationCap, label: 'Publish New Drive' },
     { to: '/officer/applications', icon: Users, label: 'Application Pipelines' }
   ];
@@ -92,7 +91,7 @@ function AppLayout({ children }) {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/student' || item.to === '/officer' || item.to === '/admin' || item.to === '/company'}
+                end={true}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-150 ${
                     isActive

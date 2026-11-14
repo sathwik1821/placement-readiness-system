@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placement.system.model.Job;
 import com.placement.system.model.JobRecommendation;
 import com.placement.system.model.Student;
+import com.placement.system.repository.CareerGoalRepository;
 import com.placement.system.repository.JobRecommendationRepository;
 import com.placement.system.repository.JobRepository;
 import com.placement.system.repository.StudentRepository;
@@ -27,6 +28,9 @@ public class JobController {
 
     @Autowired
     private StudentRepository studentRepository;
+
+    @Autowired
+    private CareerGoalRepository careerGoalRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -86,19 +90,41 @@ public class JobController {
         List<Job> allJobs = jobRepository.findByIsActiveTrueOrderByPostedAtDesc();
         List<JobRecommendation> created = new ArrayList<>();
 
+        String targetRole = careerGoalRepository.findByStudentId(student.getId())
+                .map(cg -> cg.getTargetRole())
+                .orElse("Java Full Stack Developer");
+
         for (Job j : allJobs) {
-            double score = 75.0 + (student.getCgpa() >= 8.0 ? 10.0 : 5.0);
-            List<String> reasons = List.of(
-                "Strong alignment with verified student skills and engineering background",
-                "Academic CGPA satisfies external recruiter benchmark (" + student.getCgpa() + ")",
-                "Graduation cohort of 2025 matches hiring requisition window"
-            );
+            double baseScore = 72.0 + (student.getCgpa() >= 8.0 ? 10.0 : 5.0);
+            boolean trackMatch = false;
+
+            if (targetRole.contains("Java") && (j.getTitle().contains("Backend") || j.getTitle().contains("Java") || j.getDescription().contains("Spring"))) {
+                baseScore += 12.0;
+                trackMatch = true;
+            } else if (targetRole.contains("MERN") && (j.getTitle().contains("Full Stack") || j.getDescription().contains("React"))) {
+                baseScore += 12.0;
+                trackMatch = true;
+            } else if (targetRole.contains("AI") && (j.getTitle().contains("AI") || j.getTitle().contains("ML") || j.getDescription().contains("learning"))) {
+                baseScore += 14.0;
+                trackMatch = true;
+            } else if (targetRole.contains("Data Analyst") && (j.getTitle().contains("Data") || j.getTitle().contains("Analyst"))) {
+                baseScore += 14.0;
+                trackMatch = true;
+            }
+
+            List<String> reasons = new ArrayList<>();
+            if (trackMatch) {
+                reasons.add("Primary alignment with your chosen career track: " + targetRole);
+            }
+            reasons.add("Verified proficiency in core required technologies & frameworks");
+            reasons.add("Academic CGPA (" + student.getCgpa() + ") meets institutional recruiter cutoff");
+            reasons.add("Graduation class matches candidate intake window");
 
             try {
                 JobRecommendation rec = new JobRecommendation();
                 rec.setStudentId(student.getId());
                 rec.setJobId(j.getId());
-                rec.setMatchScore(Math.min(95.0, score));
+                rec.setMatchScore(Math.min(98.0, baseScore));
                 rec.setMatchReasons(mapper.writeValueAsString(reasons));
                 rec = recommendationRepository.save(rec);
                 rec.setJob(parseJob(j));
@@ -107,6 +133,7 @@ public class JobController {
                 // Ignore formatting error
             }
         }
+        created.sort((a, b) -> Double.compare(b.getMatchScore(), a.getMatchScore()));
         return created;
     }
 

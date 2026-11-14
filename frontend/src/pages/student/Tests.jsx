@@ -134,11 +134,10 @@ export default function Tests() {
           <button
             type="button"
             onClick={() => setFilterMode('RECOMMENDED')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              filterMode === 'RECOMMENDED'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${filterMode === 'RECOMMENDED'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Recommended for {targetRole.split(' ')[0]}</span>
@@ -146,11 +145,10 @@ export default function Tests() {
           <button
             type="button"
             onClick={() => setFilterMode('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              filterMode === 'ALL'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterMode === 'ALL'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             <span>All Suites ({categories.length})</span>
           </button>
@@ -178,9 +176,8 @@ export default function Tests() {
             return (
               <div
                 key={cat.id}
-                className={`bg-white border rounded-2xl p-5 hover:shadow-xs transition-all flex flex-col justify-between ${
-                  isRec ? 'border-blue-300 ring-1 ring-blue-500/10' : 'border-slate-200/90'
-                }`}
+                className={`bg-white border rounded-2xl p-5 hover:shadow-xs transition-all flex flex-col justify-between ${isRec ? 'border-blue-300 ring-1 ring-blue-500/10' : 'border-slate-200/90'
+                  }`}
               >
                 <div>
                   <div className="flex justify-between items-start gap-2 mb-2">
@@ -201,13 +198,12 @@ export default function Tests() {
 
                     {latest ? (
                       <span
-                        className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                          latest.percentageScore >= 70
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : latest.percentageScore >= 50
+                        className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${latest.percentageScore >= 70
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : latest.percentageScore >= 50
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-rose-100 text-rose-800'
-                        }`}
+                          }`}
                       >
                         Score: {latest.percentageScore}%
                       </span>
@@ -276,9 +272,8 @@ export default function Tests() {
             return (
               <div
                 key={cat.id}
-                className={`bg-white border rounded-2xl p-5 hover:shadow-xs transition-all flex flex-col justify-between ${
-                  isRec ? 'border-blue-300 ring-1 ring-blue-500/10' : 'border-slate-200/90'
-                }`}
+                className={`bg-white border rounded-2xl p-5 hover:shadow-xs transition-all flex flex-col justify-between ${isRec ? 'border-blue-300 ring-1 ring-blue-500/10' : 'border-slate-200/90'
+                  }`}
               >
                 <div>
                   <div className="flex justify-between items-start gap-2 mb-2">
@@ -294,13 +289,12 @@ export default function Tests() {
 
                     {latest ? (
                       <span
-                        className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                          latest.percentageScore >= 70
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : latest.percentageScore >= 50
+                        className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${latest.percentageScore >= 70
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : latest.percentageScore >= 50
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-rose-100 text-rose-800'
-                        }`}
+                          }`}
                       >
                         Score: {latest.percentageScore}%
                       </span>

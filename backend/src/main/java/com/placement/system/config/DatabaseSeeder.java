@@ -237,7 +237,7 @@ public class DatabaseSeeder {
                 jobRepository.save(j1);
 
                 Job j2 = new Job();
-                j2.setTitle("Full Stack Product Engineer");
+                j2.setTitle("Full Stack Product Engineer (MERN / Full Stack)");
                 j2.setCompany("NextGen Fintech Labs");
                 j2.setLocation("Hyderabad / Pune");
                 j2.setJobType("FULL_TIME");
@@ -246,6 +246,28 @@ public class DatabaseSeeder {
                 j2.setSkills(mapper.writeValueAsString(List.of("React", "JavaScript", "Java", "Spring Boot", "TailwindCSS")));
                 j2.setSalary("₹10.0 - 14.5 LPA");
                 jobRepository.save(j2);
+
+                Job j3 = new Job();
+                j3.setTitle("Associate AI / ML Research Engineer");
+                j3.setCompany("NeuroScale Cognitive AI Labs");
+                j3.setLocation("Bengaluru / Remote");
+                j3.setJobType("FULL_TIME");
+                j3.setDescription("Train, fine-tune, and optimize transformer pipelines and predictive machine learning models across high-throughput data streams.");
+                j3.setRequirements(mapper.writeValueAsString(List.of("Strong mathematical background in linear algebra & probability", "Python & PyTorch proficiency", "Solid understanding of ML loss functions")));
+                j3.setSkills(mapper.writeValueAsString(List.of("Python", "Machine Learning", "PyTorch", "Scikit-Learn", "Deep Learning")));
+                j3.setSalary("₹14.0 - 18.0 LPA");
+                jobRepository.save(j3);
+
+                Job j4 = new Job();
+                j4.setTitle("Quantitative Business Data Analyst");
+                j4.setCompany("Vantage Global Analytics");
+                j4.setLocation("Mumbai / Hybrid");
+                j4.setJobType("FULL_TIME");
+                j4.setDescription("Design automated executive BI dashboards, perform statistical hypothesis testing, and write complex ANSI SQL queries on petabyte-scale data lakes.");
+                j4.setRequirements(mapper.writeValueAsString(List.of("Proficiency in complex SQL window functions", "Experience with PowerBI or Tableau", "Statistical data modeling acumen")));
+                j4.setSkills(mapper.writeValueAsString(List.of("SQL", "PowerBI", "Python", "Tableau", "Data Warehousing")));
+                j4.setSalary("₹9.0 - 13.5 LPA");
+                jobRepository.save(j4);
             }
 
             // 7. Campus Drives

@@ -128,6 +128,22 @@ public class AdminController {
         }
     }
 
+    @PostMapping("/categories")
+    public ResponseEntity<?> createCategory(@RequestBody Map<String, Object> body) {
+        try {
+            com.placement.system.model.TestCategory c = new com.placement.system.model.TestCategory();
+            c.setName((String) body.get("name"));
+            c.setType((String) body.getOrDefault("type", "TECHNICAL"));
+            String domain = (String) body.getOrDefault("domain", body.getOrDefault("department", "All Departments"));
+            c.setDomain(domain);
+            c.setDescription((String) body.getOrDefault("description", ""));
+            c = categoryRepository.save(c);
+            return ResponseEntity.ok(c);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/questions/{id}")
     public ResponseEntity<?> deleteQuestion(@PathVariable String id) {
         questionRepository.deleteById(id);

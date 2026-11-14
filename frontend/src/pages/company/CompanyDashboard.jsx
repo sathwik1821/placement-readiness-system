@@ -320,8 +320,9 @@ export default function CompanyDashboard() {
                   <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
                     <th className="pb-3 pl-2">Candidate Name</th>
                     <th className="pb-3">Department</th>
-                    <th className="pb-3">Academic CGPA</th>
-                    <th className="pb-3">Backlogs</th>
+                    <th className="pb-3">CGPA</th>
+                    <th className="pb-3">Readiness Index</th>
+                    <th className="pb-3">Test Accuracy</th>
                     <th className="pb-3">Hiring Stage</th>
                     <th className="pb-3 pr-2 text-right">Recruiter Action</th>
                   </tr>
@@ -341,8 +342,15 @@ export default function CompanyDashboard() {
                       <td className="py-3.5 font-bold font-mono text-slate-900">
                         {app.student?.cgpa ? app.student.cgpa.toFixed(2) : '8.40'}
                       </td>
-                      <td className="py-3.5 font-bold text-slate-700">
-                        {app.student?.backlogs ?? 0}
+                      <td className="py-3.5">
+                        <span className="px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                          {app.readinessScore ?? 65}%
+                        </span>
+                      </td>
+                      <td className="py-3.5">
+                        <span className="px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          {app.averageAccuracy ?? 75}%
+                        </span>
                       </td>
                       <td className="py-3.5">
                         <span

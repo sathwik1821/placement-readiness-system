@@ -81,6 +81,9 @@ public class AssessmentController {
             sanitized.add(map);
         }
         Collections.shuffle(sanitized);
+        if (sanitized.size() > 10) {
+            sanitized = new ArrayList<>(sanitized.subList(0, 10));
+        }
         return ResponseEntity.ok(sanitized);
     }
 
@@ -92,11 +95,12 @@ public class AssessmentController {
 
         String catId = body.get("testCategoryId");
         long qCount = questionRepository.countByTestCategoryId(catId);
+        int targetQuestions = (int) Math.min(10, qCount > 0 ? qCount : 10);
 
         TestAttempt attempt = new TestAttempt();
         attempt.setStudentId(studentId);
         attempt.setTestCategoryId(catId);
-        attempt.setTotalMarks((int) (qCount > 0 ? qCount : 10));
+        attempt.setTotalMarks(targetQuestions);
         attempt.setStatus("IN_PROGRESS");
         attempt = attemptRepository.save(attempt);
 
@@ -110,6 +114,7 @@ public class AssessmentController {
 
         List<Map<String, Object>> responses = body.get("responses");
         double score = 0.0;
+        int correctCount = 0;
         int count = 0;
 
         if (responses != null) {
@@ -123,6 +128,7 @@ public class AssessmentController {
                     boolean isCorrect = q.getCorrectAnswer().trim().equalsIgnoreCase((selected != null ? selected : "").trim());
                     if (isCorrect) {
                         score += q.getMarks();
+                        correctCount++;
                     } else if (selected != null && !selected.isBlank()) {
                         score -= q.getNegativeMarks();
                     }
@@ -140,11 +146,11 @@ public class AssessmentController {
         }
 
         score = Math.max(0.0, Math.round(score * 100.0) / 100.0);
-        int totalMarks = attempt.getTotalMarks() > 0 ? attempt.getTotalMarks() : Math.max(1, count);
-        double pct = Math.min(100.0, Math.max(0.0, Math.round((score / totalMarks) * 1000.0) / 10.0));
+        int totalQuestions = attempt.getTotalMarks() > 0 ? attempt.getTotalMarks() : Math.max(1, count);
+        double accuracyPct = Math.min(100.0, Math.max(0.0, Math.round(((double) correctCount / totalQuestions) * 1000.0) / 10.0));
 
         attempt.setTotalScore(score);
-        attempt.setPercentageScore(pct);
+        attempt.setPercentageScore(accuracyPct);
         attempt.setStatus("COMPLETED");
         attempt.setCompletedAt(LocalDateTime.now());
         attempt = attemptRepository.save(attempt);

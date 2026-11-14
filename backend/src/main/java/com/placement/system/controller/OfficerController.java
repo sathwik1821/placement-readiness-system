@@ -50,6 +50,7 @@ public class OfficerController {
         for (PlacementDrive d : drives) {
             Map<String, Object> map = new HashMap<>();
             map.put("id", d.getId());
+            map.put("companyId", d.getCompanyId());
             map.put("title", d.getTitle());
             map.put("jobRole", d.getJobRole());
             map.put("ctc", d.getCtc());
