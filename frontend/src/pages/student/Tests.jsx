@@ -14,6 +14,7 @@ import {
   Layers,
   Check
 } from 'lucide-react';
+import { ROLE_RECOMMENDED_TESTS } from '../../utils/careerStandards';
 
 export default function Tests() {
   const [categories, setCategories] = useState([]);
@@ -23,40 +24,6 @@ export default function Tests() {
   const [startingId, setStartingId] = useState(null);
   const [filterMode, setFilterMode] = useState('RECOMMENDED'); // 'RECOMMENDED' or 'ALL'
   const navigate = useNavigate();
-
-  const ROLE_RECOMMENDED_TESTS = {
-    'Java Full Stack Developer': [
-      'Java & Spring Boot',
-      'Web Frontend & React',
-      'Data Structures & Algorithms',
-      'DBMS',
-      'OOP Concepts',
-      'Quantitative Aptitude',
-      'Logical Reasoning'
-    ],
-    'MERN Full Stack Developer': [
-      'Web Frontend & React',
-      'Node.js & Backend Architecture',
-      'DBMS',
-      'Data Structures & Algorithms',
-      'OOP Concepts',
-      'Logical Reasoning'
-    ],
-    'AI / ML Engineer': [
-      'Machine Learning & Python',
-      'Data Structures & Algorithms',
-      'Quantitative Aptitude',
-      'DBMS',
-      'Logical Reasoning'
-    ],
-    'Data Analyst': [
-      'Data Analytics & BI (SQL/Tableau)',
-      'DBMS',
-      'Quantitative Aptitude',
-      'Logical Reasoning',
-      'Verbal Ability'
-    ]
-  };
 
   useEffect(() => {
     async function loadAssessments() {

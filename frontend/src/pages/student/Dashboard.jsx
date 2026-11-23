@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Code2
 } from 'lucide-react';
+import { getRoadmapForRole, getCareerTrack } from '../../utils/careerStandards';
 
 export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
@@ -111,49 +112,8 @@ export default function StudentDashboard() {
     parsedBreakdown = {};
   }
 
-  // Visual sequential learning roadmap by career track
-  const careerRoadmaps = {
-    'Java Full Stack Developer': [
-      { step: 1, skillKey: 'OOP Concepts', title: 'Core Java & OOP', benchmark: 75 },
-      { step: 2, skillKey: 'Data Structures & Algorithms', title: 'DSA & Problem Solving', benchmark: 75 },
-      { step: 3, skillKey: 'DBMS', title: 'DBMS & SQL', benchmark: 75 },
-      { step: 4, skillKey: 'Java & Spring Boot', title: 'Spring Boot & APIs', benchmark: 80 },
-      { step: 5, skillKey: 'Web Frontend & React', title: 'React Frontend', benchmark: 70 },
-      { step: 6, skillKey: 'Quantitative Aptitude', title: 'Campus Aptitude', benchmark: 70 }
-    ],
-    'MERN Full Stack Developer': [
-      { step: 1, skillKey: 'OOP Concepts', title: 'JavaScript & ES6+ OOP', benchmark: 70 },
-      { step: 2, skillKey: 'Data Structures & Algorithms', title: 'DSA & Algorithms', benchmark: 70 },
-      { step: 3, skillKey: 'DBMS', title: 'Database & Modeling', benchmark: 75 },
-      { step: 4, skillKey: 'Node.js & Backend Architecture', title: 'Node.js & Express', benchmark: 80 },
-      { step: 5, skillKey: 'Web Frontend & React', title: 'React Frontend', benchmark: 85 },
-      { step: 6, skillKey: 'Logical Reasoning', title: 'Cognitive Reasoning', benchmark: 70 }
-    ],
-    'AI / ML Engineer': [
-      { step: 1, skillKey: 'OOP Concepts', title: 'Python & OOP', benchmark: 75 },
-      { step: 2, skillKey: 'Quantitative Aptitude', title: 'Math & Probability', benchmark: 80 },
-      { step: 3, skillKey: 'Data Structures & Algorithms', title: 'DSA & Algorithmic Logic', benchmark: 75 },
-      { step: 4, skillKey: 'DBMS', title: 'SQL & Data Engineering', benchmark: 70 },
-      { step: 5, skillKey: 'Machine Learning & Python', title: 'ML & Neural Networks', benchmark: 85 },
-      { step: 6, skillKey: 'Logical Reasoning', title: 'Logical Deduction', benchmark: 75 }
-    ],
-    'Data Analyst': [
-      { step: 1, skillKey: 'DBMS', title: 'Relational DB & SQL', benchmark: 80 },
-      { step: 2, skillKey: 'Quantitative Aptitude', title: 'Math & Statistics', benchmark: 75 },
-      { step: 3, skillKey: 'Data Analytics & BI (SQL/Tableau)', title: 'BI & Tableau Analytics', benchmark: 85 },
-      { step: 4, skillKey: 'Logical Reasoning', title: 'Data Interpretation', benchmark: 75 },
-      { step: 5, skillKey: 'Verbal Ability', title: 'Business Communication', benchmark: 70 }
-    ],
-    'Cloud & DevOps Engineer': [
-      { step: 1, skillKey: 'Operating Systems', title: 'Linux & OS Internals', benchmark: 80 },
-      { step: 2, skillKey: 'Computer Networks', title: 'Networking & HTTP', benchmark: 80 },
-      { step: 3, skillKey: 'Data Structures & Algorithms', title: 'Automation & DSA', benchmark: 65 },
-      { step: 4, skillKey: 'DBMS', title: 'Database Administration', benchmark: 70 },
-      { step: 5, skillKey: 'Logical Reasoning', title: 'Systems Troubleshooting', benchmark: 70 }
-    ]
-  };
-
-  const currentRoadmap = careerRoadmaps[targetRole] || careerRoadmaps['Java Full Stack Developer'];
+  const trackMeta = getCareerTrack(targetRole);
+  const currentRoadmap = getRoadmapForRole(targetRole);
 
   const getExpertise = (item) => {
     if (categoryScores[item.skillKey] !== undefined) {

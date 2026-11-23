@@ -28,6 +28,9 @@ public class StudentController {
     private CareerGoalRepository careerGoalRepository;
 
     @Autowired
+    private AnalysisController analysisController;
+
+    @Autowired
     private JwtService jwtService;
 
     @GetMapping("/profile")
@@ -124,11 +127,42 @@ public class StudentController {
             return g;
         });
 
-        if (body.containsKey("targetRole")) goal.setTargetRole(body.get("targetRole"));
-        if (body.containsKey("targetDomain")) goal.setTargetDomain(body.get("targetDomain"));
-        if (body.containsKey("targetIndustry")) goal.setTargetIndustry(body.get("targetIndustry"));
+        String rawRole = body.getOrDefault("targetRole", goal.getTargetRole());
+        String canonicalRole = com.placement.system.util.CareerStandard.canonicalizeRole(rawRole);
+        goal.setTargetRole(canonicalRole);
+
+        String domain = body.get("targetDomain");
+        if (domain == null || domain.isBlank()) {
+            domain = com.placement.system.util.CareerStandard.getStandardDomain(canonicalRole);
+        }
+        goal.setTargetDomain(domain);
+
+        String industry = body.get("targetIndustry");
+        if (industry == null || industry.isBlank()) {
+            industry = com.placement.system.util.CareerStandard.getStandardIndustry(canonicalRole);
+        }
+        goal.setTargetIndustry(industry);
 
         goal = careerGoalRepository.save(goal);
-        return ResponseEntity.ok(goal);
+
+        // Immediately trigger fresh analysis report generation for the new career track
+        com.placement.system.model.AnalysisReport updatedReport = null;
+        try {
+            updatedReport = analysisController.generateReportForStudent(student);
+        } catch (Exception ex) {
+            System.err.println("Notice: Analysis report recalibration deferred: " + ex.getMessage());
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("careerGoal", goal);
+        response.put("targetRole", canonicalRole);
+        response.put("targetDomain", domain);
+        response.put("targetIndustry", industry);
+        response.put("message", "Career trajectory successfully switched to " + canonicalRole + ". Readiness score and competencies recalibrated.");
+        if (updatedReport != null) {
+            response.put("readinessScore", updatedReport.getReadinessScore());
+        }
+
+        return ResponseEntity.ok(response);
     }
 }

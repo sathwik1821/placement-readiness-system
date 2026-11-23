@@ -10,11 +10,14 @@ import {
   Code2,
   Cpu,
   BarChart3,
-  Cloud,
   GraduationCap,
   Building2,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  Check,
+  Layers
 } from 'lucide-react';
+import { CAREER_TRACKS, getCareerTrack } from '../../utils/careerStandards';
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -42,49 +45,6 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const careerTracks = [
-    {
-      role: 'Java Full Stack Developer',
-      shortName: 'Java Full Stack',
-      icon: Coffee,
-      stack: 'Spring Boot • React • SQL • DSA',
-      focus: 'Enterprise microservices, Spring Data JPA, and modern React web applications',
-      badgeClass: 'text-amber-500 bg-amber-50 border-amber-200'
-    },
-    {
-      role: 'MERN Full Stack Developer',
-      shortName: 'MERN Stack',
-      icon: Code2,
-      stack: 'React • Node.js • Express • MongoDB',
-      focus: 'Modern JavaScript web apps, asynchronous REST APIs, and reactive frontend architectures',
-      badgeClass: 'text-blue-500 bg-blue-50 border-blue-200'
-    },
-    {
-      role: 'AI / ML Engineer',
-      shortName: 'AI / ML Track',
-      icon: Cpu,
-      stack: 'Python • Machine Learning • Neural Networks',
-      focus: 'Supervised/unsupervised models, predictive data pipelines, and algorithmic optimization',
-      badgeClass: 'text-purple-500 bg-purple-50 border-purple-200'
-    },
-    {
-      role: 'Data Analyst',
-      shortName: 'Data Analytics',
-      icon: BarChart3,
-      stack: 'Advanced SQL • PowerBI • Pandas • Statistics',
-      focus: 'Business intelligence, analytical querying, ETL data pipelines, and quantitative reporting',
-      badgeClass: 'text-emerald-500 bg-emerald-50 border-emerald-200'
-    },
-    {
-      role: 'Cloud & DevOps Engineer',
-      shortName: 'Cloud & DevOps',
-      icon: Cloud,
-      stack: 'Docker • Kubernetes • Networks • Linux',
-      focus: 'Container orchestration, CI/CD automation, cloud infrastructure, and network protocols',
-      badgeClass: 'text-indigo-500 bg-indigo-50 border-indigo-200'
-    }
-  ];
 
   useEffect(() => {
     async function fetchProfile() {
@@ -156,7 +116,15 @@ export default function Profile() {
     );
   }
 
-  const selectedTrack = careerTracks.find((t) => t.role === careerGoal.targetRole) || careerTracks[0];
+  const selectedTrack = getCareerTrack(careerGoal.targetRole);
+
+  const handleSelectTrack = (trk) => {
+    setCareerGoal({
+      targetRole: trk.role,
+      targetDomain: trk.domain,
+      targetIndustry: trk.industry
+    });
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 font-sans">
@@ -184,59 +152,79 @@ export default function Profile() {
               <div className="flex items-center gap-2">
                 <Target className="w-5 h-5 text-blue-600" />
                 <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                  Target Career Track & Industry Goal
+                  Target Career Track & Industry Calibration (Strict 4 Tracks)
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Select the target role you want your placement assessments and detailed analysis to evaluate against.
+                Our institution follows 4 industry-standard tracks to ensure rigorous recruiter evaluation and reliable calibration.
               </p>
             </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 shrink-0">
               Active: {selectedTrack.shortName}
             </span>
           </div>
 
-          {/* Interactive Career Track Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-6">
-            {careerTracks.map((trk) => {
+          {/* Interactive Career Track Cards (2x2 Grid) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {CAREER_TRACKS.map((trk) => {
               const Icon = trk.icon;
               const isSelected = careerGoal.targetRole === trk.role;
 
               return (
-                <button
+                <div
                   key={trk.role}
-                  type="button"
-                  onClick={() => setCareerGoal({ ...careerGoal, targetRole: trk.role })}
-                  className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                  onClick={() => handleSelectTrack(trk)}
+                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
                     isSelected
-                      ? 'border-blue-600 bg-blue-50/50 shadow-xs ring-2 ring-blue-600/20'
+                      ? 'border-blue-600 bg-blue-50/40 shadow-xs ring-2 ring-blue-600/20'
                       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
                   }`}
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            {trk.shortName}
+                          </span>
+                          <h3 className="text-xs sm:text-sm font-black text-slate-900">{trk.role}</h3>
+                        </div>
                       </div>
-                      {isSelected && (
-                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-600 text-white">
-                          Selected
+
+                      {isSelected ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-blue-600 text-white shadow-xs">
+                          <Check className="w-3 h-3" />
+                          <span>Active Trajectory</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-slate-400 hover:text-blue-600 transition-colors">
+                          Click to select
                         </span>
                       )}
                     </div>
-                    <h3 className="text-xs font-black text-slate-900">{trk.role}</h3>
-                    <p className="text-[11px] font-mono text-blue-700 font-bold mt-1">
+
+                    <p className="text-[11px] font-mono text-blue-700 font-bold bg-blue-50/60 p-2 rounded-lg border border-blue-100/80 mb-2">
                       {trk.stack}
                     </p>
+
+                    <p className="text-xs text-slate-600 leading-relaxed mb-2">
+                      {trk.description}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2.5 pt-2 border-t border-slate-100 line-clamp-2">
-                    {trk.focus}
-                  </p>
-                </button>
+
+                  <div className="pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+                    <p>
+                      <strong className="text-slate-700">Recruiter Hiring Focus:</strong> {trk.focus}
+                    </p>
+                  </div>
+                </div>
               );
             })}
           </div>

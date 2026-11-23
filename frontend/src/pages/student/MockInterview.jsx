@@ -462,19 +462,24 @@ export default function MockInterview() {
           </div>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Target Domain Track (From Student Profile)
-                </span>
-                <span className="text-sm font-black text-slate-900 mt-0.5 block">
-                  {targetRole}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="label mb-0">Target Domain Track (4 Accredited Industry Tracks)</label>
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Cpu className="w-3 h-3 text-indigo-600" />
+                  <span>Gemini LLM Calibrated</span>
                 </span>
               </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1">
-                <Cpu className="w-3 h-3 text-indigo-600" />
-                <span>Gemini LLM Calibrated</span>
-              </span>
+              <select
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                className="input font-bold text-xs"
+              >
+                <option value="Java Full Stack Developer">Java Full Stack Developer (Spring Boot • React • SQL)</option>
+                <option value="MERN Full Stack Developer">MERN Full Stack Developer (Node.js • React • MongoDB)</option>
+                <option value="AI / ML Engineer">AI / ML Engineer (Python • Scikit-Learn • Neural Networks)</option>
+                <option value="Data Analyst">Data Analyst (Advanced SQL • BI Dashboards • Tableau)</option>
+              </select>
             </div>
 
             <div>

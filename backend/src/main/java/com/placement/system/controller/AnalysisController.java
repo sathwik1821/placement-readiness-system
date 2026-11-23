@@ -45,14 +45,14 @@ public class AnalysisController {
         if (student == null) return ResponseEntity.notFound().build();
 
         CareerGoal goal = careerGoalRepository.findByStudentId(student.getId()).orElse(null);
-        String currentRole = goal != null && goal.getTargetRole() != null ? goal.getTargetRole() : "Java Full Stack Developer";
+        String currentRole = com.placement.system.util.CareerStandard.canonicalizeRole(goal != null ? goal.getTargetRole() : null);
 
         // Fetch latest report
         AnalysisReport report = reportRepository.findFirstByStudentIdOrderByGeneratedAtDesc(student.getId()).orElse(null);
 
         // If no report exists or the career goal has changed, generate a fresh report
         if (report == null || report.getTargetRole() == null || !report.getTargetRole().equalsIgnoreCase(currentRole)) {
-            report = generateReportInternal(student);
+            report = generateReportForStudent(student);
         }
 
         report.setRecommendations(recommendationRepository.findByAnalysisReportId(report.getId()));
@@ -65,16 +65,16 @@ public class AnalysisController {
         Student student = studentRepository.findByUserId(userId).orElse(null);
         if (student == null) return ResponseEntity.notFound().build();
 
-        AnalysisReport report = generateReportInternal(student);
+        AnalysisReport report = generateReportForStudent(student);
         report.setRecommendations(recommendationRepository.findByAnalysisReportId(report.getId()));
         return ResponseEntity.ok(report);
     }
 
-    private AnalysisReport generateReportInternal(Student student) {
+    public AnalysisReport generateReportForStudent(Student student) {
         CareerGoal goal = careerGoalRepository.findByStudentId(student.getId()).orElse(null);
-        String targetRole = (goal != null && goal.getTargetRole() != null && !goal.getTargetRole().isBlank())
-                ? goal.getTargetRole().trim()
-                : "Java Full Stack Developer";
+        String targetRole = com.placement.system.util.CareerStandard.canonicalizeRole(
+                goal != null && goal.getTargetRole() != null ? goal.getTargetRole() : null
+        );
 
         List<TestAttempt> completed = attemptRepository.findByStudentIdAndStatusOrderByCompletedAtDesc(student.getId(), "COMPLETED");
         Map<String, Double> categoryScores = new HashMap<>();
@@ -412,98 +412,10 @@ public class AnalysisController {
     }
 
     private Map<String, Double> getRoleWeights(String role) {
-        String normalized = role != null ? role.trim() : "Java Full Stack Developer";
-        if (normalized.contains("MERN") || normalized.equalsIgnoreCase("MERN Full Stack Developer")) {
-            return Map.of(
-                "Web Frontend & React", 0.25,
-                "Node.js & Backend Architecture", 0.25,
-                "DBMS", 0.15,
-                "Data Structures & Algorithms", 0.15,
-                "OOP Concepts", 0.10,
-                "Logical Reasoning", 0.10
-            );
-        } else if (normalized.contains("AI") || normalized.contains("ML") || normalized.equalsIgnoreCase("AI / ML Engineer")) {
-            return Map.of(
-                "Machine Learning & Python", 0.30,
-                "Data Structures & Algorithms", 0.20,
-                "Quantitative Aptitude", 0.20,
-                "DBMS", 0.15,
-                "Logical Reasoning", 0.15
-            );
-        } else if (normalized.contains("Data Analyst") || normalized.equalsIgnoreCase("Data Analyst")) {
-            return Map.of(
-                "Data Analytics & BI (SQL/Tableau)", 0.30,
-                "DBMS", 0.25,
-                "Quantitative Aptitude", 0.20,
-                "Logical Reasoning", 0.15,
-                "Verbal Ability", 0.10
-            );
-        } else if (normalized.contains("Cloud") || normalized.contains("DevOps")) {
-            return Map.of(
-                "Computer Networks", 0.25,
-                "Operating Systems", 0.25,
-                "DBMS", 0.15,
-                "Data Structures & Algorithms", 0.15,
-                "Logical Reasoning", 0.20
-            );
-        } else {
-            // Default: Java Full Stack Developer
-            return Map.of(
-                "Java & Spring Boot", 0.25,
-                "Data Structures & Algorithms", 0.20,
-                "DBMS", 0.15,
-                "Web Frontend & React", 0.15,
-                "OOP Concepts", 0.10,
-                "Quantitative Aptitude", 0.15
-            );
-        }
+        return com.placement.system.util.CareerStandard.getRoleWeights(role);
     }
 
     private Map<String, Integer> getRoleBenchmarks(String role) {
-        String normalized = role != null ? role.trim() : "Java Full Stack Developer";
-        if (normalized.contains("MERN") || normalized.equalsIgnoreCase("MERN Full Stack Developer")) {
-            return Map.of(
-                "Web Frontend & React", 85,
-                "Node.js & Backend Architecture", 80,
-                "DBMS", 75,
-                "Data Structures & Algorithms", 70,
-                "OOP Concepts", 75,
-                "Logical Reasoning", 70
-            );
-        } else if (normalized.contains("AI") || normalized.contains("ML") || normalized.equalsIgnoreCase("AI / ML Engineer")) {
-            return Map.of(
-                "Machine Learning & Python", 85,
-                "Data Structures & Algorithms", 75,
-                "Quantitative Aptitude", 80,
-                "DBMS", 70,
-                "Logical Reasoning", 75
-            );
-        } else if (normalized.contains("Data Analyst") || normalized.equalsIgnoreCase("Data Analyst")) {
-            return Map.of(
-                "Data Analytics & BI (SQL/Tableau)", 85,
-                "DBMS", 80,
-                "Quantitative Aptitude", 75,
-                "Logical Reasoning", 75,
-                "Verbal Ability", 70
-            );
-        } else if (normalized.contains("Cloud") || normalized.contains("DevOps")) {
-            return Map.of(
-                "Computer Networks", 80,
-                "Operating Systems", 80,
-                "DBMS", 70,
-                "Data Structures & Algorithms", 65,
-                "Logical Reasoning", 70
-            );
-        } else {
-            // Default: Java Full Stack Developer
-            return Map.of(
-                "Java & Spring Boot", 80,
-                "Data Structures & Algorithms", 75,
-                "DBMS", 75,
-                "Web Frontend & React", 70,
-                "OOP Concepts", 75,
-                "Quantitative Aptitude", 70
-            );
-        }
+        return com.placement.system.util.CareerStandard.getRoleBenchmarks(role);
     }
 }

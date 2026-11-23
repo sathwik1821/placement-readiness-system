@@ -23,14 +23,11 @@ import {
 } from 'lucide-react';
 
 const DOMAIN_OPTIONS = [
-  { value: '', label: 'All Career Domains' },
+  { value: '', label: 'All 4 Career Domains' },
   { value: 'Java Full Stack Developer', label: 'Java Full Stack' },
   { value: 'MERN Full Stack Developer', label: 'MERN Full Stack' },
   { value: 'AI / ML Engineer', label: 'AI & Machine Learning' },
-  { value: 'Data Analyst', label: 'Data Analytics & BI' },
-  { value: 'Cloud & DevOps', label: 'Cloud Infrastructure & DevOps' },
-  { value: 'Cybersecurity', label: 'Cybersecurity' },
-  { value: 'Mobile App Development', label: 'Mobile App Engineering' }
+  { value: 'Data Analyst', label: 'Data Analytics & BI' }
 ];
 
 export default function Jobs() {
@@ -168,11 +165,10 @@ export default function Jobs() {
   };
 
   const quickPillSearches = [
-    'Spring Boot',
-    'React & Node',
-    'Machine Learning',
-    'Kubernetes & DevOps',
-    'Data Analyst',
+    'Spring Boot & Java',
+    'React & Node.js',
+    'Machine Learning & Python',
+    'Data Analyst & SQL',
     'Remote Only',
     'Internship'
   ];

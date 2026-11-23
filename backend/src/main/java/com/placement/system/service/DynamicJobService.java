@@ -362,7 +362,7 @@ public class DynamicJobService {
           "location": "Realistic Indian Tech Hub (e.g. Bangalore (Hybrid), Hyderabad, Pune, Remote)",
           "jobType": "FULL_TIME",
           "workMode": "HYBRID" or "REMOTE" or "ONSITE",
-          "domain": "Domain category (e.g. Java Full Stack Developer, MERN, AI / ML, Cloud & DevOps, Data Analyst)",
+          "domain": "Domain category strictly from one of: Java Full Stack Developer, MERN Full Stack Developer, AI / ML Engineer, Data Analyst",
           "description": "2-3 sentences describing the high-scale engineering challenges, architecture stack, and responsibilities.",
           "requirements": ["Requirement 1", "Requirement 2", "Requirement 3"],
           "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"],
