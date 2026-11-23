@@ -16,14 +16,12 @@ public class InterviewResponse {
     @Column(nullable = false)
     private String questionId;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String responseText;
 
     private Double technicalScore = 0.0;
     private Double communicationScore = 0.0;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String aiFeedback = "";
 

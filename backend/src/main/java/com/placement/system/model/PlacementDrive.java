@@ -20,7 +20,6 @@ public class PlacementDrive {
     private String ctc = "";
     private String workMode = "ONSITE"; // ONSITE, REMOTE, HYBRID
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String jobDescription = "";
 
@@ -28,7 +27,6 @@ public class PlacementDrive {
     private LocalDateTime deadline;
     private String status = "PUBLISHED"; // DRAFT, PUBLISHED, CLOSED
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String eligibilityCriteria = "{}";
 

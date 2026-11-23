@@ -21,11 +21,9 @@ public class Student {
     private Integer backlogs = 0;
     private String phone = "";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String skills = "[]";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String interests = "[]";
 

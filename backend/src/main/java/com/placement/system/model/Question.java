@@ -12,11 +12,9 @@ public class Question {
     @Column(nullable = false)
     private String testCategoryId;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String questionText;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String options; // JSON string of options
 

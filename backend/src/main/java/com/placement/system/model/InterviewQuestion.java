@@ -12,7 +12,6 @@ public class InterviewQuestion {
     @Column(nullable = false)
     private String sessionId;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String questionText;
 

@@ -18,7 +18,6 @@ public class JobRecommendation {
 
     private Double matchScore = 0.0;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String matchReasons = "[]";
 

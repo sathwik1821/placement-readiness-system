@@ -17,19 +17,15 @@ public class AnalysisReport {
 
     private Double readinessScore = 0.0;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String readinessBreakdown = "{}";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String strengths = "[]";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String skillGaps = "[]";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String aiFeedback = "";
 

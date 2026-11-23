@@ -18,7 +18,6 @@ public class CompanyFeedbackReport {
 
     private String companyId;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String reportData = "{}";
 

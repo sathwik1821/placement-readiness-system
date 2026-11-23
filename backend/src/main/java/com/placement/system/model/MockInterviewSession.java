@@ -21,7 +21,6 @@ public class MockInterviewSession {
     private Double technicalScore = 0.0;
     private Double communicationScore = 0.0;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String feedback = "";
 

@@ -15,15 +15,12 @@ public class Job {
     private String location;
     private String jobType = "FULL_TIME"; // FULL_TIME, INTERNSHIP, CONTRACT
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String requirements = "[]";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String skills = "[]";
 
