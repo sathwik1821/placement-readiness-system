@@ -41,13 +41,16 @@ public class QuestionBankSeeder implements CommandLineRunner {
         seedNodeBackend();
         seedMachineLearning();
         seedDataAnalytics();
+        seedMockAssessments();
 
-        System.out.println("✅ Question Bank Seeding Completed: All 13 categories have at least 20 questions with detailed educational explanations!");
+        System.out.println("✅ Question Bank Seeding Completed: All 13 categories and mock assessments seeded with questions!");
     }
 
     private void addQ(String categoryName, String text, List<String> options, String correct, String explanation, String diff, String topic) {
-        TestCategory cat = categoryRepository.findByName(categoryName).orElse(null);
-        if (cat == null) return;
+        TestCategory cat = categoryRepository.findByName(categoryName).orElseGet(() -> {
+            TestCategory newCat = new TestCategory(categoryName, "MOCK", "Practice", "Calibrated mock assessment.");
+            return categoryRepository.save(newCat);
+        });
 
         Question existing = questionRepository.findByTestCategoryIdAndQuestionText(cat.getId(), text).orElse(null);
         try {
@@ -1810,5 +1813,230 @@ public class QuestionBankSeeder implements CommandLineRunner {
                         "They are interchangeable terms"),
                 "Correlation implies two variables move together statistically; Causation proves that a change in one variable directly causes change in the other",
                 "Observing that ice cream sales and sunburns correlate does not mean ice cream causes sunburns (both are caused by hot weather, a confounding variable).", "EASY", "Analytics Acumen");
+    }
+
+    private void seedMockAssessments() {
+        seedJavaFullStackMock();
+        seedMernMock();
+        seedAiMlMock();
+        seedDataAnalyticsMock();
+    }
+
+    private void seedJavaFullStackMock() {
+        for (String c : List.of("Java Full Stack Mock Assessment", "Java Mock Assessment")) {
+            addQ(c, "In Spring Boot, how does the IoC container handle circular dependencies between two @Service beans initialized via constructor injection?",
+                    List.of("Throws BeanCurrentlyInCreationException unless @Lazy or setter injection is configured",
+                            "Automatically caches partial bytecode in heap",
+                            "Silently deletes one service bean",
+                            "Compiles both into a single class at runtime"),
+                    "Throws BeanCurrentlyInCreationException unless @Lazy or setter injection is configured",
+                    "Constructor-injected circular dependencies prevent either bean from completing initialization, causing Spring to fail fast with BeanCurrentlyInCreationException. Using @Lazy defers initialization via a CGLIB proxy.", "HARD", "Spring IoC & Architecture");
+
+            addQ(c, "In Java 21, what is the primary architectural advantage of Virtual Threads (Project Loom) over traditional Platform Threads?",
+                    List.of("Virtual threads are lightweight user-mode threads scheduled by the JVM, allowing millions of concurrent tasks with minimal OS thread overhead",
+                            "Virtual threads bypass Java garbage collection completely",
+                            "Virtual threads execute code in C++ directly without bytecode",
+                            "Virtual threads guarantee lock-free database operations"),
+                    "Virtual threads are lightweight user-mode threads scheduled by the JVM, allowing millions of concurrent tasks with minimal OS thread overhead",
+                    "Virtual threads decouple Java thread count from OS kernel threads, eliminating expensive thread context-switching and enabling massive I/O concurrency.", "MEDIUM", "Java Concurrency & Loom");
+
+            addQ(c, "In a React 18 frontend connected to a Spring Boot REST API, what does the useEffect cleanup return function prevent?",
+                    List.of("Memory leaks, stale state updates on unmounted components, and duplicate WebSocket/event subscriptions",
+                            "Browser crashes on CSS compile",
+                            "SQL injection on frontend forms",
+                            "Spring Boot connection timeouts"),
+                    "Memory leaks, stale state updates on unmounted components, and duplicate WebSocket/event subscriptions",
+                    "The cleanup function returned by useEffect executes before the component unmounts or before the effect re-runs, cancelling pending fetches (AbortController) and removing event listeners.", "EASY", "React Component Lifecycle");
+
+            addQ(c, "In Spring Data JPA, what causes the notorious 'N+1 Query Problem' and what is the standard production solution?",
+                    List.of("Fetching a list of N parent entities triggers N additional queries for each child association; resolved using JOIN FETCH or @EntityGraph",
+                            "Inserting N entities requires N transactions; resolved using batch size 1",
+                            "Database deadlocks on high concurrency; resolved using HikariCP",
+                            "SQL syntax errors on null columns; resolved with COALESCE"),
+                    "Fetching a list of N parent entities triggers N additional queries for each child association; resolved using JOIN FETCH or @EntityGraph",
+                    "When lazy associations are accessed inside a loop, Hibernate issues 1 query for parents and N queries for children. JOIN FETCH or @EntityGraph fetches parents and children in a single SQL JOIN.", "MEDIUM", "JPA & Hibernate Performance");
+
+            addQ(c, "What is the difference between @ControllerAdvice and @ExceptionHandler in Spring Boot REST applications?",
+                    List.of("@ControllerAdvice defines a global interceptor across all controllers; @ExceptionHandler defines the specific handler method for target exceptions",
+                            "@ControllerAdvice is only for HTML views; @ExceptionHandler is for JSON",
+                            "@ControllerAdvice restarts the server on fatal errors",
+                            "They are identical in scope and behavior"),
+                    "@ControllerAdvice defines a global interceptor across all controllers; @ExceptionHandler defines the specific handler method for target exceptions",
+                    "@ControllerAdvice (or @RestControllerAdvice) applies global AOP exception handling across all REST endpoints, routing thrown exceptions to annotated @ExceptionHandler methods.", "EASY", "Spring REST Error Handling");
+
+            addQ(c, "In Java, how does the Garbage Collector distinguish between live objects and unreachable objects using GC Roots?",
+                    List.of("Traces reference chains starting from GC Roots (stack frames, static variables, JNI references); unvisited objects are marked for sweep",
+                            "Maintains an atomic reference counter per object",
+                            "Checks file timestamps on disk",
+                            "Deletes objects after 60 seconds automatically"),
+                    "Traces reference chains starting from GC Roots (stack frames, static variables, JNI references); unvisited objects are marked for sweep",
+                    "Modern JVM GCs (G1, ZGC) perform tracing reachability analysis from GC Roots to avoid memory leaks caused by circular reference islands.", "MEDIUM", "JVM Internals & Memory");
+
+            addQ(c, "In a React SPA, what is the key difference between optimistic UI updates and pessimistic UI updates when communicating with a Spring backend?",
+                    List.of("Optimistic immediately renders the expected state before server response and rolls back on failure; pessimistic waits for server HTTP 200 before updating UI",
+                            "Optimistic uses WebSockets; pessimistic uses HTTP GET",
+                            "Optimistic only works on mobile browsers",
+                            "Pessimistic disables React re-rendering"),
+                    "Optimistic immediately renders the expected state before server response and rolls back on failure; pessimistic waits for server HTTP 200 before updating UI",
+                    "Optimistic updates deliver instant perceived responsiveness by assuming backend success, whereas pessimistic updates display loading spinners until server confirmation.", "MEDIUM", "Frontend Architecture & UX");
+
+            addQ(c, "In Spring Security, why should sensitive passwords be hashed using BCrypt or Argon2 instead of SHA-256 or MD5?",
+                    List.of("BCrypt incorporates a salt and configurable work factor (cost) to defend against GPU brute-force and rainbow table attacks",
+                            "SHA-256 is not supported in Java 17",
+                            "MD5 causes database connection timeouts",
+                            "BCrypt allows two-way decryption on forgotten password requests"),
+                    "BCrypt incorporates a salt and configurable work factor (cost) to defend against GPU brute-force and rainbow table attacks",
+                    "Fast general-purpose cryptographic hashes like SHA-256 can be brute-forced billions of times per second on GPUs. Slow, salted key-derivation functions like BCrypt resist modern hardware attacks.", "EASY", "Enterprise Security & Auth");
+
+            addQ(c, "In SQL and PostgreSQL, what is the practical purpose of a Database B-Tree Composite Index on (department_id, year_of_study)?",
+                    List.of("Accelerates queries filtering by (department_id) alone or (department_id AND year_of_study), following left-to-right prefix matching",
+                            "Accelerates queries filtering only on year_of_study",
+                            "Compresses table storage by 50%",
+                            "Enforces foreign key cascades automatically"),
+                    "Accelerates queries filtering by (department_id) alone or (department_id AND year_of_study), following left-to-right prefix matching",
+                    "Composite indexes satisfy queries that match the leading column(s) in order. Queries filtering solely on the second column without the first cannot utilize standard B-tree index traversal.", "HARD", "Database Indexing & Tuning");
+
+            addQ(c, "In Spring Boot, what does @Transactional(propagation = Propagation.REQUIRES_NEW) execute?",
+                    List.of("Suspends any existing transaction and starts a completely independent, isolated physical database transaction",
+                            "Joins the current transaction if one exists",
+                            "Executes without any transaction context",
+                            "Rolls back both parent and child transactions unconditionally"),
+                    "Suspends any existing transaction and starts a completely independent, isolated physical database transaction",
+                    "REQUIRES_NEW creates an independent transaction boundary. If the inner transaction succeeds and commits, outer transaction rollback will not affect it (e.g. for audit logging).", "HARD", "Spring Transaction Management");
+
+            addQ(c, "In Java, what occurs when two threads simultaneously invoke synchronized methods on different instances of the same class?",
+                    List.of("Both threads execute concurrently without blocking because each lock is acquired on the respective instance monitor ('this')",
+                            "One thread blocks until the other finishes",
+                            "A DeadlockException is thrown",
+                            "The JVM serializes thread execution globally"),
+                    "Both threads execute concurrently without blocking because each lock is acquired on the respective instance monitor ('this')",
+                    "Instance synchronized methods synchronize on the specific object instance (`this`). Threads invoking methods on different objects hold distinct monitor locks and execute in parallel.", "MEDIUM", "Java Multithreading");
+
+            addQ(c, "In modern REST APIs, why is the HTTP PUT method specified as idempotent, while HTTP POST is typically non-idempotent?",
+                    List.of("Executing PUT N times with the same payload produces the same target resource state as executing it once; POST repeatedly creates new sub-resources",
+                            "POST can only be called once per session",
+                            "PUT encrypts payloads automatically",
+                            "POST requires SSL certificates while PUT does not"),
+                    "Executing PUT N times with the same payload produces the same target resource state as executing it once; POST repeatedly creates new sub-resources",
+                    "Idempotence guarantees that repeated identical requests leave system state unaltered. Multiple PUT requests overwrite resource state consistently; multiple POST requests create multiple duplicate records.", "EASY", "REST API Design Standards");
+
+            addQ(c, "In a React and Spring Boot full-stack architecture, what triggers a CORS (Cross-Origin Resource Sharing) Preflight OPTIONS request?",
+                    List.of("Non-simple HTTP methods (PUT, DELETE, PATCH) or custom headers (like Authorization: Bearer <token>) sent to a different origin",
+                            "GET requests with query parameters",
+                            "Images loaded via <img> tags",
+                            "Form submissions using application/x-www-form-urlencoded"),
+                    "Non-simple HTTP methods (PUT, DELETE, PATCH) or custom headers (like Authorization: Bearer <token>) sent to a different origin",
+                    "Browsers dispatch an automatic preflight HTTP OPTIONS request to check Access-Control-Allow-Methods and Access-Control-Allow-Headers before executing non-simple cross-origin requests.", "MEDIUM", "Full-Stack Web Security");
+
+            addQ(c, "In Hibernate/JPA, how does Optimistic Locking using the @Version annotation prevent lost updates in concurrent environments?",
+                    List.of("Checks version number during UPDATE; if another transaction incremented it, throws OptimisticLockException without holding database table locks",
+                            "Acquires an exclusive SELECT ... FOR UPDATE database lock on read",
+                            "Blocks all other HTTP requests until transaction completes",
+                            "Reverts database to yesterday's snapshot"),
+                    "Checks version number during UPDATE; if another transaction incremented it, throws OptimisticLockException without holding database table locks",
+                    "Optimistic locking assumes collisions are rare. When committing, it executes `UPDATE ... WHERE id=? AND version=?`. If 0 rows are updated, someone else modified the entity, throwing OptimisticLockException.", "HARD", "JPA Concurrency Control");
+
+            addQ(c, "In a Spring Boot microservice environment, what is the role of a distributed Cache-Aside (Lazy-Loading) pattern using Redis?",
+                    List.of("Application queries Redis cache first; on cache miss, reads from PostgreSQL, populates Redis, and returns the result",
+                            "Redis automatically replicates all SQL tables into memory",
+                            "Redis replaces Spring Data JPA entirely",
+                            "Application writes to disk before memory"),
+                    "Application queries Redis cache first; on cache miss, reads from PostgreSQL, populates Redis, and returns the result",
+                    "Cache-Aside minimizes primary database read pressure by populating memory keys on-demand upon cache misses, invalidating them when source data updates.", "MEDIUM", "Distributed Caching");
+
+            addQ(c, "In Java, what is the crucial functional difference between Comparable<T> and Comparator<T>?",
+                    List.of("Comparable imposes natural ordering on the class itself via compareTo(); Comparator provides custom external sorting strategies via compare()",
+                            "Comparable is only for Strings; Comparator is for Integers",
+                            "Comparator cannot be used with Collections.sort()",
+                            "Comparable is deprecated in Java 21"),
+                    "Comparable imposes natural ordering on the class itself via compareTo(); Comparator provides custom external sorting strategies via compare()",
+                    "Implementing Comparable defines the natural ordering of a class (e.g. Student sorted by roll number). Comparator allows multiple distinct sort orders (by name, by CGPA, by date) without altering class source.", "EASY", "Java Collections & Generics");
+
+            addQ(c, "In React 18, what is the purpose of the useMemo hook?",
+                    List.of("Caches the computed result of an expensive calculation between re-renders, recomputing only when specified dependencies change",
+                            "Persists state into the browser's localStorage",
+                            "Prevents components from unmounting",
+                            "Performs asynchronous API calls on initial load"),
+                    "Caches the computed result of an expensive calculation between re-renders, recomputing only when specified dependencies change",
+                    "useMemo memoizes CPU-heavy computations so they do not execute unnecessarily on every parent re-render unless input dependencies mutate.", "EASY", "React Performance Optimization");
+
+            addQ(c, "In database design, what does the ACID property 'Isolation' guarantee?",
+                    List.of("Concurrent transactions execute without interfering with one another, preventing dirty reads and non-repeatable reads according to the isolation level",
+                            "Data is immediately written to persistent SSD storage",
+                            "Database operations succeed completely or leave data unmodified",
+                            "Constraints like foreign keys are never violated"),
+                    "Concurrent transactions execute without interfering with one another, preventing dirty reads and non-repeatable reads according to the isolation level",
+                    "Isolation controls transaction visibility and concurrency anomalies (Dirty Read, Non-repeatable Read, Phantom Read) via isolation levels (READ_COMMITTED, REPEATABLE_READ, SERIALIZABLE).", "MEDIUM", "Relational Database Theory");
+
+            addQ(c, "In Spring Boot, how does the HikariCP connection pool handle connection leaks when connections are not returned to the pool?",
+                    List.of("Throws connection timeout exceptions when pool is exhausted; leakDetectionThreshold can be set to log stack traces of unclosed connections",
+                            "Spawns infinite connections until OS memory fails",
+                            "Silently deletes unclosed database transactions",
+                            "Restarts the Tomcat web server"),
+                    "Throws connection timeout exceptions when pool is exhausted; leakDetectionThreshold can be set to log stack traces of unclosed connections",
+                    "HikariCP bounds maximum pool size. If applications fail to close connections (e.g. unclosed ResultSets or leaked sessions), the pool exhausts. Configuring leakDetectionThreshold logs warnings with exact caller stack traces.", "MEDIUM", "Database Connection Pooling");
+
+            addQ(c, "What is the primary architectural benefit of designing Spring Boot APIs with Data Transfer Objects (DTOs) rather than returning JPA Entities directly?",
+                    List.of("Prevents sensitive field leakage, eliminates Jackson circular serialization recursion on bidirectional relations, and decouples DB schema from public API contracts",
+                            "Increases database query throughput by 10x",
+                            "Eliminates the need for Spring Security filters",
+                            "Automatically translates Java into TypeScript"),
+                    "Prevents sensitive field leakage, eliminates Jackson circular serialization recursion on bidirectional relations, and decouples DB schema from public API contracts",
+                    "DTOs decouple the external API contract from internal database persistence. They stop infinite recursion (parent -> child -> parent), prevent accidental exposure of password hashes/tokens, and enable precise input validation.", "EASY", "Enterprise Software Architecture");
+        }
+    }
+
+    private void seedMernMock() {
+        String c = "MERN Stack Mock Assessment";
+        addQ(c, "In Node.js, what is the role of the Libuv thread pool in asynchronous event loop execution?",
+                List.of("Handles offloaded synchronous operations such as file system I/O, DNS lookup, and cryptographic calculations",
+                        "Executes all JavaScript functions in parallel",
+                        "Compiles React components",
+                        "Connects directly to HTML DOM elements"),
+                "Handles offloaded synchronous operations such as file system I/O, DNS lookup, and cryptographic calculations",
+                "Libuv provides an abstraction over OS non-blocking I/O and maintains a worker thread pool (UV_THREADPOOL_SIZE) for operations that cannot be done asynchronously on the OS level.", "MEDIUM", "Node.js Internals");
+
+        addQ(c, "In MongoDB, what does the $lookup aggregation stage accomplish?",
+                List.of("Performs a left outer join to an unsharded collection in the same database to filter in documents from the joined collection",
+                        "Deletes duplicate documents",
+                        "Encrypts fields with AES-256",
+                        "Creates a full-text search index"),
+                "Performs a left outer join to an unsharded collection in the same database to filter in documents from the joined collection",
+                "$lookup executes a relational left outer join between collections in aggregation pipelines, populating an array of matching child documents.", "MEDIUM", "MongoDB Aggregation");
+    }
+
+    private void seedAiMlMock() {
+        String c = "AI / ML Engineering Mock Assessment";
+        addQ(c, "What is the mathematical cause of the 'Vanishing Gradient Problem' in deep neural networks with Sigmoid activation functions?",
+                List.of("The derivative of the sigmoid function maxes out at 0.25; backpropagating through many layers causes gradients to shrink exponentially toward zero",
+                        "Loss functions always reach infinity",
+                        "Weights become negative numbers",
+                        "Learning rate is multiplied by 100"),
+                "The derivative of the sigmoid function maxes out at 0.25; backpropagating through many layers causes gradients to shrink exponentially toward zero",
+                "Because sigmoid derivatives lie in [0, 0.25], multiplying them across deep layers during chain-rule backpropagation causes early layers to receive near-zero weight updates.", "HARD", "Deep Learning Foundations");
+
+        addQ(c, "In machine learning classification, when is the F1-Score preferred over Accuracy as the primary evaluation metric?",
+                List.of("When datasets exhibit significant class imbalance (e.g. fraud detection or rare disease diagnosis)",
+                        "When all classes have equal sample sizes",
+                        "When performing linear regression on continuous variables",
+                        "When training unsupervised k-means clustering"),
+                "When datasets exhibit significant class imbalance (e.g. fraud detection or rare disease diagnosis)",
+                "On severely skewed datasets (e.g. 99% negative, 1% positive), a dummy model predicting always negative achieves 99% accuracy. The harmonic mean F1-Score balances Precision and Recall.", "MEDIUM", "Evaluation Metrics");
+    }
+
+    private void seedDataAnalyticsMock() {
+        String c = "Data Analytics & BI Mock Assessment";
+        addQ(c, "In SQL, what is the functional difference between RANK() and DENSE_RANK() window functions?",
+                List.of("RANK() skips subsequent rank numbers after ties (e.g. 1, 2, 2, 4); DENSE_RANK() leaves no gaps (e.g. 1, 2, 2, 3)",
+                        "RANK() sorts ascending; DENSE_RANK() sorts descending",
+                        "DENSE_RANK() can only be used on strings",
+                        "RANK() eliminates duplicate rows"),
+                "RANK() skips subsequent rank numbers after ties (e.g. 1, 2, 2, 4); DENSE_RANK() leaves no gaps (e.g. 1, 2, 2, 3)",
+                "Both assign ranks based on ORDER BY within PARTITION. When ties occur, RANK() increments the counter by tied count, whereas DENSE_RANK() advances sequentially by 1.", "MEDIUM", "Advanced SQL Window Functions");
+
+        addQ(c, "In business analytics, what does the acronym ETL stand for?",
+                List.of("Extract, Transform, Load", "Estimate, Track, Leverage", "Execute, Test, Launch", "Enterprise Transaction Log"),
+                "Extract, Transform, Load",
+                "ETL is the fundamental data pipeline paradigm where raw data is extracted from heterogeneous sources, transformed/cleaned, and loaded into a centralized data warehouse.", "EASY", "Data Warehousing");
     }
 }

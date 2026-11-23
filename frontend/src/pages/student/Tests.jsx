@@ -75,15 +75,36 @@ export default function Tests() {
   const targetRole = ROLE_RECOMMENDED_TESTS[rawRole] ? rawRole : 'Java Full Stack Developer';
   const recommendedList = ROLE_RECOMMENDED_TESTS[targetRole] || [];
 
-  const isRecommended = (catName) => recommendedList.some((r) => r.toLowerCase() === catName.toLowerCase());
+  const getCatType = (c) => {
+    if (c.type) return c.type.toUpperCase();
+    const name = (c.name || '').toLowerCase();
+    if (name.includes('mock') || name.includes('assignment')) return 'MOCK';
+    if (['quantitative aptitude', 'logical reasoning', 'verbal ability'].includes(name)) return 'COMMON';
+    return 'TECHNICAL';
+  };
 
-  const displayedCategories = filterMode === 'RECOMMENDED'
-    ? categories.filter((c) => isRecommended(c.name) || c.type === 'MOCK' || c.type === 'ASSIGNMENT')
+  const isRecommended = (catName) => {
+    if (!catName) return false;
+    const lower = catName.toLowerCase();
+    if (recommendedList.some((r) => r.toLowerCase() === lower)) return true;
+    if (targetRole.toLowerCase().includes('java') && lower.includes('java')) return true;
+    if (targetRole.toLowerCase().includes('mern') && (lower.includes('mern') || lower.includes('node'))) return true;
+    if (targetRole.toLowerCase().includes('ai') && (lower.includes('machine learning') || lower.includes('python'))) return true;
+    if (targetRole.toLowerCase().includes('data') && (lower.includes('analytics') || lower.includes('tableau') || lower.includes('bi'))) return true;
+    return false;
+  };
+
+  const filteredCategories = filterMode === 'RECOMMENDED'
+    ? categories.filter((c) => isRecommended(c.name) || getCatType(c) === 'MOCK' || getCatType(c) === 'ASSIGNMENT')
     : categories;
 
-  const mockTests = displayedCategories.filter((c) => c.type === 'MOCK' || c.type === 'ASSIGNMENT');
-  const techTests = displayedCategories.filter((c) => c.type === 'TECHNICAL');
-  const commonTests = displayedCategories.filter((c) => c.type === 'COMMON');
+  const displayedCategories = (filteredCategories.length === 0 && categories.length > 0)
+    ? categories
+    : filteredCategories;
+
+  const mockTests = displayedCategories.filter((c) => getCatType(c) === 'MOCK' || getCatType(c) === 'ASSIGNMENT');
+  const techTests = displayedCategories.filter((c) => getCatType(c) === 'TECHNICAL');
+  const commonTests = displayedCategories.filter((c) => getCatType(c) === 'COMMON');
 
   return (
     <div className="space-y-8 font-sans">

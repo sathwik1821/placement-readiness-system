@@ -15,6 +15,7 @@ import java.util.*;
 public class DatabaseSeeder {
 
     @Bean
+    @org.springframework.core.annotation.Order(1)
     CommandLineRunner initDatabase(
             UserRepository userRepository,
             StudentRepository studentRepository,
@@ -188,12 +189,49 @@ public class DatabaseSeeder {
                 new TestCategory("Web Frontend & React", "TECHNICAL", "Full Stack Web", "React hooks, state management, component lifecycles, Virtual DOM, CSS/Tailwind."),
                 new TestCategory("Node.js & Backend Architecture", "TECHNICAL", "MERN Stack", "Express routing, asynchronous event loops, MongoDB/Mongoose, JWT security."),
                 new TestCategory("Machine Learning & Python", "TECHNICAL", "AI / Data Science", "Supervised/unsupervised models, scikit-learn, neural networks, loss functions."),
-                new TestCategory("Data Analytics & BI (SQL/Tableau)", "TECHNICAL", "Analytics", "Complex SQL window functions, aggregation, ETL pipelines, BI metrics.")
+                new TestCategory("Data Analytics & BI (SQL/Tableau)", "TECHNICAL", "Analytics", "Complex SQL window functions, aggregation, ETL pipelines, BI metrics."),
+                // Curated Mock Assessments & Track Assignments for 4 Canonical Careers
+                new TestCategory("Java Full Stack Mock Assessment", "MOCK", "Java Full Stack", "Comprehensive assessment covering Core Java, Spring Boot REST APIs, React Frontend, and SQL Database design.", "[\"E3\", \"E4\", 3, 4]", "[\"Computer Science & Engineering\", \"Electronics & Communication Engineering\"]", 45, 65.0),
+                new TestCategory("MERN Stack Mock Assessment", "MOCK", "MERN Stack", "Full-stack web assessment covering React 18, Node.js event-loop concurrency, Express REST APIs, and MongoDB document modeling.", "[\"E3\", \"E4\", 3, 4]", "[\"Computer Science & Engineering\", \"Electronics & Communication Engineering\"]", 45, 65.0),
+                new TestCategory("AI / ML Engineering Mock Assessment", "MOCK", "AI / ML Track", "AI/ML diagnostic test probing Python, statistical hypothesis testing, neural network architectures, and scikit-learn pipelines.", "[\"E3\", \"E4\", 3, 4]", "[\"Computer Science & Engineering\", \"Electronics & Communication Engineering\"]", 45, 65.0),
+                new TestCategory("Data Analytics & BI Mock Assessment", "MOCK", "Data Analytics", "Quantitative assessment evaluating advanced SQL window functions, relational modeling, Power BI / Tableau dashboards, and business metrics.", "[\"E3\", \"E4\", 3, 4]", "[\"Computer Science & Engineering\", \"Electronics & Communication Engineering\", \"Mechanical Engineering\", \"Civil Engineering\"]", 45, 65.0)
             );
 
             for (TestCategory c : categories) {
                 TestCategory saved = testCategoryRepository.findByName(c.getName())
                         .orElseGet(() -> testCategoryRepository.save(c));
+                boolean dirty = false;
+                if (saved.getType() == null || !saved.getType().equals(c.getType())) {
+                    saved.setType(c.getType());
+                    dirty = true;
+                }
+                if (saved.getDomain() == null || !saved.getDomain().equals(c.getDomain())) {
+                    saved.setDomain(c.getDomain());
+                    dirty = true;
+                }
+                if (saved.getIsActive() == null) {
+                    saved.setIsActive(true);
+                    dirty = true;
+                }
+                if (saved.getDurationMinutes() == null) {
+                    saved.setDurationMinutes(c.getDurationMinutes() != null ? c.getDurationMinutes() : 30);
+                    dirty = true;
+                }
+                if (saved.getPassingPercentage() == null) {
+                    saved.setPassingPercentage(c.getPassingPercentage() != null ? c.getPassingPercentage() : 60.0);
+                    dirty = true;
+                }
+                if (c.getTargetYears() != null && (saved.getTargetYears() == null || saved.getTargetYears().isBlank())) {
+                    saved.setTargetYears(c.getTargetYears());
+                    dirty = true;
+                }
+                if (c.getTargetDepartments() != null && (saved.getTargetDepartments() == null || saved.getTargetDepartments().isBlank())) {
+                    saved.setTargetDepartments(c.getTargetDepartments());
+                    dirty = true;
+                }
+                if (dirty) {
+                    saved = testCategoryRepository.save(saved);
+                }
                 catMap.put(saved.getName(), saved.getId());
             }
 

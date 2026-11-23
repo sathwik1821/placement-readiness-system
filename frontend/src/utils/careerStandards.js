@@ -134,6 +134,7 @@ export const CAREER_TRACKS = [
 
 export const ROLE_RECOMMENDED_TESTS = {
   [CANONICAL_CAREERS.JAVA_FULL_STACK]: [
+    'Java Full Stack Mock Assessment',
     'Java & Spring Boot',
     'Web Frontend & React',
     'Data Structures & Algorithms',
@@ -143,6 +144,7 @@ export const ROLE_RECOMMENDED_TESTS = {
     'Logical Reasoning'
   ],
   [CANONICAL_CAREERS.MERN_FULL_STACK]: [
+    'MERN Stack Mock Assessment',
     'Web Frontend & React',
     'Node.js & Backend Architecture',
     'DBMS',
@@ -151,6 +153,7 @@ export const ROLE_RECOMMENDED_TESTS = {
     'Logical Reasoning'
   ],
   [CANONICAL_CAREERS.AI_ML_ENGINEER]: [
+    'AI / ML Engineering Mock Assessment',
     'Machine Learning & Python',
     'Data Structures & Algorithms',
     'Quantitative Aptitude',
@@ -158,6 +161,7 @@ export const ROLE_RECOMMENDED_TESTS = {
     'Logical Reasoning'
   ],
   [CANONICAL_CAREERS.DATA_ANALYST]: [
+    'Data Analytics & BI Mock Assessment',
     'Data Analytics & BI (SQL/Tableau)',
     'DBMS',
     'Quantitative Aptitude',

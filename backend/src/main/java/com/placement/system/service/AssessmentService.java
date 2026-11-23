@@ -85,11 +85,18 @@ public class AssessmentService {
             Map<String, Object> map = new HashMap<>();
             map.put("id", c.getId());
             map.put("name", c.getName());
+            map.put("type", c.getType() != null ? c.getType() : "TECHNICAL");
+            map.put("domain", c.getDomain());
+            map.put("department", c.getDomain());
             map.put("description", c.getDescription());
-            map.put("durationMinutes", c.getDurationMinutes());
+            map.put("durationMinutes", c.getDurationMinutes() != null ? c.getDurationMinutes() : 30);
+            map.put("passingPercentage", c.getPassingPercentage() != null ? c.getPassingPercentage() : 60.0);
+            map.put("isActive", c.getIsActive() != null ? c.getIsActive() : true);
             map.put("targetDepartments", c.getTargetDepartments());
             map.put("targetYears", c.getTargetYears());
-            map.put("totalQuestions", questionRepository.countByTestCategoryId(c.getId()));
+            long qCount = questionRepository.countByTestCategoryId(c.getId());
+            map.put("totalQuestions", qCount);
+            map.put("_count", Map.of("questions", qCount));
             res.add(map);
         }
 
