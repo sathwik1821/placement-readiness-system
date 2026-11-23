@@ -53,6 +53,9 @@ public class CompanyController {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private com.placement.system.service.NotificationService notificationService;
+
+    @Autowired
     private JwtService jwtService;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -214,11 +217,11 @@ public class CompanyController {
         String newStatus = body.get("status");
         app.setStatus(newStatus);
         app.setUpdatedAt(LocalDateTime.now());
-        app = applicationRepository.save(app);
+        final PlacementApplication finalApp = applicationRepository.save(app);
 
         // Notify student of status update
         try {
-            studentRepository.findById(app.getStudentId()).ifPresent(st -> {
+            studentRepository.findById(finalApp.getStudentId()).ifPresent(st -> {
                 if (st.getUserId() != null) {
                     notificationRepository.save(new Notification(
                         st.getUserId(),
@@ -227,10 +230,15 @@ public class CompanyController {
                         "SHORTLIST"
                     ));
                 }
+                if ("SHORTLISTED".equalsIgnoreCase(newStatus) || "SELECTED".equalsIgnoreCase(newStatus)) {
+                    notificationService.notifyCandidateShortlisted(st, drive, finalApp, body.get("nextRoundDetails"));
+                } else if ("REJECTED".equalsIgnoreCase(newStatus) || "NOT_SELECTED".equalsIgnoreCase(newStatus)) {
+                    notificationService.notifyCandidateNotSelected(st, drive, finalApp);
+                }
             });
         } catch (Exception ignored) {}
 
-        return ResponseEntity.ok(app);
+        return ResponseEntity.ok(finalApp);
     }
 
     @GetMapping("/drives/{id}/feedback")

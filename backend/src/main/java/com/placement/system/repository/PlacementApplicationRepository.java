@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface PlacementApplicationRepository extends JpaRepository<PlacementApplication, String> {
     List<PlacementApplication> findByStudentIdOrderByAppliedAtDesc(String studentId);
     List<PlacementApplication> findByDriveIdOrderByAppliedAtDesc(String driveId);
+    List<PlacementApplication> findByDriveId(String driveId);
     Optional<PlacementApplication> findByStudentIdAndDriveId(String studentId, String driveId);
     long countByDriveId(String driveId);
 }

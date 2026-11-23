@@ -47,6 +47,9 @@ public class OfficerController {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private com.placement.system.service.NotificationService notificationService;
+
+    @Autowired
     private JwtService jwtService;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -107,6 +110,9 @@ public class OfficerController {
                 }
             });
 
+            // Centralized email notification to eligible students
+            notificationService.notifyDrivePublished(savedDrive);
+
             return ResponseEntity.ok(savedDrive);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -141,6 +147,8 @@ public class OfficerController {
                         ));
                     }
                 });
+                // Centralized email notification to eligible students
+                notificationService.notifyDrivePublished(finalDrive);
             }
         }
         return ResponseEntity.ok(drive);
@@ -204,11 +212,11 @@ public class OfficerController {
         String newStatus = body.get("status");
         app.setStatus(newStatus);
         app.setUpdatedAt(LocalDateTime.now());
-        app = applicationRepository.save(app);
+        final PlacementApplication finalApp = applicationRepository.save(app);
 
         // Notify student
         try {
-            studentRepository.findById(app.getStudentId()).ifPresent(st -> {
+            studentRepository.findById(finalApp.getStudentId()).ifPresent(st -> {
                 if (st.getUserId() != null) {
                     notificationRepository.save(new Notification(
                         st.getUserId(),
@@ -217,10 +225,17 @@ public class OfficerController {
                         "SHORTLIST"
                     ));
                 }
+                if (drive != null) {
+                    if ("SHORTLISTED".equalsIgnoreCase(newStatus) || "SELECTED".equalsIgnoreCase(newStatus)) {
+                        notificationService.notifyCandidateShortlisted(st, drive, finalApp, body.get("nextRoundDetails"));
+                    } else if ("REJECTED".equalsIgnoreCase(newStatus) || "NOT_SELECTED".equalsIgnoreCase(newStatus)) {
+                        notificationService.notifyCandidateNotSelected(st, drive, finalApp);
+                    }
+                }
             });
         } catch (Exception ignored) {}
 
-        return ResponseEntity.ok(app);
+        return ResponseEntity.ok(finalApp);
     }
 
     @PostMapping("/drives/{id}/feedback-report")

@@ -48,6 +48,9 @@ public class PlacementController {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private com.placement.system.service.NotificationService notificationService;
+
+    @Autowired
     private JwtService jwtService;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -320,6 +323,9 @@ public class PlacementController {
                     ));
                 }
             });
+
+            // Centralized institutional email notification
+            notificationService.notifyApplicationSubmitted(student, drive, app);
         } catch (Exception ignored) {}
 
         return ResponseEntity.ok(app);

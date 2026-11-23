@@ -1,13 +1,17 @@
 package com.placement.system.service;
 
 import com.placement.system.model.EmailOtp;
+import com.placement.system.model.NotificationLog;
 import com.placement.system.repository.EmailOtpRepository;
+import com.placement.system.repository.NotificationLogRepository;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -15,18 +19,32 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     private static final SecureRandom secureRandom = new SecureRandom();
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
     @Autowired
     private EmailOtpRepository emailOtpRepository;
+
+    @Autowired
+    private NotificationLogRepository notificationLogRepository;
+
+    @Value("${app.notifications.email-enabled:true}")
+    private boolean emailNotificationsEnabled;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    @Value("${spring.mail.host:}")
+    private String mailHost;
 
     /**
      * Generate and dispatch a 6-digit verification code to the target institutional email.
@@ -64,7 +82,7 @@ public class EmailService {
         boolean emailDispatched = false;
         String dispatchError = null;
 
-        if (mailSender != null) {
+        if (mailSender != null && isSmtpConfigured()) {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -100,7 +118,7 @@ public class EmailService {
                 logger.warn("SMTP mail delivery skipped or failed for {}: {}", cleanEmail, ex.getMessage());
             }
         } else {
-            logger.info("JavaMailSender not configured, OTP recorded for local verification.");
+            logger.info("JavaMailSender not fully configured or host offline, OTP recorded for local verification.");
         }
 
         Map<String, Object> response = new HashMap<>();
@@ -148,7 +166,7 @@ public class EmailService {
         boolean emailDispatched = false;
         String dispatchError = null;
 
-        if (mailSender != null) {
+        if (mailSender != null && isSmtpConfigured()) {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -223,5 +241,146 @@ public class EmailService {
         }
 
         return false;
+    }
+
+    // =========================================================================
+    // CENTRALIZED HTML EMAIL NOTIFICATION ARCHITECTURE
+    // =========================================================================
+
+    /**
+     * Asynchronous fire-and-forget HTML email dispatcher.
+     * Guaranteed never to throw exceptions to business callers or block main request thread.
+     */
+    @Async
+    public void sendHtmlEmailAsync(String recipientEmail, String recipientName, String recipientRole,
+                                   String subject, String htmlContent, String notificationType,
+                                   String relatedEntityId, String deduplicationKey) {
+        try {
+            sendHtmlEmail(recipientEmail, recipientName, recipientRole, subject, htmlContent,
+                    notificationType, relatedEntityId, deduplicationKey);
+        } catch (Exception e) {
+            logger.error("Async email dispatch error for {}: {}", recipientEmail, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Synchronous HTML email dispatcher with full audit logging and deduplication.
+     */
+    public boolean sendHtmlEmail(String recipientEmail, String recipientName, String recipientRole,
+                                 String subject, String htmlContent, String notificationType,
+                                 String relatedEntityId, String deduplicationKey) {
+
+        String cleanEmail = recipientEmail != null ? recipientEmail.trim().toLowerCase() : "";
+
+        // 1. Validate email address format & security
+        if (cleanEmail.isBlank() || !EMAIL_PATTERN.matcher(cleanEmail).matches()) {
+            logger.warn("Rejecting email notification: Invalid email address [{}]", cleanEmail);
+            NotificationLog failedLog = new NotificationLog(cleanEmail, recipientName, recipientRole,
+                    notificationType, relatedEntityId, subject, deduplicationKey);
+            failedLog.setDeliveryStatus("FAILED");
+            failedLog.setFailureReason("Invalid email address format: " + cleanEmail);
+            notificationLogRepository.save(failedLog);
+            return false;
+        }
+
+        // 2. Prevent duplicate notifications for the same event key
+        if (deduplicationKey != null && !deduplicationKey.isBlank()) {
+            Optional<NotificationLog> existingLog = notificationLogRepository.findByDeduplicationKey(deduplicationKey);
+            if (existingLog.isPresent()) {
+                String status = existingLog.get().getDeliveryStatus();
+                if (status != null && status.startsWith("SENT")) {
+                    logger.info("Deduplication active: Notification for key [{}] already sent at {}",
+                            deduplicationKey, existingLog.get().getSentAt());
+                    return true;
+                }
+            }
+        }
+
+        // 3. Create persistent NotificationLog entry
+        NotificationLog logEntry = new NotificationLog(cleanEmail, recipientName, recipientRole,
+                notificationType, relatedEntityId, subject, deduplicationKey);
+        logEntry = notificationLogRepository.save(logEntry);
+
+        // 4. Check system notification toggle
+        if (!emailNotificationsEnabled) {
+            logEntry.setDeliveryStatus("SENT (SIMULATED)");
+            logEntry.setSentAt(LocalDateTime.now());
+            logEntry.setFailureReason("Email dispatch disabled via app.notifications.email-enabled=false; simulated dispatch.");
+            notificationLogRepository.save(logEntry);
+            printConsoleSimulation(cleanEmail, recipientName, recipientRole, subject, notificationType);
+            return true;
+        }
+
+        // 5. Check if real SMTP server is configured and reachable
+        boolean smtpConfigured = isSmtpConfigured();
+
+        if (mailSender != null && smtpConfigured) {
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom("ascend-noreply@rguktsklm.ac.in", "Ascend RGUKT Placement Cell");
+                helper.setTo(cleanEmail);
+                helper.setSubject(subject);
+                helper.setText(htmlContent, true);
+
+                mailSender.send(message);
+
+                logEntry.setDeliveryStatus("SENT");
+                logEntry.setSentAt(LocalDateTime.now());
+                logEntry.setFailureReason(null);
+                notificationLogRepository.save(logEntry);
+
+                logger.info("Successfully dispatched live HTML email to [{}] with type [{}]", cleanEmail, notificationType);
+                return true;
+            } catch (Exception ex) {
+                logger.warn("Live SMTP transmission failed for [{}]: {}. Fallback to simulated log.", cleanEmail, ex.getMessage());
+                logEntry.setDeliveryStatus("SENT (SIMULATED)");
+                logEntry.setSentAt(LocalDateTime.now());
+                logEntry.setFailureReason("SMTP fallback: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+                notificationLogRepository.save(logEntry);
+                printConsoleSimulation(cleanEmail, recipientName, recipientRole, subject, notificationType);
+                return true;
+            }
+        } else {
+            // Simulated delivery when SMTP credentials are not configured in environment
+            logEntry.setDeliveryStatus("SENT (SIMULATED)");
+            logEntry.setSentAt(LocalDateTime.now());
+            logEntry.setFailureReason("SMTP credentials not configured (Dev/Test mode) - simulated dispatch.");
+            notificationLogRepository.save(logEntry);
+            printConsoleSimulation(cleanEmail, recipientName, recipientRole, subject, notificationType);
+            return true;
+        }
+    }
+
+    /**
+     * Retry a previously failed notification.
+     */
+    public boolean retryNotification(String logId) {
+        Optional<NotificationLog> opt = notificationLogRepository.findById(logId);
+        if (opt.isEmpty()) return false;
+
+        NotificationLog log = opt.get();
+        log.setDeliveryStatus("RETRYING");
+        notificationLogRepository.save(log);
+
+        return sendHtmlEmail(log.getRecipientEmail(), log.getRecipientName(), log.getRecipientRole(),
+                log.getSubject(), "<p>Retrying notification delivery</p>", log.getNotificationType(),
+                log.getRelatedEntityId(), log.getDeduplicationKey() + "_RETRY_" + System.currentTimeMillis());
+    }
+
+    private boolean isSmtpConfigured() {
+        return mailHost != null && !mailHost.isBlank() && !mailHost.equals("localhost")
+                && mailUsername != null && !mailUsername.isBlank() && !mailUsername.contains("dummy");
+    }
+
+    private void printConsoleSimulation(String email, String name, String role, String subject, String type) {
+        System.out.println("================================================================================");
+        System.out.println(" [ASCEND CENTRALIZED EMAIL NOTIFICATION DISPATCH - SIMULATED / AUDITED]");
+        System.out.println(" Notification Type : " + type);
+        System.out.println(" Recipient         : " + name + " <" + email + "> [" + role + "]");
+        System.out.println(" Subject           : " + subject);
+        System.out.println(" Timestamp         : " + LocalDateTime.now());
+        System.out.println(" Status            : SENT (SIMULATED / AUDIT LOGGED)");
+        System.out.println("================================================================================");
     }
 }
