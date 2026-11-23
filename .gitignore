@@ -2,6 +2,7 @@
 backend/target/
 backend/.mvn/
 backend/data/
+data/
 backend/*.jar
 backend/mvnw
 backend/mvnw.cmd

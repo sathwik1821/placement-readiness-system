@@ -6,6 +6,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "placement_applications", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"studentId", "driveId"})
+}, indexes = {
+    @Index(columnList = "studentId"),
+    @Index(columnList = "driveId")
 })
 public class PlacementApplication {
     @Id
@@ -21,6 +24,9 @@ public class PlacementApplication {
     private LocalDateTime appliedAt = LocalDateTime.now();
     private String status = "APPLIED"; // APPLIED, ASSESSMENT_PENDING, ASSESSMENT_COMPLETED, SHORTLISTED, INTERVIEW_SCHEDULED, SELECTED, NOT_SELECTED
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @Version
+    private Long version;
 
     @Transient
     private PlacementDrive drive;
@@ -47,6 +53,8 @@ public class PlacementApplication {
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
     public PlacementDrive getDrive() { return drive; }
     public void setDrive(PlacementDrive drive) { this.drive = drive; }
     public Student getStudent() { return student; }

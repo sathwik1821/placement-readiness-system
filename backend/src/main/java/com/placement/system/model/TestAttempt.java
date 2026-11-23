@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "test_attempts")
+@Table(name = "test_attempts", indexes = {
+    @Index(columnList = "studentId"),
+    @Index(columnList = "testCategoryId")
+})
 public class TestAttempt {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -21,7 +24,11 @@ public class TestAttempt {
     private Double totalScore = 0.0;
     private Integer totalMarks = 0;
     private Double percentageScore = 0.0;
-    private String status = "IN_PROGRESS"; // IN_PROGRESS, COMPLETED
+    private String status = "IN_PROGRESS"; // IN_PROGRESS, COMPLETED, LATE_SUBMISSION
+    private Integer timeLimitSeconds = 1200; // 20 minutes default
+
+    @Version
+    private Long version;
 
     @Transient
     private TestCategory category;
@@ -46,6 +53,10 @@ public class TestAttempt {
     public void setPercentageScore(Double percentageScore) { this.percentageScore = percentageScore; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public Integer getTimeLimitSeconds() { return timeLimitSeconds; }
+    public void setTimeLimitSeconds(Integer timeLimitSeconds) { this.timeLimitSeconds = timeLimitSeconds; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
     public TestCategory getCategory() { return category; }
     public void setCategory(TestCategory category) { this.category = category; }
 }

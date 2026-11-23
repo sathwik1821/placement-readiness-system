@@ -3,7 +3,9 @@ package com.placement.system.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "test_responses")
+@Table(name = "test_responses", indexes = {
+    @Index(columnList = "testAttemptId")
+})
 public class TestResponse {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

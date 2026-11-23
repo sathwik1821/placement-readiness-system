@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/interviews")
@@ -116,9 +117,19 @@ public class InterviewController {
     }
 
     @GetMapping("/sessions/{id}/details")
-    public ResponseEntity<?> getSessionDetails(@PathVariable String id) {
+    public ResponseEntity<?> getSessionDetails(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+        // IDOR protection: verify session belongs to caller
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
+
         MockInterviewSession session = sessionRepository.findById(id).orElse(null);
         if (session == null) return ResponseEntity.notFound().build();
+
+        if (studentId == null || !session.getStudentId().equals(studentId)) {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not own this interview session"));
+        }
 
         List<InterviewQuestion> questions = questionRepository.findBySessionIdOrderBySequenceNumberAsc(session.getId());
         List<InterviewResponse> responses = responseRepository.findBySessionId(session.getId());
@@ -142,16 +153,37 @@ public class InterviewController {
     }
 
     @PostMapping("/sessions/{id}/answer")
-    public ResponseEntity<?> answerQuestion(@PathVariable String id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> answerQuestion(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> body) {
+
+        // IDOR protection: verify session belongs to caller
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
+
         MockInterviewSession session = sessionRepository.findById(id).orElse(null);
         if (session == null) return ResponseEntity.notFound().build();
 
+        if (studentId == null || !session.getStudentId().equals(studentId)) {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not own this interview session"));
+        }
+
         String questionId = body.get("questionId");
         String text = body.getOrDefault("responseText", "").trim();
-        int words = text.isEmpty() ? 0 : text.split("\\s+").length;
+        String[] wordArray = text.isEmpty() ? new String[0] : text.split("\\s+");
+        int words = wordArray.length;
 
-        // Semantic & NLP heuristic scoring
+        // --- Anti-spam / keyword-spoofing measures ---
         String lower = text.toLowerCase();
+
+        // 1. Unique word ratio check — penalize word salad
+        Set<String> uniqueWords = new HashSet<>(Arrays.asList(wordArray));
+        double uniqueRatio = words > 0 ? (double) uniqueWords.size() / words : 0;
+
+        // 2. Sentence count check (count periods, question marks, exclamation marks)
+        long sentenceCount = text.chars().filter(c -> c == '.' || c == '?' || c == '!').count();
+
         int technicalKeywordHits = 0;
         String[] keywords = {
             "complexity", "o(1)", "o(n)", "o(log", "space", "time", "trade-off", "tradeoff",
@@ -163,6 +195,13 @@ public class InterviewController {
             if (lower.contains(kw)) technicalKeywordHits++;
         }
 
+        // 3. Keyword density cap — if keyword density > 15%, cap keyword bonus
+        double keywordDensity = words > 0 ? (double) technicalKeywordHits / words : 0;
+        double cappedKeywordHits = technicalKeywordHits;
+        if (keywordDensity > 0.15 && words > 10) {
+            cappedKeywordHits = Math.min(technicalKeywordHits, (int)(words * 0.15));
+        }
+
         // Structural communication markers
         int structureHits = 0;
         String[] structWords = {"firstly", "secondly", "furthermore", "in contrast", "specifically", "for example", "as a result", "consequently"};
@@ -170,18 +209,32 @@ public class InterviewController {
             if (lower.contains(sw)) structureHits++;
         }
 
-        double baseTech = 55.0 + Math.min(25.0, words * 0.35) + Math.min(18.0, technicalKeywordHits * 4.5);
+        // Reduced multipliers (from 0.35/4.5 to 0.25/3.0)
+        double baseTech = 55.0 + Math.min(25.0, words * 0.25) + Math.min(18.0, cappedKeywordHits * 3.0);
         double baseComm = 60.0 + Math.min(22.0, words * 0.25) + Math.min(15.0, structureHits * 5.0);
+
+        // 4. Penalize low unique word ratio (spam / repetition)
+        if (uniqueRatio < 0.4 && words > 15) {
+            baseTech -= 15.0;
+            baseComm -= 10.0;
+        }
+
+        // 5. Penalize if fewer than 2 sentences
+        if (sentenceCount < 2 && words > 10) {
+            baseComm -= 8.0;
+        }
 
         double techScore = Math.min(96.0, Math.max(45.0, Math.round(baseTech)));
         double commScore = Math.min(98.0, Math.max(50.0, Math.round(baseComm)));
 
         // Personalized constructive AI rubric feedback
         StringBuilder fb = new StringBuilder();
-        if (technicalKeywordHits >= 3) {
+        if (technicalKeywordHits >= 3 && uniqueRatio >= 0.4) {
             fb.append("Strong technical vocabulary demonstrated; effectively articulated operational mechanics. ");
         } else if (words < 25) {
             fb.append("Your response was brief. Elaborate on edge cases, failure scenarios, and computational complexity to show senior-level depth. ");
+        } else if (uniqueRatio < 0.4) {
+            fb.append("Your response appeared repetitive. Focus on diverse, concrete points with specific examples. ");
         } else {
             fb.append("Good foundational rationale. Quantifying trade-offs (e.g. latency vs consistency) will strengthen technical conviction. ");
         }
@@ -219,7 +272,7 @@ public class InterviewController {
                 List<String> bPool = ROLE_QUESTIONS.get("BEHAVIORAL");
                 nextQText = bPool.get((nextSeq - 1) % bPool.size());
             } else {
-                List<String> pool = ROLE_QUESTIONS.getOrDefault(session.getTargetRole(), ROLE_QUESTIONS.get("Software Developer"));
+                List<String> pool = ROLE_QUESTIONS.getOrDefault(session.getTargetRole(), ROLE_QUESTIONS.get("Java Full Stack Developer"));
                 nextQText = pool.get((nextSeq - 1) % pool.size());
             }
 
@@ -242,9 +295,20 @@ public class InterviewController {
     }
 
     @PostMapping("/sessions/{id}/complete")
-    public ResponseEntity<?> completeSession(@PathVariable String id) {
+    public ResponseEntity<?> completeSession(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        // IDOR protection: verify session belongs to caller
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
+
         MockInterviewSession session = sessionRepository.findById(id).orElse(null);
         if (session == null) return ResponseEntity.notFound().build();
+
+        if (studentId == null || !session.getStudentId().equals(studentId)) {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not own this interview session"));
+        }
 
         List<InterviewResponse> responses = responseRepository.findBySessionId(session.getId());
         double avgTech = responses.isEmpty() ? 72.0 : responses.stream().mapToDouble(InterviewResponse::getTechnicalScore).average().orElse(72.0);

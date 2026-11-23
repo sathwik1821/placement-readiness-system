@@ -116,7 +116,20 @@ public class CompanyController {
     }
 
     @GetMapping("/drives/{id}/applications")
-    public ResponseEntity<?> getCompanyDriveApplications(@PathVariable String id) {
+    public ResponseEntity<?> getCompanyDriveApplications(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        // Cross-tenant protection: verify drive belongs to calling company
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        Company company = companyRepository.findByUserId(userId).orElse(null);
+        PlacementDrive drive = driveRepository.findById(id).orElse(null);
+
+        if (drive != null && company != null && drive.getCompanyId() != null
+                && !drive.getCompanyId().equals(company.getId())) {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not have access to this drive"));
+        }
+
         List<PlacementApplication> apps = applicationRepository.findByDriveIdOrderByAppliedAtDesc(id);
         List<Map<String, Object>> response = new ArrayList<>();
 
@@ -149,7 +162,20 @@ public class CompanyController {
     public ResponseEntity<?> updateCandidateStatus(
             @PathVariable String driveId,
             @PathVariable String appId,
+            @RequestHeader("Authorization") String authHeader,
             @RequestBody Map<String, String> body) {
+
+        // Cross-tenant protection: verify drive belongs to calling company
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        Company company = companyRepository.findByUserId(userId).orElse(null);
+        PlacementDrive drive = driveRepository.findById(driveId).orElse(null);
+
+        if (drive == null) return ResponseEntity.notFound().build();
+        if (company != null && drive.getCompanyId() != null
+                && !drive.getCompanyId().equals(company.getId())) {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not own this drive"));
+        }
+
         PlacementApplication app = applicationRepository.findById(appId).orElse(null);
         if (app == null) return ResponseEntity.notFound().build();
 

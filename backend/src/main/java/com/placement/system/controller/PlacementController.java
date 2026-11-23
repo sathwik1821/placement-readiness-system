@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -86,8 +87,62 @@ public class PlacementController {
         Student student = studentRepository.findByUserId(userId).orElse(null);
         if (student == null) return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
 
+        // Duplicate check
         if (applicationRepository.findByStudentIdAndDriveId(student.getId(), id).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Already applied for this campus drive"));
+        }
+
+        // Server-side eligibility enforcement
+        PlacementDrive drive = driveRepository.findById(id).orElse(null);
+        if (drive == null) return ResponseEntity.notFound().build();
+
+        if (!"PUBLISHED".equals(drive.getStatus())) {
+            return ResponseEntity.status(403).body(Map.of("error", "This drive is not accepting applications"));
+        }
+
+        // Check deadline
+        if (drive.getDeadline() != null && LocalDateTime.now().isAfter(drive.getDeadline())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Application deadline has passed"));
+        }
+
+        // Parse and enforce eligibility criteria
+        try {
+            String critJson = drive.getEligibilityCriteria();
+            if (critJson != null && !critJson.isBlank() && !critJson.equals("{}")) {
+                Map<String, Object> crit = mapper.readValue(critJson, new TypeReference<Map<String, Object>>() {});
+
+                if (crit.containsKey("minCgpa")) {
+                    double minCgpa = ((Number) crit.get("minCgpa")).doubleValue();
+                    if (student.getCgpa() < minCgpa) {
+                        return ResponseEntity.status(403).body(Map.of("error",
+                            "You do not meet the minimum CGPA requirement (" + minCgpa + "). Your CGPA: " + student.getCgpa()));
+                    }
+                }
+
+                if (crit.containsKey("maxBacklogs")) {
+                    int maxBacklogs = ((Number) crit.get("maxBacklogs")).intValue();
+                    if (student.getBacklogs() > maxBacklogs) {
+                        return ResponseEntity.status(403).body(Map.of("error",
+                            "You exceed the maximum allowed backlogs (" + maxBacklogs + "). Your backlogs: " + student.getBacklogs()));
+                    }
+                }
+
+                if (crit.containsKey("allowedDepartments")) {
+                    @SuppressWarnings("unchecked")
+                    List<String> allowedDepts = (List<String>) crit.get("allowedDepartments");
+                    if (allowedDepts != null && !allowedDepts.isEmpty()) {
+                        String studentDept = student.getDepartment();
+                        boolean deptMatch = allowedDepts.stream()
+                            .anyMatch(d -> d.equalsIgnoreCase(studentDept));
+                        if (!deptMatch) {
+                            return ResponseEntity.status(403).body(Map.of("error",
+                                "Your department (" + studentDept + ") is not eligible for this drive"));
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // If criteria parsing fails, allow application (fail-open for malformed criteria)
         }
 
         PlacementApplication app = new PlacementApplication(student.getId(), id);

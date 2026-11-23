@@ -85,10 +85,13 @@ public class AnalysisController {
         for (Map.Entry<String, Double> entry : weights.entrySet()) {
             String cat = entry.getKey();
             double w = entry.getValue();
-            double sc = categoryScores.getOrDefault(cat, 50.0);
-            weightedSum += sc * w;
-            totalWeight += w;
-            breakdown.put(cat, Map.of("score", Math.round(sc), "weight", w, "attempted", categoryScores.containsKey(cat)));
+            boolean attempted = categoryScores.containsKey(cat);
+            double sc = categoryScores.getOrDefault(cat, 0.0);
+            if (attempted) {
+                weightedSum += sc * w;
+                totalWeight += w;
+            }
+            breakdown.put(cat, Map.of("score", Math.round(sc), "weight", w, "attempted", attempted));
         }
 
         double cgpaFactor = Math.min(100.0, Math.max(0.0, (student.getCgpa() / 10.0) * 100.0));
@@ -104,7 +107,7 @@ public class AnalysisController {
         for (Map.Entry<String, Integer> b : benchmarks.entrySet()) {
             String skill = b.getKey();
             int benchmark = b.getValue();
-            double sc = categoryScores.getOrDefault(skill, 50.0);
+            double sc = categoryScores.getOrDefault(skill, 0.0);
             if (sc >= benchmark) {
                 strengths.add(Map.of("skill", skill, "score", Math.round(sc), "level", sc >= 85 ? "Mastery" : "Proficient"));
             } else {

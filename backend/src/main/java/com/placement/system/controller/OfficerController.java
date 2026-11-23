@@ -116,6 +116,13 @@ public class OfficerController {
         PlacementApplication app = applicationRepository.findById(appId).orElse(null);
         if (app == null) return ResponseEntity.notFound().build();
 
+        // Guard: TPO cannot change status on recruiter-managed drives
+        PlacementDrive drive = driveRepository.findById(driveId).orElse(null);
+        if (drive != null && drive.getCompanyId() != null && !drive.getCompanyId().isBlank()) {
+            return ResponseEntity.status(403).body(Map.of("error",
+                "This drive is managed by a recruiter — candidate status changes are restricted to the recruiting company"));
+        }
+
         app.setStatus(body.get("status"));
         app.setUpdatedAt(LocalDateTime.now());
         app = applicationRepository.save(app);
