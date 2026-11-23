@@ -20,13 +20,26 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
-  FileText
+  FileText,
+  Key,
+  Settings,
+  Cpu,
+  ShieldCheck,
+  Check,
+  RotateCcw,
+  Target,
+  Zap,
+  TrendingUp,
+  Lightbulb
 } from 'lucide-react';
 
 export default function MockInterview() {
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [currentTopic, setCurrentTopic] = useState('');
+  const [currentDifficulty, setCurrentDifficulty] = useState('HARD');
+  const [activeAiModel, setActiveAiModel] = useState('gemini-1.5-flash');
   const [answerText, setAnswerText] = useState('');
   const [historyResponses, setHistoryResponses] = useState([]);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -39,6 +52,12 @@ export default function MockInterview() {
   const [targetRole, setTargetRole] = useState('Java Full Stack Developer');
   const [interviewType, setInterviewType] = useState('TECHNICAL');
 
+  // Gemini API Key Modal
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [hasCustomKey, setHasCustomKey] = useState(false);
+  const [keySavedToast, setKeySavedToast] = useState(false);
+
   // Voice Speech Recognition & TTS States
   const [isListening, setIsListening] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -48,6 +67,36 @@ export default function MockInterview() {
 
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  // Load custom key from localStorage
+  useEffect(() => {
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey && savedKey.trim()) {
+      setApiKeyInput(savedKey);
+      setHasCustomKey(true);
+    }
+  }, []);
+
+  const handleSaveApiKey = () => {
+    if (apiKeyInput.trim()) {
+      localStorage.setItem('gemini_api_key', apiKeyInput.trim());
+      setHasCustomKey(true);
+    } else {
+      localStorage.removeItem('gemini_api_key');
+      setHasCustomKey(false);
+    }
+    setKeySavedToast(true);
+    setTimeout(() => {
+      setKeySavedToast(false);
+      setShowKeyModal(false);
+    }, 1200);
+  };
+
+  const handleClearApiKey = () => {
+    localStorage.removeItem('gemini_api_key');
+    setApiKeyInput('');
+    setHasCustomKey(false);
+  };
 
   // Initialize Speech Recognition if supported
   useEffect(() => {
@@ -175,12 +224,15 @@ export default function MockInterview() {
       });
       setActiveSession(res.data.session);
       setCurrentQuestion(res.data.question);
+      setCurrentTopic(res.data.topic || `${targetRole} Core Competency`);
+      setCurrentDifficulty(res.data.difficulty || 'HARD');
+      setActiveAiModel(res.data.aiModel || 'gemini-1.5-flash');
       setHistoryResponses([]);
       setIsCompleted(false);
       setFinalScorecard(null);
       setAnswerText('');
 
-      if (ttsEnabled) {
+      if (ttsEnabled && res.data.question?.questionText) {
         speakQuestion(res.data.question.questionText);
       }
     } catch (err) {
@@ -209,7 +261,10 @@ export default function MockInterview() {
         ...prev,
         {
           question: currentQuestion,
-          response: res.data.response
+          response: res.data.response,
+          keyStrengths: res.data.keyStrengths || [],
+          areasForImprovement: res.data.areasForImprovement || [],
+          aiModel: res.data.aiModel || activeAiModel
         }
       ]);
 
@@ -223,6 +278,7 @@ export default function MockInterview() {
         setSessions(updatedSessions.data || []);
       } else {
         setCurrentQuestion(res.data.followUp);
+        if (res.data.aiModel) setActiveAiModel(res.data.aiModel);
         if (ttsEnabled) {
           speakQuestion(res.data.followUp.questionText);
         }
@@ -245,64 +301,162 @@ export default function MockInterview() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
+      {/* Page Header with Dynamic Gemini Pill & API Key Config */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-2">
-            Natural Language Processing Rubric Engine
-          </span>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            AI-Assisted Interactive Mock Interview Simulator
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 text-indigo-700 border border-indigo-200 text-xs font-black shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+              <span>Powered by Google Gemini 1.5 Flash</span>
+            </span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              hasCustomKey
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            }`}>
+              {hasCustomKey ? 'Custom Gemini API Key' : 'Managed Gemini Cloud'}
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <span>Adaptive AI Technical Interview Bar-Raiser</span>
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Real-time conversational evaluation combining verbal transcript analysis, technical depth scoring, and automated follow-ups.
+          <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+            Conversational evaluation powered by Google Gemini LLM. Dynamically generates role-specific interview inquiries, evaluates real-time answers with engineering rigor, and challenges you with adaptive follow-ups.
           </p>
         </div>
 
-        {activeSession && !isCompleted && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setTtsEnabled(!ttsEnabled)}
-              title={ttsEnabled ? 'Disable Question Audio Readout' : 'Enable Question Audio Readout'}
-              className={`p-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                ttsEnabled
-                  ? 'bg-blue-50 text-blue-800 border-blue-200'
-                  : 'bg-slate-100 text-slate-500 border-slate-200'
-              }`}
-            >
-              {ttsEnabled ? <Volume2 className="w-4 h-4 text-blue-600" /> : <VolumeX className="w-4 h-4" />}
-              <span>{ttsEnabled ? 'Audio On' : 'Audio Muted'}</span>
-            </button>
+        <div className="flex items-center gap-2">
+          {/* Gemini API Key Settings Button */}
+          <button
+            onClick={() => setShowKeyModal(true)}
+            title="Configure Personal Google Gemini API Key"
+            className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            <Key className="w-4 h-4 text-indigo-600" />
+            <span className="hidden sm:inline">Gemini API Key</span>
+          </button>
 
-            <button
-              onClick={toggleWebcam}
-              title={webcamEnabled ? 'Turn Off Webcam' : 'Turn On Webcam Preview'}
-              className={`p-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                webcamEnabled
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                  : 'bg-slate-100 text-slate-500 border-slate-200'
-              }`}
-            >
-              {webcamEnabled ? <Video className="w-4 h-4 text-emerald-600" /> : <VideoOff className="w-4 h-4" />}
-              <span>{webcamEnabled ? 'Camera Active' : 'Camera Off'}</span>
-            </button>
-          </div>
-        )}
+          {activeSession && !isCompleted && (
+            <>
+              <button
+                onClick={() => setTtsEnabled(!ttsEnabled)}
+                title={ttsEnabled ? 'Disable Question Audio Readout' : 'Enable Question Audio Readout'}
+                className={`p-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  ttsEnabled
+                    ? 'bg-blue-50 text-blue-800 border-blue-200'
+                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                }`}
+              >
+                {ttsEnabled ? <Volume2 className="w-4 h-4 text-blue-600" /> : <VolumeX className="w-4 h-4" />}
+                <span className="hidden sm:inline">{ttsEnabled ? 'Audio On' : 'Audio Muted'}</span>
+              </button>
+
+              <button
+                onClick={toggleWebcam}
+                title={webcamEnabled ? 'Turn Off Webcam' : 'Turn On Webcam Preview'}
+                className={`p-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                  webcamEnabled
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'bg-slate-100 text-slate-500 border-slate-200'
+                }`}
+              >
+                {webcamEnabled ? <Video className="w-4 h-4 text-emerald-600" /> : <VideoOff className="w-4 h-4" />}
+                <span className="hidden sm:inline">{webcamEnabled ? 'Camera Active' : 'Camera Off'}</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Gemini API Key Modal */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center">
+                  <Key className="w-5 h-5 stroke-[2.2]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Google Gemini API Key</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Configure your personal key for high-quota LLM access</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowKeyModal(false)}
+                className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                By default, the platform uses its managed Gemini API service or smart fallback engine. If you wish to use your personal Google AI Studio Gemini API key, enter it below. It is stored securely only in your local browser session.
+              </p>
+
+              <div>
+                <label className="label">Gemini API Key (AIza...)</label>
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Paste your Gemini API Key here"
+                  className="input font-mono text-xs"
+                />
+              </div>
+
+              {keySavedToast && (
+                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>Key configuration saved successfully!</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleClearApiKey}
+                className="text-xs text-rose-600 hover:text-rose-800 font-bold"
+              >
+                Clear / Reset Key
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(false)}
+                  className="btn-secondary text-xs py-2 px-3.5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveApiKey}
+                  className="btn-primary text-xs py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  Save API Key
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Setup Form (when not currently active) */}
       {!activeSession && (
         <div className="card max-w-xl mx-auto shadow-sm border border-slate-200 bg-white rounded-2xl p-7">
           <div className="flex items-center gap-3.5 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shrink-0">
-              <Bot className="w-6 h-6 stroke-[2.2]" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Sparkles className="w-6 h-6 stroke-[2.2]" />
             </div>
             <div>
               <h2 className="text-base font-black text-slate-900 tracking-tight">
-                Configure New Interview Simulation
+                Configure Dynamic Gemini Interview
               </h2>
               <p className="text-xs font-medium text-slate-500">
-                Choose your focus domain and simulation rubric type.
+                Calibrated against industry bar-raiser standards and student career trajectory.
               </p>
             </div>
           </div>
@@ -311,37 +465,48 @@ export default function MockInterview() {
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Interview Role Track (From Student Profile)
+                  Target Domain Track (From Student Profile)
                 </span>
                 <span className="text-sm font-black text-slate-900 mt-0.5 block">
                   {targetRole}
                 </span>
               </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-                Auto-Calibrated
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1">
+                <Cpu className="w-3 h-3 text-indigo-600" />
+                <span>Gemini LLM Calibrated</span>
               </span>
             </div>
 
             <div>
-              <label className="label">Interview Assessment Category</label>
+              <label className="label">Evaluation Round Type</label>
               <select
                 value={interviewType}
                 onChange={(e) => setInterviewType(e.target.value)}
                 className="input font-semibold"
               >
-                <option value="TECHNICAL">Technical Deep-Dive (Architecture & CS Fundamentals)</option>
+                <option value="TECHNICAL">Technical Architecture & Algorithmic Rigor</option>
+                <option value="SYSTEM_DESIGN">System Design, Concurrency & High Scalability</option>
                 <option value="BEHAVIORAL">Behavioral & Situation Leadership (STAR Framework)</option>
-                <option value="MIXED">Comprehensive Mixed Recruitment Round</option>
               </select>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 text-indigo-950 text-xs space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-indigo-900">
+                <Zap className="w-3.5 h-3.5 text-indigo-600" />
+                <span>How Gemini Evaluates Your Answers:</span>
+              </div>
+              <p className="text-[11px] text-indigo-800/90 leading-relaxed font-medium">
+                Gemini listens to your answers, scores technical depth and communication clarity, points out exact blind spots, and dynamically generates follow-up questions challenging your design decisions.
+              </p>
             </div>
 
             <button
               onClick={handleStartInterview}
               disabled={creating}
-              className="btn-primary w-full py-3.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl shadow-sm transition-all"
+              className="btn-primary w-full py-3.5 mt-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl shadow-md transition-all"
             >
               <Play className="w-4 h-4 stroke-[2.5]" />
-              <span>{creating ? 'Launching AI Session...' : 'Initiate Interview Session'}</span>
+              <span>{creating ? 'Gemini Generating Custom Question...' : 'Initiate Gemini Interview'}</span>
             </button>
           </div>
         </div>
@@ -351,19 +516,22 @@ export default function MockInterview() {
       {activeSession && !isCompleted && currentQuestion && (
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Top Status & Progress Bar */}
-          <div className="card bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div className="card bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="badge-blue text-xs font-bold uppercase">{activeSession.interviewType}</span>
               <span className="text-xs font-black text-slate-800">{activeSession.targetRole}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-mono">
+                {activeAiModel}
+              </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
               <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
                 Question {historyResponses.length + 1} of 4
               </span>
-              <div className="w-24 bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div className="w-28 bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${((historyResponses.length + 1) / 4) * 100}%` }}
                 />
               </div>
@@ -373,22 +541,25 @@ export default function MockInterview() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column: Interviewer AI & Webcam Feed */}
             <div className="space-y-4">
-              {/* AI Interviewer Avatar Card */}
-              <div className="card bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-white shadow-sm">
-                <div className="relative w-20 h-20 rounded-2xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center mx-auto mb-3">
-                  <Bot className="w-10 h-10 text-blue-400" />
+              {/* Gemini AI Interviewer Card */}
+              <div className="card bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-6 text-center text-white shadow-md">
+                <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-tr from-indigo-600/40 via-purple-600/30 to-pink-600/20 border border-indigo-400/40 flex items-center justify-center mx-auto mb-3">
+                  <Bot className="w-10 h-10 text-indigo-300" />
                   <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full" />
                 </div>
-                <h3 className="text-sm font-bold text-white">AI Placement Evaluator</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Role Calibration Engine</p>
+                <h3 className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Gemini Technical Evaluator</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">Google DeepMind Architecture</p>
 
                 {ttsEnabled && (
                   <button
                     onClick={() => speakQuestion(currentQuestion.questionText)}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-blue-300 rounded-lg transition-colors"
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-indigo-300 rounded-lg transition-colors"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
-                    <span>Replay Question</span>
+                    <span>Replay Audio</span>
                   </button>
                 )}
               </div>
@@ -397,7 +568,7 @@ export default function MockInterview() {
               <div className="card bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-center">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Candidate Video
+                    Candidate Presence
                   </span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${webcamEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
                     {webcamEnabled ? 'LIVE' : 'STANDBY'}
@@ -418,7 +589,7 @@ export default function MockInterview() {
                       <p className="text-xs text-slate-400">Camera preview inactive</p>
                       <button
                         onClick={toggleWebcam}
-                        className="mt-2 text-xs font-bold text-blue-400 hover:underline"
+                        className="mt-2 text-xs font-bold text-indigo-600 hover:underline"
                       >
                         Enable Camera
                       </button>
@@ -431,40 +602,88 @@ export default function MockInterview() {
             {/* Right Column: Active Question & Student Answer Area */}
             <div className="lg:col-span-2 space-y-4">
               {/* Active AI Question Card */}
-              <div className="card bg-white border-2 border-blue-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-2 text-blue-700 text-xs font-black uppercase tracking-wider">
-                  <Bot className="w-4 h-4 stroke-[2.5]" />
-                  <span>Interviewer Query:</span>
+              <div className="card bg-white border-2 border-indigo-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase tracking-wider">
+                    <Bot className="w-4 h-4 stroke-[2.5]" />
+                    <span>Gemini Bar-Raiser Question #{historyResponses.length + 1}:</span>
+                  </div>
+                  {currentTopic && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                      {currentTopic}
+                    </span>
+                  )}
                 </div>
                 <p className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
                   {currentQuestion.questionText}
                 </p>
               </div>
 
-              {/* Conversation History Drawer (if any) */}
+              {/* Turn-by-Turn Dynamic Feedback Drawer (if any turns completed) */}
               {historyResponses.length > 0 && (
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                   {historyResponses.map((item, idx) => (
-                    <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                    <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2.5">
                       <div className="flex items-start gap-2">
                         <span className="font-black text-slate-900 uppercase tracking-wider shrink-0">Q{idx + 1}:</span>
                         <p className="text-slate-700 font-semibold">{item.question.questionText}</p>
                       </div>
+
                       <div className="flex items-start gap-2 pt-1 border-t border-slate-200">
-                        <span className="font-black text-blue-700 uppercase tracking-wider shrink-0">Your Answer:</span>
-                        <p className="text-slate-800">{item.response.responseText}</p>
+                        <span className="font-black text-indigo-700 uppercase tracking-wider shrink-0">Your Answer:</span>
+                        <p className="text-slate-800 leading-relaxed">{item.response.responseText}</p>
                       </div>
-                      <div className="p-3 rounded-lg bg-blue-50/90 border border-blue-200 text-blue-950 mt-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-black text-xs flex items-center gap-1.5 text-blue-900">
-                            <Sparkles className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
-                            AI Rubric Feedback
+
+                      {/* Gemini Evaluation Card */}
+                      <div className="p-3.5 rounded-lg bg-indigo-50/90 border border-indigo-200 text-indigo-950 mt-2 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-black text-xs flex items-center gap-1.5 text-indigo-900">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-600 stroke-[2.5]" />
+                            <span>Gemini LLM Critique & Scoring</span>
                           </span>
-                          <span className="text-xs font-mono font-bold text-blue-800">
-                            Technical: {item.response.technicalScore}% • Clarity: {item.response.communicationScore}%
-                          </span>
+                          <div className="flex items-center gap-2 text-xs font-mono font-bold">
+                            <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Tech: {item.response.technicalScore}%
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                              Comm: {item.response.communicationScore}%
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-xs leading-relaxed font-medium">{item.response.aiFeedback}</p>
+
+                        <p className="text-xs leading-relaxed font-medium text-slate-800">{item.response.aiFeedback}</p>
+
+                        {(item.keyStrengths?.length > 0 || item.areasForImprovement?.length > 0) && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-indigo-100 text-[11px]">
+                            {item.keyStrengths?.length > 0 && (
+                              <div>
+                                <span className="font-bold text-emerald-800 block mb-1">Demonstrated Strengths:</span>
+                                <ul className="space-y-0.5 text-slate-700">
+                                  {item.keyStrengths.map((str, sIdx) => (
+                                    <li key={sIdx} className="flex items-start gap-1">
+                                      <Check className="w-3 h-3 text-emerald-600 shrink-0 mt-0.5" />
+                                      <span>{str}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {item.areasForImprovement?.length > 0 && (
+                              <div>
+                                <span className="font-bold text-amber-800 block mb-1">Room for Depth:</span>
+                                <ul className="space-y-0.5 text-slate-700">
+                                  {item.areasForImprovement.map((imp, iIdx) => (
+                                    <li key={iIdx} className="flex items-start gap-1">
+                                      <AlertCircle className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
+                                      <span>{imp}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -493,7 +712,7 @@ export default function MockInterview() {
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
                     }`}
                   >
-                    {isListening ? <MicOff className="w-3.5 h-3.5 text-rose-600" /> : <Mic className="w-3.5 h-3.5 text-blue-600" />}
+                    {isListening ? <MicOff className="w-3.5 h-3.5 text-rose-600" /> : <Mic className="w-3.5 h-3.5 text-indigo-600" />}
                     <span>{isListening ? 'Listening (Click to Stop)' : 'Speak with Microphone'}</span>
                   </button>
                 </div>
@@ -502,7 +721,7 @@ export default function MockInterview() {
                   rows={5}
                   value={answerText}
                   onChange={(e) => setAnswerText(e.target.value)}
-                  placeholder="State your technical reasoning clearly. Provide concrete algorithms, architecture trade-offs, or real project experiences..."
+                  placeholder="Articulate your technical rationale, architectural trade-offs, concurrency models, or concrete code patterns..."
                   className="input resize-none font-medium leading-relaxed"
                 />
 
@@ -514,10 +733,10 @@ export default function MockInterview() {
                   <button
                     onClick={handleSubmitAnswer}
                     disabled={evaluating || !answerText.trim()}
-                    className="btn-primary bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                    className="btn-primary bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
                   >
                     <Send className="w-4 h-4" />
-                    <span>{evaluating ? 'Evaluating NLP Rubric...' : 'Submit Response'}</span>
+                    <span>{evaluating ? 'Gemini Evaluating Technical Depth...' : 'Submit to Gemini'}</span>
                   </button>
                 </div>
               </div>
@@ -526,63 +745,132 @@ export default function MockInterview() {
         </div>
       )}
 
-      {/* Final Scorecard Modal / View */}
+      {/* Comprehensive Gemini Final Performance Evaluation Dossier */}
       {isCompleted && finalScorecard && (
-        <div className="card max-w-2xl mx-auto shadow-sm text-center border-2 border-emerald-300 p-8">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto mb-4 border border-emerald-300">
-            <Award className="w-8 h-8 stroke-[2.2]" />
+        <div className="card max-w-3xl mx-auto shadow-md border-2 border-indigo-300 bg-white rounded-2xl p-8 space-y-6">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center mx-auto mb-3 shadow-md">
+              <Award className="w-8 h-8 stroke-[2.2]" />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-black uppercase mb-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Verdict: {finalScorecard.verdict || 'PLACEMENT READY'}</span>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              Gemini Bar-Raiser Performance Evaluation
+            </h2>
+            <p className="text-xs font-semibold text-slate-500 mt-1 max-w-md mx-auto">
+              Synthesized by Google Gemini 1.5 Flash analyzing technical correctness, architectural depth, and communication delivery.
+            </p>
           </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Interview Simulation Completed
-          </h2>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Evaluated by the NLP Rubric Engine across Technical Depth, Architectural Trade-offs, and Communication Clarity.
-          </p>
 
-          <div className="grid grid-cols-3 gap-4 my-6">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          {/* Tri-Gauge Scores */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
               <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                Overall Score
+                Overall Composite
               </span>
               <span className="text-4xl font-black font-mono text-slate-900 mt-1 block">
                 {finalScorecard.overallScore}%
               </span>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">
+            <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 text-center">
+              <span className="text-xs font-black text-emerald-700 uppercase tracking-wider block">
                 Technical Depth
               </span>
-              <span className="text-4xl font-black font-mono text-emerald-700 mt-1 block">
+              <span className="text-4xl font-black font-mono text-emerald-800 mt-1 block">
                 {finalScorecard.technicalScore}%
               </span>
             </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-xs font-black text-slate-500 uppercase tracking-wider block">
-                Communication
+            <div className="p-4 rounded-xl bg-indigo-50/60 border border-indigo-200 text-center">
+              <span className="text-xs font-black text-indigo-700 uppercase tracking-wider block">
+                Communication Clarity
               </span>
-              <span className="text-4xl font-black font-mono text-blue-700 mt-1 block">
+              <span className="text-4xl font-black font-mono text-indigo-800 mt-1 block">
                 {finalScorecard.communicationScore}%
               </span>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-900 leading-relaxed mb-6 font-medium">
-            <strong className="block text-slate-900 font-black uppercase tracking-wider mb-1.5 text-xs">
-              Qualitative AI Diagnostic Synthesis:
-            </strong>
-            {finalScorecard.feedback}
+          {/* Executive Summary */}
+          <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-2">
+            <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-indigo-600" />
+              <span>Executive Synthesis & Diagnostic Rationale:</span>
+            </span>
+            <p className="text-xs text-slate-700 leading-relaxed font-medium">
+              {finalScorecard.executiveSummary || finalScorecard.feedback}
+            </p>
           </div>
 
-          <button
-            onClick={() => {
-              setActiveSession(null);
-              setIsCompleted(false);
-              setFinalScorecard(null);
-            }}
-            className="btn-primary bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 px-6 font-bold text-xs"
-          >
-            Start Another Simulation
-          </button>
+          {/* Detailed Strengths & Critical Growth Areas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            {finalScorecard.demonstratedStrengths?.length > 0 && (
+              <div className="p-4 rounded-xl bg-emerald-50/40 border border-emerald-200 space-y-2">
+                <span className="font-black text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Demonstrated Strengths</span>
+                </span>
+                <ul className="space-y-1.5 text-slate-700">
+                  {finalScorecard.demonstratedStrengths.map((s, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{s}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {finalScorecard.criticalGrowthAreas?.length > 0 && (
+              <div className="p-4 rounded-xl bg-amber-50/40 border border-amber-200 space-y-2">
+                <span className="font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                  <span>Critical Growth Areas</span>
+                </span>
+                <ul className="space-y-1.5 text-slate-700">
+                  {finalScorecard.criticalGrowthAreas.map((g, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <ArrowRight className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <span>{g}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Actionable Recommendations */}
+          {finalScorecard.actionableRecommendations?.length > 0 && (
+            <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-200 space-y-2 text-xs">
+              <span className="font-black text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Lightbulb className="w-4 h-4 text-indigo-600" />
+                <span>Actionable Preparation Strategy:</span>
+              </span>
+              <ul className="space-y-1.5 text-slate-700">
+                {finalScorecard.actionableRecommendations.map((r, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex justify-center pt-2">
+            <button
+              onClick={() => {
+                setActiveSession(null);
+                setIsCompleted(false);
+                setFinalScorecard(null);
+              }}
+              className="btn-primary bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-3 px-6 font-bold text-xs flex items-center gap-2 shadow-sm"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Start Another Gemini Simulation</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -590,7 +878,7 @@ export default function MockInterview() {
       {sessions.length > 0 && !activeSession && (
         <section className="card bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-            <History className="w-5 h-5 text-blue-600 stroke-[2.2]" />
+            <History className="w-5 h-5 text-indigo-600 stroke-[2.2]" />
             <h2 className="text-base font-bold text-slate-900">
               Past Mock Interview Records
             </h2>
@@ -627,7 +915,7 @@ export default function MockInterview() {
                     onClick={() => handleViewSessionDetails(sess.id)}
                     className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
                   >
-                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    <FileText className="w-3.5 h-3.5 text-indigo-600" />
                     <span>View Transcript</span>
                   </button>
                 </div>
@@ -670,7 +958,7 @@ export default function MockInterview() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase text-slate-500 block">Communication</span>
-                  <span className="text-2xl font-black font-mono text-blue-700">{selectedHistorySession.session.communicationScore}%</span>
+                  <span className="text-2xl font-black font-mono text-indigo-700">{selectedHistorySession.session.communicationScore}%</span>
                 </div>
               </div>
 
@@ -678,14 +966,14 @@ export default function MockInterview() {
                 {selectedHistorySession.turns.map((turn, i) => (
                   <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
                     <p className="text-xs font-bold text-slate-900">
-                      <span className="text-blue-600 uppercase font-black mr-1">Q{i + 1}:</span>
+                      <span className="text-indigo-600 uppercase font-black mr-1">Q{i + 1}:</span>
                       {turn.question?.questionText}
                     </p>
                     <p className="text-xs text-slate-700 pl-4 border-l-2 border-slate-200">
                       {turn.response?.responseText || 'No response recorded'}
                     </p>
                     {turn.response?.aiFeedback && (
-                      <p className="text-[11px] text-blue-900 bg-blue-50 p-2.5 rounded-lg border border-blue-100 font-medium">
+                      <p className="text-[11px] text-indigo-900 bg-indigo-50 p-2.5 rounded-lg border border-indigo-100 font-medium">
                         <strong>Feedback:</strong> {turn.response.aiFeedback}
                       </p>
                     )}

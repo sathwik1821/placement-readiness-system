@@ -21,6 +21,15 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
+    const geminiKey = localStorage.getItem('gemini_api_key');
+    if (geminiKey && geminiKey.trim()) {
+      config.headers = config.headers || {};
+      if (typeof config.headers.set === 'function') {
+        config.headers.set('X-Gemini-Api-Key', geminiKey.trim());
+      } else {
+        config.headers['X-Gemini-Api-Key'] = geminiKey.trim();
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)
