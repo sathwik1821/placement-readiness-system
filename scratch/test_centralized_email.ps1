@@ -26,6 +26,7 @@ Write-Host "`n>>> [STEP 1] Authenticating Test Personas..." -ForegroundColor Yel
 $adminLoginBody = @{ email = "admin@system.com"; password = "Admin@123" } | ConvertTo-Json
 $adminAuth = Invoke-RestMethod -Uri "$BaseUrl/auth/login" -Method Post -ContentType "application/json" -Body $adminLoginBody
 $AdminToken = $adminAuth.token
+$adminHeaders = @{ "Authorization" = "Bearer $AdminToken" }
 Assert-Condition ($AdminToken -ne $null) "Admin authentication successful"
 
 # TPO Login
@@ -78,7 +79,7 @@ $ReferenceId = $submitResponse.referenceId
 Start-Sleep -Milliseconds 800
 
 # Verify Notification Log for Recruiter Confirmation & Admin Alert
-$logs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=vikram.aditya@apexcloud-sample.com" -Method Get
+$logs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=vikram.aditya@apexcloud-sample.com" -Headers $adminHeaders -Method Get
 $recruiterLog = $logs | Where-Object { $_.notificationType -eq "RECRUITER_SUBMISSION_CONFIRMATION" } | Select-Object -First 1
 Assert-Condition ($recruiterLog -ne $null) "Recruiter submission confirmation email logged"
 Assert-Condition ($recruiterLog.deliveryStatus -like "*SENT*") "Confirmation delivery status: $($recruiterLog.deliveryStatus)"
@@ -93,7 +94,7 @@ $clarificationPayload = @{
     feedback = "Please specify whether relocation allowance and laptop provisioning are included in the 14.5 LPA CTC package."
 } | ConvertTo-Json
 
-$reviewResponse = Invoke-RestMethod -Uri "$BaseUrl/admin/opportunities/$OpportunityId/review" -Method Put -ContentType "application/json" -Body $clarificationPayload
+$reviewResponse = Invoke-RestMethod -Uri "$BaseUrl/admin/opportunities/$OpportunityId/review" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body $clarificationPayload
 Assert-Condition ($reviewResponse.success -eq $true) "Admin successfully requested clarification"
 Assert-Condition ($reviewResponse.opportunity.status -eq "INFO_REQUESTED") "Opportunity status transitioned to INFO_REQUESTED"
 Assert-Condition ($reviewResponse.opportunity.secureToken -ne $null) "Single-use secureToken generated for recruiter"
@@ -138,7 +139,7 @@ $approvePayload = @{
     feedback = "Verified company credentials and compensation structure. Approved for TPO campus scheduling."
 } | ConvertTo-Json
 
-$approveResponse = Invoke-RestMethod -Uri "$BaseUrl/admin/opportunities/$OpportunityId/review" -Method Put -ContentType "application/json" -Body $approvePayload
+$approveResponse = Invoke-RestMethod -Uri "$BaseUrl/admin/opportunities/$OpportunityId/review" -Method Put -Headers $adminHeaders -ContentType "application/json" -Body $approvePayload
 Assert-Condition ($approveResponse.success -eq $true) "Admin approved opportunity for TPO"
 Assert-Condition ($approveResponse.opportunity.status -eq "APPROVED_FOR_TPO") "Status updated to APPROVED_FOR_TPO"
 
@@ -159,7 +160,7 @@ Assert-Condition ($PublishedDriveId -ne $null) "Created official PlacementDrive 
 Start-Sleep -Milliseconds 1000
 
 # Verify Broadcast Notification Log to Eligible Student (s210018@rguktsklm.ac.in)
-$studentLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Method Get
+$studentLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Headers $adminHeaders -Method Get
 $drivePubLog = $studentLogs | Where-Object { $_.notificationType -eq "STUDENT_DRIVE_PUBLISHED" -and $_.relatedEntityId -eq $PublishedDriveId } | Select-Object -First 1
 Assert-Condition ($drivePubLog -ne $null) "Eligible student received drive publication email"
 
@@ -181,7 +182,7 @@ $ApplicationId = $applyResponse.id
 Start-Sleep -Milliseconds 800
 
 # Verify Application Confirmation Email
-$updatedStudentLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Method Get
+$updatedStudentLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Headers $adminHeaders -Method Get
 $appConfirmLog = $updatedStudentLogs | Where-Object { $_.notificationType -eq "APPLICATION_SUBMITTED" -and $_.relatedEntityId -eq $ApplicationId } | Select-Object -First 1
 Assert-Condition ($appConfirmLog -ne $null) "Student received application confirmation email with ref ID"
 
@@ -201,7 +202,7 @@ Assert-Condition ($shortlistResponse.status -eq "SHORTLISTED") "Application stat
 
 Start-Sleep -Milliseconds 800
 
-$afterShortlistLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Method Get
+$afterShortlistLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Headers $adminHeaders -Method Get
 $shortlistLog = $afterShortlistLogs | Where-Object { $_.notificationType -eq "APPLICATION_SHORTLISTED" } | Select-Object -First 1
 Assert-Condition ($shortlistLog -ne $null) "Shortlisted email dispatched to student with next-round details"
 
@@ -218,7 +219,7 @@ $initialCount = @($afterShortlistLogs | Where-Object { $_.deduplicationKey -eq $
 $reShortlist = Invoke-RestMethod -Uri "$BaseUrl/officer/drives/$PublishedDriveId/applications/$ApplicationId/status" -Method Put -Headers $headers -ContentType "application/json" -Body $shortlistBody
 Start-Sleep -Milliseconds 600
 
-$logsAfterReShortlist = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Method Get
+$logsAfterReShortlist = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs?recipient=s210018@rguktsklm.ac.in" -Headers $adminHeaders -Method Get
 $finalCount = @($logsAfterReShortlist | Where-Object { $_.deduplicationKey -eq $targetDedupKey }).Count
 
 Assert-Condition ($finalCount -eq $initialCount) "Deduplication successful: Identical event key was not duplicated (count: $finalCount)"
@@ -233,7 +234,7 @@ Assert-Condition ($dailySummaryResponse.success -eq $true) "TPO daily summary tr
 
 Start-Sleep -Milliseconds 800
 
-$tpoLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs" -Method Get
+$tpoLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs" -Headers $adminHeaders -Method Get
 $summaryLog = $tpoLogs | Where-Object { $_.notificationType -eq "TPO_DAILY_SUMMARY" } | Select-Object -First 1
 Assert-Condition ($summaryLog -ne $null) "TPO daily summary consolidated digest recorded in notification logs"
 
@@ -250,7 +251,7 @@ Assert-Condition ($reminderResponse.success -eq $true) "Deadline reminders endpo
 # ------------------------------------------------------------------------------
 Write-Host "`n>>> [STEP 12] Inspecting Notification Audit Log Records..." -ForegroundColor Yellow
 
-$allLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs" -Method Get
+$allLogs = Invoke-RestMethod -Uri "$BaseUrl/admin/notification-logs" -Headers $adminHeaders -Method Get
 Assert-Condition ($allLogs.Count -gt 0) "Retrieved $($allLogs.Count) notification audit logs from database"
 
 Write-Host "`n--- Sample Notification Audit Records ---" -ForegroundColor Cyan

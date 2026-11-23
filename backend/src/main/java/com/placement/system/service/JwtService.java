@@ -76,6 +76,12 @@ public class JwtService {
         return (String) extractClaims(token).get("role");
     }
 
+    public String extractEmail(String token) {
+        Claims claims = extractClaims(token);
+        String email = (String) claims.get("email");
+        return email != null ? email : claims.getSubject();
+    }
+
     public boolean isTokenValid(String token) {
         try {
             return !extractClaims(token).getExpiration().before(new Date());
