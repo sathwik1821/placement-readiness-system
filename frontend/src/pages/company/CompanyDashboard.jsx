@@ -14,8 +14,18 @@ import {
   Clock,
   Sparkles,
   ArrowRight,
-  Filter
+  Filter,
+  FileText,
+  ExternalLink
 } from 'lucide-react';
+
+const API_BASE_URL = 'http://localhost:5000';
+
+function formatFileUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
 
 export default function CompanyDashboard() {
   const [drives, setDrives] = useState([]);
@@ -26,6 +36,7 @@ export default function CompanyDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [previewResume, setPreviewResume] = useState(null);
 
   // New Drive Requisition Form State
   const [newDrive, setNewDrive] = useState({
@@ -353,6 +364,7 @@ export default function CompanyDashboard() {
                     <th className="pb-3">CGPA</th>
                     <th className="pb-3">Readiness Index</th>
                     <th className="pb-3">Test Accuracy</th>
+                    <th className="pb-3">Candidate Resume</th>
                     <th className="pb-3">Hiring Stage</th>
                     <th className="pb-3 pr-2 text-right">Recruiter Action</th>
                   </tr>
@@ -391,6 +403,24 @@ export default function CompanyDashboard() {
                         <span className="px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
                           {app.averageAccuracy ?? 75}%
                         </span>
+                      </td>
+                      <td className="py-3.5">
+                        {app.resumeUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewResume({
+                              url: app.resumeUrl,
+                              fileName: app.resumeFileName || 'Candidate_Resume.pdf',
+                              candidateName: app.student?.name || 'Candidate'
+                            })}
+                            className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                            <span className="truncate max-w-[100px]">{app.resumeFileName || 'View Resume'}</span>
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 text-[11px] italic">Not attached</span>
+                        )}
                       </td>
                       <td className="py-3.5">
                         <span
@@ -734,6 +764,55 @@ export default function CompanyDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Recruiter Resume Preview Modal */}
+      {previewResume && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-4xl w-full h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    {previewResume.candidateName} — Verified Resume
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {previewResume.fileName}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={formatFileUrl(previewResume.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Open in New Tab</span>
+                </a>
+                <button
+                  onClick={() => setPreviewResume(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 text-sm font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 bg-slate-100 p-2">
+              <iframe
+                src={formatFileUrl(previewResume.url)}
+                title="Candidate Resume"
+                className="w-full h-full rounded-xl border border-slate-200 bg-white"
+              />
+            </div>
           </div>
         </div>
       )}

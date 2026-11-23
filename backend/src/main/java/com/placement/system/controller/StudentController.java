@@ -64,6 +64,7 @@ public class StudentController {
         res.put("interests", student.getInterests());
         res.put("portfolioLink", student.getPortfolioLink());
         res.put("resumeUrl", student.getResumeUrl());
+        res.put("resumeFileName", student.getResumeFileName() != null ? student.getResumeFileName() : "");
         res.put("careerGoal", goal);
 
         return ResponseEntity.ok(res);
@@ -92,6 +93,8 @@ public class StudentController {
             if (body.containsKey("backlogs")) student.setBacklogs(((Number) body.get("backlogs")).intValue());
             if (body.containsKey("phone")) student.setPhone((String) body.get("phone"));
             if (body.containsKey("portfolioLink")) student.setPortfolioLink((String) body.get("portfolioLink"));
+            if (body.containsKey("resumeUrl")) student.setResumeUrl((String) body.get("resumeUrl"));
+            if (body.containsKey("resumeFileName")) student.setResumeFileName((String) body.get("resumeFileName"));
 
             if (body.containsKey("skills")) {
                 Object skillsObj = body.get("skills");

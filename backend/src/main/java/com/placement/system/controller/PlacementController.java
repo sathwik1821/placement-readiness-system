@@ -13,10 +13,18 @@ import com.placement.system.repository.StudentRepository;
 import com.placement.system.repository.PlacementOfficerRepository;
 import com.placement.system.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -107,8 +115,102 @@ public class PlacementController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/upload-resume")
+    public ResponseEntity<?> uploadResume(
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No file uploaded. Please select a valid document."));
+        }
+        if (file.getSize() > 15 * 1024 * 1024) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File exceeds the 15MB size limit."));
+        }
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) originalFilename = "resume.pdf";
+        String ext = "";
+        int dotIdx = originalFilename.lastIndexOf('.');
+        if (dotIdx >= 0) {
+            ext = originalFilename.substring(dotIdx).toLowerCase();
+        }
+        if (!ext.equals(".pdf") && !ext.equals(".docx") && !ext.equals(".doc")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Only PDF and Word (.docx, .doc) files are allowed."));
+        }
+
+        final String finalOriginalName = originalFilename;
+
+        try {
+            String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "resumes";
+            File dir = new File(uploadDir);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            String safeBase = finalOriginalName.replaceAll("[^a-zA-Z0-9.-]", "_");
+            String storedFileName = UUID.randomUUID().toString() + "_" + safeBase;
+            File dest = new File(dir, storedFileName);
+            file.transferTo(dest);
+
+            String resumeUrl = "/api/placement/resumes/" + storedFileName;
+
+            // Automatically persist to student profile if user is authenticated
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                try {
+                    String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+                    studentRepository.findByUserId(userId).ifPresent(s -> {
+                        s.setResumeUrl(resumeUrl);
+                        s.setResumeFileName(finalOriginalName);
+                        studentRepository.save(s);
+                    });
+                } catch (Exception ignored) {}
+            }
+
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("resumeUrl", resumeUrl);
+            resp.put("resumeFileName", finalOriginalName);
+            resp.put("fileSize", file.getSize());
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to store resume document: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/resumes/{fileName:.+}")
+    public ResponseEntity<Resource> viewResume(@PathVariable String fileName) {
+        if (fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "resumes";
+            Path filePath = Paths.get(uploadDir).resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType = "application/octet-stream";
+            String lower = fileName.toLowerCase();
+            if (lower.endsWith(".pdf")) {
+                contentType = "application/pdf";
+            } else if (lower.endsWith(".docx")) {
+                contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            } else if (lower.endsWith(".doc")) {
+                contentType = "application/msword";
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
     @PostMapping("/drives/{id}/apply")
-    public ResponseEntity<?> applyForDrive(@RequestHeader("Authorization") String authHeader, @PathVariable String id) {
+    public ResponseEntity<?> applyForDrive(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable String id,
+            @RequestBody(required = false) Map<String, String> body) {
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
         Student student = studentRepository.findByUserId(userId).orElse(null);
         if (student == null) return ResponseEntity.badRequest().body(Map.of("error", "Student profile not found"));
@@ -176,6 +278,27 @@ public class PlacementController {
         }
 
         PlacementApplication app = new PlacementApplication(student.getId(), id);
+
+        // Resolve Resume (from request payload or student profile)
+        String resumeUrl = body != null ? body.get("resumeUrl") : null;
+        String resumeFileName = body != null ? body.get("resumeFileName") : null;
+        if ((resumeUrl == null || resumeUrl.isBlank()) && student.getResumeUrl() != null && !student.getResumeUrl().isBlank()) {
+            resumeUrl = student.getResumeUrl();
+            resumeFileName = student.getResumeFileName();
+        }
+
+        if (resumeUrl != null && !resumeUrl.isBlank()) {
+            app.setResumeUrl(resumeUrl);
+            app.setResumeFileName(resumeFileName != null && !resumeFileName.isBlank() ? resumeFileName : "Resume.pdf");
+
+            // Also set default profile resume if student doesn't have one
+            if (student.getResumeUrl() == null || student.getResumeUrl().isBlank()) {
+                student.setResumeUrl(resumeUrl);
+                student.setResumeFileName(app.getResumeFileName());
+                studentRepository.save(student);
+            }
+        }
+
         app = applicationRepository.save(app);
 
         // Notify TPO and student

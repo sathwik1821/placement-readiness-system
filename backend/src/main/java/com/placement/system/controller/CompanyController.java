@@ -168,6 +168,15 @@ public class CompanyController {
             }
             map.put("student", s);
 
+            String rUrl = a.getResumeUrl();
+            String rName = a.getResumeFileName();
+            if ((rUrl == null || rUrl.isBlank()) && s != null) {
+                rUrl = s.getResumeUrl();
+                rName = s.getResumeFileName();
+            }
+            map.put("resumeUrl", rUrl != null ? rUrl : "");
+            map.put("resumeFileName", rName != null && !rName.isBlank() ? rName : "Resume.pdf");
+
             if (s != null) {
                 com.placement.system.model.AnalysisReport rep = reportRepository.findFirstByStudentIdOrderByGeneratedAtDesc(s.getId()).orElse(null);
                 double readiness = rep != null ? rep.getReadinessScore() : 65.0;

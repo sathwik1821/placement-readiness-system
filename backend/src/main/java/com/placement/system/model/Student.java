@@ -35,6 +35,7 @@ public class Student {
 
     private String portfolioLink = "";
     private String resumeUrl = "";
+    private String resumeFileName = "";
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -78,6 +79,8 @@ public class Student {
     public void setPortfolioLink(String portfolioLink) { this.portfolioLink = portfolioLink; }
     public String getResumeUrl() { return resumeUrl; }
     public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
+    public String getResumeFileName() { return resumeFileName; }
+    public void setResumeFileName(String resumeFileName) { this.resumeFileName = resumeFileName; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

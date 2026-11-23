@@ -179,6 +179,10 @@ public class OfficerController {
                 if (s.getEmail() == null || s.getEmail().isBlank()) {
                     userRepository.findById(s.getUserId()).ifPresent(u -> s.setEmail(u.getEmail()));
                 }
+                if ((a.getResumeUrl() == null || a.getResumeUrl().isBlank()) && s.getResumeUrl() != null && !s.getResumeUrl().isBlank()) {
+                    a.setResumeUrl(s.getResumeUrl());
+                    a.setResumeFileName(s.getResumeFileName() != null && !s.getResumeFileName().isBlank() ? s.getResumeFileName() : "Resume.pdf");
+                }
                 a.setStudent(s);
             });
         }

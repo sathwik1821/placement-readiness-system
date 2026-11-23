@@ -25,6 +25,11 @@ public class PlacementApplication {
     private String status = "APPLIED"; // APPLIED, ASSESSMENT_PENDING, ASSESSMENT_COMPLETED, SHORTLISTED, INTERVIEW_SCHEDULED, SELECTED, NOT_SELECTED
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(columnDefinition = "TEXT")
+    private String resumeUrl = "";
+
+    private String resumeFileName = "";
+
     @Version
     private Long version;
 
@@ -55,6 +60,10 @@ public class PlacementApplication {
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
+    public String getResumeUrl() { return resumeUrl; }
+    public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
+    public String getResumeFileName() { return resumeFileName; }
+    public void setResumeFileName(String resumeFileName) { this.resumeFileName = resumeFileName; }
     public PlacementDrive getDrive() { return drive; }
     public void setDrive(PlacementDrive drive) { this.drive = drive; }
     public Student getStudent() { return student; }
