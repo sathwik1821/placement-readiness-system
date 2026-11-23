@@ -564,6 +564,20 @@ export default function StudentDashboard() {
                       Role: <strong className="text-slate-800">{drv.jobRole}</strong> • CTC:{' '}
                       <strong className="text-blue-700">{drv.ctc}</strong>
                     </p>
+                    {drv.deadline && (() => {
+                      const isExpired = new Date() > new Date(drv.deadline);
+                      return (
+                        <p className={`text-[11px] font-semibold flex items-center gap-1 mt-1 ${isExpired ? 'text-rose-600' : 'text-slate-600'}`}>
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span>Last Date to Apply: <strong>{new Date(drv.deadline).toLocaleDateString()}</strong></span>
+                          {isExpired && (
+                            <span className="text-[9px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1 py-0.2 rounded ml-1">
+                              Closed
+                            </span>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <Link
                     to="/student/placement"

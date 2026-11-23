@@ -112,6 +112,8 @@ export default function Placement() {
               const applied = isAlreadyApplied(drive.id);
               const isApplying = applyingId === drive.id;
               const crit = drive.eligibilityCriteria || {};
+              const isExpired = drive.deadline && new Date() > new Date(drive.deadline);
+              const diffDays = drive.deadline ? Math.ceil((new Date(drive.deadline) - new Date()) / (1000 * 60 * 60 * 24)) : null;
 
               return (
                 <div
@@ -120,7 +122,7 @@ export default function Placement() {
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
                     <div>
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <span className="badge-blue text-xs font-semibold">{drive.workMode}</span>
                         {drive.isEligible ? (
                           <span className="badge-green text-xs font-semibold flex items-center gap-1">
@@ -133,6 +135,31 @@ export default function Placement() {
                             <span>Academic Cutoff Ineligible</span>
                           </span>
                         )}
+
+                        {/* Prominent Deadline Pill */}
+                        {drive.deadline && (
+                          <span
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-md border flex items-center gap-1 ${
+                              isExpired
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : diffDays <= 2
+                                ? 'bg-amber-50 text-amber-800 border-amber-300 animate-pulse'
+                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>
+                              {isExpired
+                                ? 'Deadline Passed'
+                                : diffDays === 0
+                                ? 'Last Date: Today'
+                                : diffDays === 1
+                                ? 'Last Date: Tomorrow'
+                                : `Last Date: ${new Date(drive.deadline).toLocaleDateString()}`}
+                            </span>
+                          </span>
+                        )}
+
                         <span className="text-xs text-gray-400">• {drive.location}</span>
                       </div>
                       <h2 className="text-lg font-bold text-gray-900">{drive.title}</h2>
@@ -147,11 +174,16 @@ export default function Placement() {
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                           <span>Application Submitted</span>
                         </div>
+                      ) : isExpired ? (
+                        <div className="px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Deadline Passed</span>
+                        </div>
                       ) : (
                         <button
                           onClick={() => handleApply(drive.id)}
                           disabled={!drive.isEligible || isApplying}
-                          className="btn-primary bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-xs font-bold py-2.5 px-5 flex items-center gap-1.5 rounded-xl shadow-sm transition-colors"
+                          className="btn-primary bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-xs font-bold py-2.5 px-5 flex items-center gap-1.5 rounded-xl shadow-sm transition-colors cursor-pointer"
                         >
                           <Send className="w-3.5 h-3.5" />
                           <span>{isApplying ? 'Processing Application...' : 'One-Click Apply'}</span>
@@ -178,9 +210,16 @@ export default function Placement() {
                       </strong></span>
                     )}
                     {drive.deadline && (
-                      <span className="ml-auto text-rose-600 font-semibold flex items-center gap-1">
+                      <span className={`ml-auto font-bold flex items-center gap-1 ${isExpired ? 'text-rose-600' : 'text-blue-700'}`}>
                         <Clock className="w-3.5 h-3.5" />
-                        Deadline: {new Date(drive.deadline).toLocaleDateString()}
+                        <span>
+                          Last Date to Apply: <strong>{new Date(drive.deadline).toLocaleDateString()}</strong>
+                          {!isExpired && diffDays !== null && (
+                            <span className="text-slate-500 font-medium ml-1">
+                              ({diffDays === 0 ? 'Closes today' : `${diffDays} days left`})
+                            </span>
+                          )}
+                        </span>
                       </span>
                     )}
                   </div>

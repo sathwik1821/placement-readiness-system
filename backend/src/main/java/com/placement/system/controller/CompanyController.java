@@ -79,6 +79,7 @@ public class CompanyController {
             map.put("ctc", d.getCtc());
             map.put("workMode", d.getWorkMode());
             map.put("location", d.getLocation());
+            map.put("deadline", d.getDeadline());
             map.put("status", d.getStatus());
             map.put("jobDescription", d.getJobDescription());
             map.put("eligibilityCriteria", d.getEligibilityCriteria());
@@ -109,6 +110,7 @@ public class CompanyController {
             d.setWorkMode((String) body.getOrDefault("workMode", "ONSITE"));
             d.setJobDescription((String) body.getOrDefault("jobDescription", ""));
             d.setLocation((String) body.getOrDefault("location", "Campus / Hybrid"));
+            d.setDeadline(parseDeadline(body.get("deadline")));
 
             String reqStatus = (String) body.getOrDefault("status", "PENDING_TPO_APPROVAL");
             d.setStatus(reqStatus);
@@ -240,5 +242,30 @@ public class CompanyController {
         res.put("reportData", parsed);
         res.put("generatedAt", report.getGeneratedAt());
         return ResponseEntity.ok(res);
+    }
+
+    private LocalDateTime parseDeadline(Object val) {
+        if (val == null) return null;
+        if (val instanceof LocalDateTime) return (LocalDateTime) val;
+        String s = val.toString().trim();
+        if (s.isBlank()) return null;
+        try {
+            if (s.length() == 10) { // e.g. "2026-11-30"
+                return java.time.LocalDate.parse(s).atTime(23, 59, 59);
+            }
+            if (s.contains("Z")) {
+                return java.time.Instant.parse(s).atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime();
+            }
+            if (s.length() == 16) { // e.g. "2026-11-30T23:59"
+                return LocalDateTime.parse(s + ":00");
+            }
+            return LocalDateTime.parse(s);
+        } catch (Exception e) {
+            try {
+                return java.time.OffsetDateTime.parse(s).toLocalDateTime();
+            } catch (Exception ex) {
+                return null;
+            }
+        }
     }
 }

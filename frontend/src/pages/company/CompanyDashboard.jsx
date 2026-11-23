@@ -34,6 +34,7 @@ export default function CompanyDashboard() {
     ctc: '',
     workMode: 'ONSITE',
     location: '',
+    deadline: '',
     minCgpa: '7.5',
     maxBacklogs: '0',
     targetBatch: 'ALL',
@@ -102,6 +103,7 @@ export default function CompanyDashboard() {
         ctc: newDrive.ctc,
         workMode: newDrive.workMode,
         location: newDrive.location,
+        deadline: newDrive.deadline || null,
         jobDescription: newDrive.jobDescription,
         status: 'PENDING_TPO_APPROVAL',
         eligibilityCriteria: {
@@ -121,6 +123,7 @@ export default function CompanyDashboard() {
         ctc: '',
         workMode: 'ONSITE',
         location: '',
+        deadline: '',
         minCgpa: '7.5',
         maxBacklogs: '0',
         departments: 'Computer Science, Information Science',
@@ -268,6 +271,20 @@ export default function CompanyDashboard() {
                     Target Role: <strong className="text-slate-900">{drv.jobRole}</strong> • CTC Package:{' '}
                     <strong className="text-blue-700 font-bold">{drv.ctc}</strong>
                   </p>
+                  {drv.deadline && (() => {
+                    const isExpired = new Date() > new Date(drv.deadline);
+                    return (
+                      <p className="text-[11px] font-semibold text-slate-500 mt-1 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Last Date to Apply: <strong className={isExpired ? 'text-rose-600' : 'text-slate-800'}>{new Date(drv.deadline).toLocaleDateString()}</strong></span>
+                        {isExpired && (
+                          <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded ml-1">
+                            Application Window Closed
+                          </span>
+                        )}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5 shrink-0">
@@ -532,7 +549,7 @@ export default function CompanyDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                     CTC Package (LPA) *
@@ -572,6 +589,19 @@ export default function CompanyDashboard() {
                     onChange={(e) => setNewDrive({ ...newDrive, location: e.target.value })}
                     placeholder="e.g. Bangalore / Hyderabad"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Application Deadline *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newDrive.deadline}
+                    onChange={(e) => setNewDrive({ ...newDrive, deadline: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
                 </div>
               </div>

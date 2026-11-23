@@ -197,6 +197,24 @@ export default function OfficerDashboard() {
                       Role: <strong className="text-slate-800">{drv.jobRole}</strong> • Package:{' '}
                       <strong className="text-blue-700 font-bold">{drv.ctc}</strong>
                     </p>
+                    {drv.deadline && (() => {
+                      const isExpired = new Date() > new Date(drv.deadline);
+                      return (
+                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Last Date to Apply: <strong className={isExpired ? 'text-rose-600 font-bold' : 'text-slate-800 font-bold'}>{new Date(drv.deadline).toLocaleDateString()}</strong></span>
+                          {isExpired ? (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 rounded">
+                              Deadline Expired
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                              Active
+                            </span>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2.5 shrink-0">

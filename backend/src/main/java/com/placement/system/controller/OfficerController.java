@@ -65,6 +65,7 @@ public class OfficerController {
             map.put("ctc", d.getCtc());
             map.put("workMode", d.getWorkMode());
             map.put("location", d.getLocation());
+            map.put("deadline", d.getDeadline());
             map.put("status", d.getStatus());
             map.put("_count", Map.of("applications", applicationRepository.countByDriveId(d.getId())));
             response.add(map);
@@ -87,6 +88,7 @@ public class OfficerController {
             d.setWorkMode((String) body.getOrDefault("workMode", "ONSITE"));
             d.setJobDescription((String) body.getOrDefault("jobDescription", ""));
             d.setLocation((String) body.getOrDefault("location", "Campus"));
+            d.setDeadline(parseDeadline(body.get("deadline")));
             d.setStatus("PUBLISHED");
 
             Object critObj = body.get("eligibilityCriteria");
@@ -112,11 +114,16 @@ public class OfficerController {
     }
 
     @PutMapping("/drives/{id}/status")
-    public ResponseEntity<?> updateDriveStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> updateDriveStatus(@PathVariable String id, @RequestBody Map<String, Object> body) {
         PlacementDrive drive = driveRepository.findById(id).orElse(null);
         if (drive == null) return ResponseEntity.notFound().build();
 
-        String newStatus = body.get("status");
+        if (body.containsKey("deadline")) {
+            drive.setDeadline(parseDeadline(body.get("deadline")));
+            drive = driveRepository.save(drive);
+        }
+
+        String newStatus = body.get("status") != null ? body.get("status").toString() : null;
         if (newStatus != null && !newStatus.isBlank()) {
             drive.setStatus(newStatus.toUpperCase());
             drive = driveRepository.save(drive);
@@ -137,6 +144,31 @@ public class OfficerController {
             }
         }
         return ResponseEntity.ok(drive);
+    }
+
+    private LocalDateTime parseDeadline(Object val) {
+        if (val == null) return null;
+        if (val instanceof LocalDateTime) return (LocalDateTime) val;
+        String s = val.toString().trim();
+        if (s.isBlank()) return null;
+        try {
+            if (s.length() == 10) { // e.g. "2026-11-30"
+                return java.time.LocalDate.parse(s).atTime(23, 59, 59);
+            }
+            if (s.contains("Z")) {
+                return java.time.Instant.parse(s).atZone(java.time.ZoneId.of("Asia/Kolkata")).toLocalDateTime();
+            }
+            if (s.length() == 16) { // e.g. "2026-11-30T23:59"
+                return LocalDateTime.parse(s + ":00");
+            }
+            return LocalDateTime.parse(s);
+        } catch (Exception e) {
+            try {
+                return java.time.OffsetDateTime.parse(s).toLocalDateTime();
+            } catch (Exception ex) {
+                return null;
+            }
+        }
     }
 
     @GetMapping("/drives/{id}/applications")

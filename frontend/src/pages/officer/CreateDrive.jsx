@@ -51,7 +51,7 @@ export default function CreateDrive() {
         workMode: form.workMode,
         jobDescription: form.jobDescription,
         location: form.location,
-        deadline: form.deadline ? new Date(form.deadline) : null,
+        deadline: form.deadline ? form.deadline : null,
         eligibilityCriteria
       });
 
