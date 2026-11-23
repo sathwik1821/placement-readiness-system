@@ -214,14 +214,47 @@ export default function CreateDrive() {
             </div>
 
             <div>
-              <label className="label">Allowed Academic Departments (Comma-separated)</label>
+              <label className="label">Allowed Academic Departments</label>
               <input
                 type="text"
                 value={form.departments}
                 onChange={(e) => setForm({ ...form, departments: e.target.value })}
                 placeholder="CSE, ECE, ME, CE, CHE, MME or ALL"
-                className="input"
+                className="input mb-1.5"
               />
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[11px] text-gray-500 font-medium mr-1">Quick Select:</span>
+                {['ALL', 'CSE', 'ECE', 'ME', 'CE', 'CHE', 'MME'].map((dept) => {
+                  const isSelected = form.departments === 'ALL' && dept === 'ALL'
+                    || (dept !== 'ALL' && form.departments.includes(dept));
+                  return (
+                    <button
+                      key={dept}
+                      type="button"
+                      onClick={() => {
+                        if (dept === 'ALL') {
+                          setForm({ ...form, departments: 'ALL' });
+                        } else {
+                          const current = form.departments === 'ALL' || !form.departments
+                            ? []
+                            : form.departments.split(',').map((d) => d.trim()).filter(Boolean);
+                          const updated = current.includes(dept)
+                            ? current.filter((d) => d !== dept)
+                            : [...current, dept];
+                          setForm({ ...form, departments: updated.join(', ') });
+                        }
+                      }}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                      }`}
+                    >
+                      {dept}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

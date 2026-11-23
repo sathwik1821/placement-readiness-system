@@ -167,9 +167,9 @@ export default function Applications() {
                             </div>
                           </td>
                           <td className="py-3.5 px-4 text-gray-600">
-                            {student?.department}
-                            <span className="block text-[11px] font-semibold text-slate-500">
-                              {student?.graduationYear ? `${student.graduationYear} Batch` : '2027 Batch'}
+                            <span className="font-bold text-gray-900">{student?.department}</span>
+                            <span className="block text-[11px] font-semibold text-blue-700 mt-0.5">
+                              {student?.yearOfStudy || (student?.graduationYear ? `${student.graduationYear} Batch` : '4th Year (E4)')}
                             </span>
                           </td>
                           <td className="py-3.5 px-4 font-bold text-gray-900">{student?.cgpa}</td>

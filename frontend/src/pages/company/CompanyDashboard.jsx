@@ -635,8 +635,40 @@ export default function CompanyDashboard() {
                       value={newDrive.departments}
                       onChange={(e) => setNewDrive({ ...newDrive, departments: e.target.value })}
                       placeholder="CSE, ECE, ME or ALL"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 bg-white"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 bg-white mb-1.5"
                     />
+                    <div className="flex flex-wrap gap-1 items-center">
+                      {['ALL', 'CSE', 'ECE', 'ME', 'CE', 'CHE', 'MME'].map((dept) => {
+                        const isSelected = newDrive.departments === 'ALL' && dept === 'ALL'
+                          || (dept !== 'ALL' && newDrive.departments.includes(dept));
+                        return (
+                          <button
+                            key={dept}
+                            type="button"
+                            onClick={() => {
+                              if (dept === 'ALL') {
+                                setNewDrive({ ...newDrive, departments: 'ALL' });
+                              } else {
+                                const current = newDrive.departments === 'ALL' || !newDrive.departments
+                                  ? []
+                                  : newDrive.departments.split(',').map((d) => d.trim()).filter(Boolean);
+                                const updated = current.includes(dept)
+                                  ? current.filter((d) => d !== dept)
+                                  : [...current, dept];
+                                setNewDrive({ ...newDrive, departments: updated.join(', ') });
+                              }
+                            }}
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                            }`}
+                          >
+                            {dept}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>

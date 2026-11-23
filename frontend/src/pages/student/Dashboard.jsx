@@ -151,7 +151,7 @@ export default function StudentDashboard() {
               {profile?.college || 'RGUKT Srikakulam'}
             </span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-semibold">
-              {profile?.batch || `${profile?.graduationYear || 2027} Graduating Batch • B.Tech E4`}
+              {profile?.yearOfStudy || '4th Year (E4)'} • {profile?.graduationYear || 2027} Batch
             </span>
             {profile?.rollNumber && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700 text-xs font-mono font-bold">
