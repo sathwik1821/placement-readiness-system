@@ -26,20 +26,28 @@ public class DatabaseSeeder {
             QuestionRepository questionRepository,
             JobRepository jobRepository,
             PlacementDriveRepository placementDriveRepository,
-            PlacementApplicationRepository placementApplicationRepository
+            PlacementApplicationRepository placementApplicationRepository,
+            org.springframework.security.crypto.password.PasswordEncoder passwordEncoder
     ) {
         return args -> {
             ObjectMapper mapper = new ObjectMapper();
 
             // 1. Admin
             if (!userRepository.existsByEmail("admin@system.com")) {
-                User admin = userRepository.save(new User("admin@system.com", "Admin@123", "ADMIN"));
+                User admin = userRepository.save(new User("admin@system.com", passwordEncoder.encode("Admin@123"), "ADMIN"));
+            } else {
+                userRepository.findByEmail("admin@system.com").ifPresent(u -> {
+                    if (!passwordEncoder.matches("Admin@123", u.getPassword())) {
+                        u.setPassword(passwordEncoder.encode("Admin@123"));
+                        userRepository.save(u);
+                    }
+                });
             }
 
             // 2. Placement Officer
             PlacementOfficer officer = null;
             if (!userRepository.existsByEmail("officer@college.edu")) {
-                User officerUser = userRepository.save(new User("officer@college.edu", "Officer@123", "PLACEMENT_OFFICER"));
+                User officerUser = userRepository.save(new User("officer@college.edu", passwordEncoder.encode("Officer@123"), "PLACEMENT_OFFICER"));
                 officer = new PlacementOfficer();
                 officer.setUserId(officerUser.getId());
                 officer.setName("Prof. Ramesh K. Sharma");
@@ -48,13 +56,19 @@ public class DatabaseSeeder {
                 officer.setPhone("+91 98450 12345");
                 officer = placementOfficerRepository.save(officer);
             } else {
+                userRepository.findByEmail("officer@college.edu").ifPresent(u -> {
+                    if (!passwordEncoder.matches("Officer@123", u.getPassword())) {
+                        u.setPassword(passwordEncoder.encode("Officer@123"));
+                        userRepository.save(u);
+                    }
+                });
                 officer = placementOfficerRepository.findAll().stream().findFirst().orElse(null);
             }
 
             // 3. Corporate Partner
             Company company = null;
             if (!userRepository.existsByEmail("hr@techcorp.com")) {
-                User companyUser = userRepository.save(new User("hr@techcorp.com", "Company@123", "COMPANY"));
+                User companyUser = userRepository.save(new User("hr@techcorp.com", passwordEncoder.encode("Company@123"), "COMPANY"));
                 company = new Company();
                 company.setUserId(companyUser.getId());
                 company.setCompanyName("TechCorp Digital Solutions");
@@ -65,6 +79,12 @@ public class DatabaseSeeder {
                 company.setIsVerified(true);
                 company = companyRepository.save(company);
             } else {
+                userRepository.findByEmail("hr@techcorp.com").ifPresent(u -> {
+                    if (!passwordEncoder.matches("Company@123", u.getPassword())) {
+                        u.setPassword(passwordEncoder.encode("Company@123"));
+                        userRepository.save(u);
+                    }
+                });
                 company = companyRepository.findAll().stream().findFirst().orElse(null);
             }
 
@@ -102,7 +122,7 @@ public class DatabaseSeeder {
 
             Student arjun = null;
             if (!userRepository.existsByEmail("s210018@rguktsklm.ac.in")) {
-                User sathwikUser = userRepository.save(new User("s210018@rguktsklm.ac.in", "Student@123", "STUDENT"));
+                User sathwikUser = userRepository.save(new User("s210018@rguktsklm.ac.in", passwordEncoder.encode("Student@123"), "STUDENT"));
                 arjun = new Student();
                 arjun.setUserId(sathwikUser.getId());
                 arjun.setEmail("s210018@rguktsklm.ac.in");
@@ -129,6 +149,12 @@ public class DatabaseSeeder {
                 goal.setTargetIndustry("Technology");
                 careerGoalRepository.save(goal);
             } else {
+                userRepository.findByEmail("s210018@rguktsklm.ac.in").ifPresent(u -> {
+                    if (!passwordEncoder.matches("Student@123", u.getPassword())) {
+                        u.setPassword(passwordEncoder.encode("Student@123"));
+                        userRepository.save(u);
+                    }
+                });
                 User u = userRepository.findByEmail("s210018@rguktsklm.ac.in").orElse(null);
                 if (u != null) {
                     arjun = studentRepository.findByUserId(u.getId()).orElse(null);

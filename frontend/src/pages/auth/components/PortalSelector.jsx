@@ -7,7 +7,7 @@ export const PORTAL_OPTIONS = [
     roleId: 'student',
     title: 'Student Portal',
     subtitle: 'RGUKT Engineering Undergraduates',
-    description: 'Practice adaptive assessments, participate in Gemini AI mock interviews, track readiness scores, and apply to campus placement drives.',
+    description: 'Practice adaptive assessments, participate in AI mock interviews, track readiness scores, and apply to campus placement drives.',
     icon: GraduationCap,
     gradient: 'from-blue-600 to-indigo-600',
     hoverBorder: 'hover:border-blue-500',

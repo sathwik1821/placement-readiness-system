@@ -211,7 +211,7 @@ export default function Jobs() {
           className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm flex items-center gap-2 transition-all cursor-pointer shrink-0"
         >
           <Sparkles className="w-4 h-4 text-amber-300" />
-          <span>Discover with Gemini AI</span>
+          <span>Discover with AI</span>
         </button>
       </div>
 
@@ -391,7 +391,7 @@ export default function Jobs() {
             className="btn-primary bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-4 rounded-xl inline-flex items-center gap-2 shadow-xs"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>{discovering ? 'Gemini Discovering Market Requisitions...' : 'Discover with Gemini AI'}</span>
+            <span>{discovering ? 'Discovering Market Requisitions with AI...' : 'Discover with AI'}</span>
           </button>
         </div>
       ) : (
@@ -539,7 +539,7 @@ export default function Jobs() {
         </div>
       )}
 
-      {/* Gemini AI Live Discovery Modal */}
+      {/* AI Live Discovery Modal */}
       {showAiModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
@@ -553,7 +553,7 @@ export default function Jobs() {
                     Live Market Requisition Discovery
                   </h3>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    Powered by Google Gemini 1.5 Flash
+                    Powered by Enterprise AI Engine
                   </p>
                 </div>
               </div>
@@ -566,7 +566,7 @@ export default function Jobs() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Looking for a specific emerging technology or niche role not listed above? Tell Gemini what tech stack, company tier, or engineering domain you are targeting:
+              Looking for a specific emerging technology or niche role not listed above? Tell the AI what tech stack, company tier, or engineering domain you are targeting:
             </p>
 
             <div className="space-y-2">

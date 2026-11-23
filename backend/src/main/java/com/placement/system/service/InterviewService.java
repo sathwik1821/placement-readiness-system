@@ -178,10 +178,80 @@ public class InterviewService {
 
         Map<String, Object> respMap = new HashMap<>();
         respMap.put("evaluation", response);
+        respMap.put("response", response);
         respMap.put("isComplete", evalResult.isComplete());
         respMap.put("nextQuestion", nextQ);
+        respMap.put("followUp", nextQ);
+        respMap.put("keyStrengths", evalResult.keyStrengths() != null ? evalResult.keyStrengths() : List.of());
+        respMap.put("areasForImprovement", evalResult.areasForImprovement() != null ? evalResult.areasForImprovement() : List.of());
         respMap.put("session", session);
         respMap.put("aiModel", evalResult.aiModel());
         return respMap;
+    }
+
+    public Map<String, Object> completeSession(String sessionId, String userId, String customApiKey) {
+        String studentId = studentRepository.findByUserId(userId).map(Student::getId).orElse(null);
+        MockInterviewSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Interview session not found"));
+
+        if (studentId == null || !session.getStudentId().equals(studentId)) {
+            throw new IllegalStateException("You do not own this interview session");
+        }
+
+        session.setStatus("COMPLETED");
+
+        List<InterviewQuestion> allQs = questionRepository.findBySessionIdOrderBySequenceNumberAsc(session.getId());
+        List<InterviewResponse> existingResponses = responseRepository.findBySessionId(session.getId());
+
+        List<Map<String, Object>> turns = new ArrayList<>();
+        for (InterviewQuestion q : allQs) {
+            existingResponses.stream()
+                    .filter(r -> q.getId().equals(r.getQuestionId()))
+                    .findFirst()
+                    .ifPresent(r -> {
+                        Map<String, Object> turn = new HashMap<>();
+                        turn.put("question", q.getQuestionText());
+                        turn.put("response", r.getResponseText());
+                        turn.put("technicalScore", r.getTechnicalScore());
+                        turn.put("communicationScore", r.getCommunicationScore());
+                        turn.put("aiFeedback", r.getAiFeedback());
+                        turns.add(turn);
+                    });
+        }
+
+        GeminiInterviewService.FinalVerdictResult finalVerdict = geminiService.generateFinalEvaluation(
+                session.getTargetRole(), session.getInterviewType(), turns, customApiKey
+        );
+
+        double avgTech = turns.stream().mapToDouble(t -> {
+            Object o = t.get("technicalScore");
+            return o instanceof Number ? ((Number) o).doubleValue() : 70.0;
+        }).average().orElse(70.0);
+
+        double avgComm = turns.stream().mapToDouble(t -> {
+            Object o = t.get("communicationScore");
+            return o instanceof Number ? ((Number) o).doubleValue() : 70.0;
+        }).average().orElse(70.0);
+
+        session.setTechnicalScore(avgTech);
+        session.setCommunicationScore(avgComm);
+        session.setOverallScore(finalVerdict.overallScore() > 0 ? finalVerdict.overallScore() : Math.round(((avgTech * 0.6) + (avgComm * 0.4)) * 10.0) / 10.0);
+        session.setFeedback(finalVerdict.executiveSummary());
+        session.setCompletedAt(java.time.LocalDateTime.now());
+        session = sessionRepository.save(session);
+
+        Map<String, Object> scorecard = new HashMap<>();
+        scorecard.put("session", session);
+        scorecard.put("overallScore", session.getOverallScore());
+        scorecard.put("technicalScore", session.getTechnicalScore());
+        scorecard.put("communicationScore", session.getCommunicationScore());
+        scorecard.put("verdict", finalVerdict.verdict());
+        scorecard.put("executiveSummary", finalVerdict.executiveSummary());
+        scorecard.put("demonstratedStrengths", finalVerdict.demonstratedStrengths());
+        scorecard.put("criticalGrowthAreas", finalVerdict.criticalGrowthAreas());
+        scorecard.put("actionableRecommendations", finalVerdict.actionableRecommendations());
+        scorecard.put("turns", turns);
+        scorecard.put("aiModel", finalVerdict.aiModel());
+        return scorecard;
     }
 }

@@ -78,4 +78,21 @@ public class InterviewController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/sessions/{id}/complete")
+    public ResponseEntity<?> completeSession(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader,
+            @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey) {
+
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        try {
+            Map<String, Object> scorecard = interviewService.completeSession(id, userId, customApiKey);
+            return ResponseEntity.ok(scorecard);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        }
+    }
 }
