@@ -18,6 +18,8 @@ public class Student {
     private String rollNumber = "";
     private String college = "RGUKT Srikakulam";
     private String batch = "2027 Graduating Batch • B.Tech E4 (Final Year)";
+    private Integer year = 4;
+    private String yearOfStudy = "4th Year (E4)";
     private String department = "Computer Science & Engineering";
     private Integer semester = 8;
     private Double cgpa = 0.0;
@@ -52,6 +54,10 @@ public class Student {
     public void setCollege(String college) { this.college = college; }
     public String getBatch() { return batch; }
     public void setBatch(String batch) { this.batch = batch; }
+    public Integer getYear() { return year; }
+    public void setYear(Integer year) { this.year = year; }
+    public String getYearOfStudy() { return yearOfStudy; }
+    public void setYearOfStudy(String yearOfStudy) { this.yearOfStudy = yearOfStudy; }
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
     public Integer getSemester() { return semester; }

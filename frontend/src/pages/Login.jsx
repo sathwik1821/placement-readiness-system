@@ -16,7 +16,10 @@ import {
   CheckCircle2,
   UserPlus,
   AlertCircle,
-  School
+  School,
+  KeyRound,
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
 
 export default function Login() {
@@ -25,12 +28,26 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [department, setDepartment] = useState('Computer Science & Engineering');
+  const [regStep, setRegStep] = useState('EMAIL'); // 'EMAIL' | 'OTP'
+  const [otp, setOtp] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [devOtpNotice, setDevOtpNotice] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
   const [loading, setLoading] = useState(false);
   const [activeQuickRole, setActiveQuickRole] = useState(null);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const { login } = useAuthStore();
   const navigate = useNavigate();
+
+  // Resend countdown timer
+  React.useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setInterval(() => setResendTimer((t) => t - 1), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [resendTimer]);
 
   const redirectRoutes = {
     STUDENT: '/student',
@@ -76,6 +93,32 @@ export default function Login() {
     }
   };
 
+  const handleSendOtp = async (e) => {
+    e?.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (!detectedStudentInfo) {
+      setError('Student registration is strictly restricted to RGUKT institutional email addresses (e.g. s210018@rguktsklm.ac.in).');
+      return;
+    }
+
+    setSendingOtp(true);
+    try {
+      const res = await api.post('/auth/send-otp', { email: email.trim() });
+      setRegStep('OTP');
+      setSuccessMsg(`A 6-digit verification code was sent to ${email.trim()}.`);
+      if (res.data?.devOtp) {
+        setDevOtpNotice(res.data.devOtp);
+      }
+      setResendTimer(60);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to dispatch verification OTP. Please try again.');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
@@ -83,6 +126,11 @@ export default function Login() {
 
     if (!detectedStudentInfo) {
       setError('Student registration is strictly restricted to RGUKT institutional email addresses (e.g., s210018@rguktsklm.ac.in).');
+      return;
+    }
+
+    if (!otp || otp.trim().length !== 6) {
+      setError('Please enter the 6-digit verification OTP code received on your RGUKT email.');
       return;
     }
 
@@ -102,16 +150,18 @@ export default function Login() {
         email: email.trim(),
         password,
         name: name.trim() || `Student (${detectedStudentInfo.rollNumber})`,
-        role: 'STUDENT'
+        role: 'STUDENT',
+        otp: otp.trim(),
+        department
       });
 
-      setSuccessMsg('RGUKT Student verification successful! Redirecting to workspace...');
+      setSuccessMsg('Email ownership verified! RGUKT Student profile activated. Redirecting...');
       login(res.data.token, res.data.role, { email: email.trim() });
       setTimeout(() => {
         navigate('/student');
       }, 800);
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed. The email may already be in use.');
+      setError(err.response?.data?.error || 'Registration failed. The OTP may be expired or invalid.');
     } finally {
       setLoading(false);
     }
@@ -411,119 +461,262 @@ export default function Login() {
               </button>
             </form>
           ) : (
-            /* Student Self-Registration Form */
-            <form onSubmit={handleRegister} className="space-y-4">
+            /* Student Self-Registration 2-Step Form */
+            <div className="space-y-4">
               <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl text-xs text-blue-200 flex items-start gap-2.5">
                 <School className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="font-bold text-white block mb-0.5">RGUKT Student Gate</strong>
-                  Student registration is verified against RGUKT institutional identity. Your graduating batch and university ID are calculated automatically.
+                  <strong className="font-bold text-white block mb-0.5">RGUKT Student Institutional Gate</strong>
+                  To ensure account security, registration requires email ownership verification via a 6-digit one-time code (OTP).
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Candidate Full Name
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Sathwik V"
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              {/* Progress Stepper */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    regStep === 'EMAIL' ? 'bg-blue-600 text-white ring-2 ring-blue-500/30' : 'bg-emerald-600 text-white'
+                  }`}>
+                    {regStep === 'OTP' ? '✓' : '1'}
+                  </span>
+                  <span className={`text-xs font-bold ${regStep === 'EMAIL' ? 'text-white' : 'text-slate-400'}`}>
+                    1. Identity & Email
+                  </span>
+                </div>
+                <div className="w-8 h-0.5 bg-slate-800" />
+                <div className="flex items-center gap-2">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    regStep === 'OTP' ? 'bg-blue-600 text-white ring-2 ring-blue-500/30' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    2
+                  </span>
+                  <span className={`text-xs font-bold ${regStep === 'OTP' ? 'text-white' : 'text-slate-400'}`}>
+                    2. Email OTP & Password
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Official RGUKT Student Email ID
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. s210018@rguktsklm.ac.in"
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                </div>
-
-                {/* Real-time batch detector chip */}
-                {detectedStudentInfo ? (
-                  <div className="mt-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>
-                      <strong>Verified:</strong> {detectedStudentInfo.campus} • Roll No: <code className="bg-emerald-950 px-1 py-0.5 rounded font-mono font-bold text-emerald-200">{detectedStudentInfo.rollNumber}</code> • {detectedStudentInfo.graduationYear} Graduating Batch ({detectedStudentInfo.yearPhase})
-                    </span>
+              {regStep === 'EMAIL' ? (
+                /* Step 1: Candidate Name, Department, RGUKT Email */
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Candidate Full Name
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Sathwik V"
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    </div>
                   </div>
-                ) : email.length > 5 ? (
-                  <div className="mt-2 text-[11px] text-amber-400 flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>Must be in format: <code className="bg-slate-900 px-1 rounded text-amber-300">s21XXXX@rguktsklm.ac.in</code></span>
-                  </div>
-                ) : null}
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                    Create Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Min. 6 chars"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  </div>
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Academic Department
+                      </label>
+                      <select
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Computer Science & Engineering">Computer Science & Engineering (CSE)</option>
+                        <option value="Electronics & Communication Engineering">Electronics & Communication (ECE)</option>
+                        <option value="Mechanical Engineering">Mechanical Engineering (ME)</option>
+                        <option value="Civil Engineering">Civil Engineering (CE)</option>
+                        <option value="Chemical Engineering">Chemical Engineering (CHE)</option>
+                        <option value="Metallurgical & Materials Engineering">Metallurgical & Materials (MME)</option>
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Repeat password"
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Official RGUKT Student Email
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="e.g. s210018@rguktsklm.ac.in"
+                          className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading || !detectedStudentInfo}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">Creating Verified RGUKT Profile...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-sm">Register & Enter Student Workspace</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
+                  {/* Real-time batch detector chip */}
+                  {detectedStudentInfo ? (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      <div>
+                        <strong className="text-white block font-semibold">{detectedStudentInfo.campus} Verified Candidate</strong>
+                        Roll: <code className="bg-emerald-950 px-1.5 py-0.5 rounded font-mono font-bold text-emerald-200">{detectedStudentInfo.rollNumber}</code> • {detectedStudentInfo.graduationYear} Graduating Batch ({detectedStudentInfo.yearPhase})
+                      </div>
+                    </div>
+                  ) : email.length > 5 ? (
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                      <span>Institutional email required: <code className="bg-slate-900 px-1 py-0.5 rounded text-amber-200">s21XXXX@rguktsklm.ac.in</code></span>
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={sendingOtp || !detectedStudentInfo}
+                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    {sendingOtp ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Dispatching Verification Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound className="w-4 h-4" />
+                        <span className="text-sm">Send Verification OTP to Email</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Step 2: Enter OTP & Set Password */
+                <form onSubmit={handleRegister} className="space-y-4">
+                  {/* Verified Email Banner */}
+                  <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-slate-400 block">Verification code dispatched to:</span>
+                      <span className="text-xs font-mono font-bold text-blue-400">{email}</span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        {detectedStudentInfo?.rollNumber} • {detectedStudentInfo?.yearPhase}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setRegStep('EMAIL'); setOtp(''); setError(''); }}
+                      className="text-xs font-semibold text-slate-400 hover:text-white underline underline-offset-4 flex items-center gap-1"
+                    >
+                      <ArrowLeft className="w-3 h-3" /> Change
+                    </button>
+                  </div>
+
+                  {/* Dev Helper Notice */}
+                  {devOtpNotice && (
+                    <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>Dev Test Code: <code className="bg-blue-950 px-1.5 py-0.5 rounded font-mono font-bold text-white tracking-widest">{devOtpNotice}</code></span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setOtp(devOtpNotice)}
+                        className="text-[11px] font-bold text-blue-400 hover:text-blue-200 underline"
+                      >
+                        Auto-fill
+                      </button>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                        6-Digit Email Verification Code (OTP)
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        {resendTimer > 0 ? (
+                          `Resend in ${resendTimer}s`
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleSendOtp}
+                            disabled={sendingOtp}
+                            className="text-blue-400 hover:text-blue-300 underline font-semibold flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Resend OTP
+                          </button>
+                        )}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        placeholder="123456"
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-lg font-mono tracking-widest text-center text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                      />
+                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Create Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Min. 6 chars"
+                          className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          required
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Repeat password"
+                          className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || otp.length !== 6}
+                    className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Verifying OTP & Activating Profile...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        <span className="text-sm">Verify OTP & Complete Registration</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
           )}
         </div>
 

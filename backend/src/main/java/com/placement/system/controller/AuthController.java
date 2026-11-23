@@ -31,6 +31,52 @@ public class AuthController {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private com.placement.system.service.EmailService emailService;
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
+        email = email.trim().toLowerCase();
+
+        if (!com.placement.system.util.RguktUtils.isRguktStudentEmail(email)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Student registration is exclusively restricted to RGUKT institutional candidates. Please use your official RGUKT email (e.g. s210018@rguktsklm.ac.in for 2027 batch, s22... for 2028 batch)."
+            ));
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "An account with this RGUKT email is already registered. Please sign in instead."));
+        }
+
+        try {
+            Map<String, Object> res = emailService.sendVerificationOtp(email);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to send verification OTP: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String otp = payload.get("otp");
+        if (email == null || otp == null || otp.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email and OTP are required"));
+        }
+        email = email.trim().toLowerCase();
+        boolean valid = emailService.verifyOtp(email, otp);
+        if (!valid) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired verification OTP. Please request a new code."));
+        }
+        return ResponseEntity.ok(Map.of("valid", true, "message", "Email ownership successfully verified"));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
@@ -52,6 +98,7 @@ public class AuthController {
         String password = (String) payload.get("password");
         String role = (String) payload.get("role");
         String name = (String) payload.get("name");
+        String otp = (String) payload.get("otp");
 
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
@@ -62,6 +109,20 @@ public class AuthController {
             if (!com.placement.system.util.RguktUtils.isRguktStudentEmail(email)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                     "error", "Student registration is exclusively restricted to RGUKT institutional candidates. Please use your official RGUKT institutional email (e.g. s210018@rguktsklm.ac.in for 2027 batch, s22... for 2028 batch)."
+                ));
+            }
+
+            // Require and verify email OTP for all student self-registrations
+            if (otp == null || otp.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Email verification OTP is required to confirm institutional email ownership."
+                ));
+            }
+
+            boolean isOtpValid = emailService.verifyOtp(email, otp.trim());
+            if (!isOtpValid) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Invalid or expired verification OTP. Please enter the valid 6-digit code dispatched to your email."
                 ));
             }
         }
@@ -82,13 +143,18 @@ public class AuthController {
                 student.setRollNumber(info.getRollNumber());
                 student.setCollege(info.getCollege());
                 student.setBatch(info.getBatch());
+                student.setYear(info.getYear());
+                student.setYearOfStudy(info.getYearOfStudy());
                 student.setGraduationYear(info.getGraduationYear());
                 student.setSemester(info.getGraduationYear() == 2027 ? 8 : (info.getGraduationYear() == 2028 ? 6 : 8));
                 student.setName(name != null && !name.isBlank() ? name : "Student (" + info.getRollNumber() + ")");
             } else {
                 student.setName(name != null && !name.isBlank() ? name : email.split("@")[0]);
+                student.setYear(4);
+                student.setYearOfStudy("4th Year (E4)");
             }
-            student.setDepartment("Computer Science & Engineering");
+            String dept = (String) payload.get("department");
+            student.setDepartment(dept != null && !dept.isBlank() ? dept : "Computer Science & Engineering");
             student = studentRepository.save(student);
 
             CareerGoal goal = new CareerGoal();

@@ -77,20 +77,22 @@ public class PlacementController {
                         int maxB = ((Number) crit.get("maxBacklogs")).intValue();
                         if (student.getBacklogs() > maxB) isEligible = false;
                     }
-                    // Support both "departments" and "allowedDepartments"
+                    // Support both "departments" and "allowedDepartments" via RguktUtils
                     List<String> allowedDepts = extractDepartments(crit);
-                    if (allowedDepts != null && !allowedDepts.isEmpty() && student.getDepartment() != null) {
-                        String sDept = student.getDepartment().trim().toLowerCase();
-                        boolean deptMatch = allowedDepts.stream().anyMatch(dept -> {
-                            String targetDept = dept.trim().toLowerCase();
-                            return targetDept.equalsIgnoreCase(sDept) || sDept.contains(targetDept) || targetDept.contains(sDept);
-                        });
-                        if (!deptMatch) isEligible = false;
+                    if (!com.placement.system.util.RguktUtils.isDepartmentEligible(allowedDepts, student.getDepartment())) {
+                        isEligible = false;
                     }
 
-                    if (crit.containsKey("graduationYear") && student.getGraduationYear() != null) {
+                    // Check Year and Graduation Batch eligibility
+                    List<Integer> allowedYears = extractIntList(crit, "allowedYears");
+                    List<Integer> allowedGradYears = extractIntList(crit, "allowedGradYears");
+                    if (crit.containsKey("graduationYear") && crit.get("graduationYear") != null) {
                         int reqYear = ((Number) crit.get("graduationYear")).intValue();
-                        if (!student.getGraduationYear().equals(reqYear)) isEligible = false;
+                        if (allowedGradYears == null) allowedGradYears = new ArrayList<>();
+                        if (!allowedGradYears.contains(reqYear)) allowedGradYears.add(reqYear);
+                    }
+                    if (!com.placement.system.util.RguktUtils.isYearEligible(allowedYears, allowedGradYears, student.getYear(), student.getGraduationYear())) {
+                        isEligible = false;
                     }
                 }
             } catch (Exception e) {
@@ -152,24 +154,21 @@ public class PlacementController {
                 }
 
                 List<String> allowedDepts = extractDepartments(crit);
-                if (allowedDepts != null && !allowedDepts.isEmpty() && student.getDepartment() != null) {
-                    String sDept = student.getDepartment().trim().toLowerCase();
-                    boolean deptMatch = allowedDepts.stream().anyMatch(dept -> {
-                        String targetDept = dept.trim().toLowerCase();
-                        return targetDept.equalsIgnoreCase(sDept) || sDept.contains(targetDept) || targetDept.contains(sDept);
-                    });
-                    if (!deptMatch) {
-                        return ResponseEntity.status(403).body(Map.of("error",
-                            "Your department (" + student.getDepartment() + ") is not eligible for this drive"));
-                    }
+                if (!com.placement.system.util.RguktUtils.isDepartmentEligible(allowedDepts, student.getDepartment())) {
+                    return ResponseEntity.status(403).body(Map.of("error",
+                        "Your department (" + student.getDepartment() + ") is not eligible for this drive"));
                 }
 
-                if (crit.containsKey("graduationYear") && student.getGraduationYear() != null) {
+                List<Integer> allowedYears = extractIntList(crit, "allowedYears");
+                List<Integer> allowedGradYears = extractIntList(crit, "allowedGradYears");
+                if (crit.containsKey("graduationYear") && crit.get("graduationYear") != null) {
                     int reqYear = ((Number) crit.get("graduationYear")).intValue();
-                    if (!student.getGraduationYear().equals(reqYear)) {
-                        return ResponseEntity.status(403).body(Map.of("error",
-                            "This drive is restricted to the " + reqYear + " graduating batch. Your batch: " + student.getGraduationYear()));
-                    }
+                    if (allowedGradYears == null) allowedGradYears = new ArrayList<>();
+                    if (!allowedGradYears.contains(reqYear)) allowedGradYears.add(reqYear);
+                }
+                if (!com.placement.system.util.RguktUtils.isYearEligible(allowedYears, allowedGradYears, student.getYear(), student.getGraduationYear())) {
+                    return ResponseEntity.status(403).body(Map.of("error",
+                        "This drive is restricted to eligible batches/years. Your batch: " + student.getBatch()));
                 }
             }
         } catch (Exception e) {
@@ -223,6 +222,23 @@ public class PlacementController {
         }
         if (crit.containsKey("allowedDepartments") && crit.get("allowedDepartments") instanceof List) {
             return (List<String>) crit.get("allowedDepartments");
+        }
+        return null;
+    }
+
+    private List<Integer> extractIntList(Map<String, Object> crit, String key) {
+        if (crit.containsKey(key) && crit.get(key) instanceof List<?> list) {
+            List<Integer> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Number n) {
+                    result.add(n.intValue());
+                } else if (item instanceof String s) {
+                    try {
+                        result.add(Integer.parseInt(s.trim()));
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+            return result;
         }
         return null;
     }

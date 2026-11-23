@@ -36,7 +36,8 @@ export default function CompanyDashboard() {
     location: '',
     minCgpa: '7.5',
     maxBacklogs: '0',
-    departments: 'Computer Science, Information Science',
+    targetBatch: 'ALL',
+    departments: 'CSE, ECE, ME, CE, CHE, MME',
     jobDescription: ''
   });
 
@@ -85,6 +86,16 @@ export default function CompanyDashboard() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      let allowedYears = [4, 3];
+      let allowedGradYears = [2027, 2028];
+      if (newDrive.targetBatch === '2027') {
+        allowedYears = [4];
+        allowedGradYears = [2027];
+      } else if (newDrive.targetBatch === '2028') {
+        allowedYears = [3];
+        allowedGradYears = [2028];
+      }
+
       const payload = {
         title: newDrive.title,
         jobRole: newDrive.jobRole,
@@ -96,7 +107,9 @@ export default function CompanyDashboard() {
         eligibilityCriteria: {
           minCgpa: parseFloat(newDrive.minCgpa) || 7.0,
           maxBacklogs: parseInt(newDrive.maxBacklogs) || 0,
-          departments: newDrive.departments.split(',').map((d) => d.trim())
+          departments: newDrive.departments.split(',').map((d) => d.trim()),
+          allowedYears,
+          allowedGradYears
         }
       };
 
@@ -600,13 +613,28 @@ export default function CompanyDashboard() {
 
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
+                      Eligible Batch / Year
+                    </label>
+                    <select
+                      value={newDrive.targetBatch}
+                      onChange={(e) => setNewDrive({ ...newDrive, targetBatch: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 bg-white font-medium"
+                    >
+                      <option value="ALL">All Batches (E4 & E3)</option>
+                      <option value="2027">4th Year (E4) • 2027 Only</option>
+                      <option value="2028">3rd Year (E3) • 2028 Only</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
                       Eligible Branches
                     </label>
                     <input
                       type="text"
                       value={newDrive.departments}
                       onChange={(e) => setNewDrive({ ...newDrive, departments: e.target.value })}
-                      placeholder="CS, IS, EC"
+                      placeholder="CSE, ECE, ME or ALL"
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-900 bg-white"
                     />
                   </div>

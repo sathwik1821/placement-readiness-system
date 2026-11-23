@@ -109,6 +109,8 @@ public class DatabaseSeeder {
                 arjun.setName("Sathwik (S210018)");
                 arjun.setCollege("RGUKT Srikakulam");
                 arjun.setBatch("2027 Graduating Batch • B.Tech E4 (Final Year)");
+                arjun.setYear(4);
+                arjun.setYearOfStudy("4th Year (E4)");
                 arjun.setDepartment("Computer Science & Engineering");
                 arjun.setSemester(8);
                 arjun.setCgpa(8.85);
@@ -151,6 +153,8 @@ public class DatabaseSeeder {
                 priya.setName("Priya Patel (S220145)");
                 priya.setCollege("RGUKT Srikakulam");
                 priya.setBatch("2028 Graduating Batch • B.Tech E3 (Pre-Final Year)");
+                priya.setYear(3);
+                priya.setYearOfStudy("3rd Year (E3)");
                 priya.setDepartment("Computer Science & Engineering");
                 priya.setSemester(6);
                 priya.setCgpa(8.65);
@@ -339,7 +343,9 @@ public class DatabaseSeeder {
                 Map<String, Object> criteria = new HashMap<>();
                 criteria.put("minCgpa", 7.5);
                 criteria.put("maxBacklogs", 0);
-                criteria.put("departments", List.of("Computer Science", "Information Technology"));
+                criteria.put("departments", List.of("Computer Science & Engineering", "Information Technology", "CSE"));
+                criteria.put("allowedYears", List.of(4, 3));
+                criteria.put("allowedGradYears", List.of(2027, 2028));
                 d1.setEligibilityCriteria(mapper.writeValueAsString(criteria));
                 PlacementDrive savedDrive = placementDriveRepository.save(d1);
 

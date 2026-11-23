@@ -15,7 +15,8 @@ export default function CreateDrive() {
     deadline: '',
     minCgpa: 7.0,
     maxBacklogs: 0,
-    departments: 'Computer Science, Information Technology'
+    targetBatch: 'ALL',
+    departments: 'CSE, ECE, ME, CE, CHE, MME'
   });
   const [saving, setSaving] = useState(false);
 
@@ -25,10 +26,22 @@ export default function CreateDrive() {
 
     try {
       const depts = form.departments.split(',').map((d) => d.trim()).filter(Boolean);
+      let allowedYears = [4, 3];
+      let allowedGradYears = [2027, 2028];
+      if (form.targetBatch === '2027') {
+        allowedYears = [4];
+        allowedGradYears = [2027];
+      } else if (form.targetBatch === '2028') {
+        allowedYears = [3];
+        allowedGradYears = [2028];
+      }
+
       const eligibilityCriteria = {
         minCgpa: parseFloat(form.minCgpa) || 0,
         maxBacklogs: parseInt(form.maxBacklogs, 10) || 0,
-        departments: depts
+        departments: depts,
+        allowedYears,
+        allowedGradYears
       };
 
       await api.post('/officer/drives', {
@@ -186,14 +199,30 @@ export default function CreateDrive() {
             </div>
           </div>
 
-          <div>
-            <label className="label">Allowed Academic Departments (Comma-separated)</label>
-            <input
-              type="text"
-              value={form.departments}
-              onChange={(e) => setForm({ ...form, departments: e.target.value })}
-              className="input"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Eligible Graduating Batch / Year</label>
+              <select
+                value={form.targetBatch}
+                onChange={(e) => setForm({ ...form, targetBatch: e.target.value })}
+                className="input font-semibold"
+              >
+                <option value="ALL">All Eligible Batches (4th Year E4 & 3rd Year E3)</option>
+                <option value="2027">4th Year (E4) • 2027 Graduating Batch Only (Full Time)</option>
+                <option value="2028">3rd Year (E3) • 2028 Batch Only (Internship / PPO)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Allowed Academic Departments (Comma-separated)</label>
+              <input
+                type="text"
+                value={form.departments}
+                onChange={(e) => setForm({ ...form, departments: e.target.value })}
+                placeholder="CSE, ECE, ME, CE, CHE, MME or ALL"
+                className="input"
+              />
+            </div>
           </div>
         </div>
 

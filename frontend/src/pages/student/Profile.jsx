@@ -49,6 +49,8 @@ export default function Profile() {
           rollNumber: data.rollNumber || 'S210018',
           college: data.college || 'RGUKT Srikakulam',
           batch: data.batch || '2027 Graduating Batch • B.Tech E4 (Final Year)',
+          year: data.year || 4,
+          yearOfStudy: data.yearOfStudy || '4th Year (E4)',
           department: data.department || 'Computer Science & Engineering',
           semester: data.semester || 8,
           cgpa: data.cgpa || 0,
@@ -269,8 +271,18 @@ export default function Profile() {
               <input
                 type="number"
                 value={form.graduationYear}
-                onChange={(e) => setForm({ ...form, graduationYear: parseInt(e.target.value, 10) || 2025 })}
+                onChange={(e) => setForm({ ...form, graduationYear: parseInt(e.target.value, 10) || 2027 })}
                 className="input"
+              />
+            </div>
+
+            <div>
+              <label className="label">Year of Study (Institutional Phase)</label>
+              <input
+                type="text"
+                readOnly
+                value={form.yearOfStudy || '4th Year (E4)'}
+                className="input bg-gray-50 text-gray-700 font-bold cursor-not-allowed"
               />
             </div>
 

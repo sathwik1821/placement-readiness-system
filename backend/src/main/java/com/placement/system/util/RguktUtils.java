@@ -1,5 +1,6 @@
 package com.placement.system.util;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,13 +22,17 @@ public class RguktUtils {
         private final String rollNumber;
         private final int admissionYear;
         private final int graduationYear;
+        private final int year; // 4 for E4, 3 for E3, etc.
+        private final String yearOfStudy; // "4th Year (E4)", "3rd Year (E3)", etc.
         private final String batch;
         private final String college;
 
-        public RguktStudentInfo(String rollNumber, int admissionYear, int graduationYear, String batch, String college) {
+        public RguktStudentInfo(String rollNumber, int admissionYear, int graduationYear, int year, String yearOfStudy, String batch, String college) {
             this.rollNumber = rollNumber;
             this.admissionYear = admissionYear;
             this.graduationYear = graduationYear;
+            this.year = year;
+            this.yearOfStudy = yearOfStudy;
             this.batch = batch;
             this.college = college;
         }
@@ -35,6 +40,8 @@ public class RguktUtils {
         public String getRollNumber() { return rollNumber; }
         public int getAdmissionYear() { return admissionYear; }
         public int getGraduationYear() { return graduationYear; }
+        public int getYear() { return year; }
+        public String getYearOfStudy() { return yearOfStudy; }
         public String getBatch() { return batch; }
         public String getCollege() { return college; }
     }
@@ -53,17 +60,23 @@ public class RguktUtils {
         // RGUKT 6-year integrated B.Tech: 2021 batch (s21) -> graduating in 2027; 2022 batch (s22) -> graduating in 2028
         int graduationYear = admissionYear + 6;
 
-        String rollNumber = ("S" + yearDigits + rollDigits).toUpperCase();
-
-        String yearPhase = switch (graduationYear) {
-            case 2027 -> "B.Tech E4 (Final Year)";
-            case 2028 -> "B.Tech E3 (Pre-Final Year)";
-            case 2029 -> "B.Tech E2 (2nd Year)";
-            case 2030 -> "B.Tech E1 (1st Year)";
-            default -> "B.Tech Class of " + graduationYear;
+        int year = switch (graduationYear) {
+            case 2027 -> 4;
+            case 2028 -> 3;
+            case 2029 -> 2;
+            case 2030 -> 1;
+            default -> Math.max(1, Math.min(4, 2027 - graduationYear + 4));
         };
 
-        String batch = graduationYear + " Graduating Batch • " + yearPhase;
+        String yearOfStudy = switch (year) {
+            case 4 -> "4th Year (E4)";
+            case 3 -> "3rd Year (E3)";
+            case 2 -> "2nd Year (E2)";
+            default -> "1st Year (E1)";
+        };
+
+        String rollNumber = ("S" + yearDigits + rollDigits).toUpperCase();
+        String batch = graduationYear + " Graduating Batch • " + yearOfStudy;
 
         String college = "RGUKT Srikakulam";
         if (domain.contains("sklm")) college = "RGUKT Srikakulam";
@@ -73,6 +86,63 @@ public class RguktUtils {
         else if (domain.contains("basar")) college = "RGUKT Basar";
         else college = "RGUKT";
 
-        return new RguktStudentInfo(rollNumber, admissionYear, graduationYear, batch, college);
+        return new RguktStudentInfo(rollNumber, admissionYear, graduationYear, year, yearOfStudy, batch, college);
+    }
+
+    public static String getStandardDepartmentCode(String dept) {
+        if (dept == null) return "";
+        String upper = dept.toUpperCase().trim();
+        if (upper.contains("CSE") || upper.contains("COMPUTER")) return "CSE";
+        if (upper.contains("ECE") || upper.contains("ELECTRONIC")) return "ECE";
+        if (upper.contains("ME") || upper.contains("MECHANICAL")) return "ME";
+        if (upper.contains("CE") || upper.contains("CIVIL")) return "CE";
+        if (upper.contains("CHE") || upper.contains("CHEMICAL")) return "CHE";
+        if (upper.contains("MME") || upper.contains("METALLURG")) return "MME";
+        if (upper.contains("IT") || upper.contains("INFORMATION")) return "IT";
+        return upper;
+    }
+
+    public static boolean isDepartmentEligible(List<String> allowedDepts, String studentDept) {
+        if (allowedDepts == null || allowedDepts.isEmpty()) return true;
+        if (studentDept == null || studentDept.isBlank()) return false;
+
+        for (String allowed : allowedDepts) {
+            if (allowed == null) continue;
+            String a = allowed.trim().toUpperCase();
+            if (a.equals("ALL") || a.equals("ANY") || a.equals("ALL DEPARTMENTS") || a.equals("ALL BRANCHES")) {
+                return true;
+            }
+        }
+
+        String sCode = getStandardDepartmentCode(studentDept);
+        String sRaw = studentDept.trim().toUpperCase();
+
+        for (String allowed : allowedDepts) {
+            if (allowed == null) continue;
+            String aRaw = allowed.trim().toUpperCase();
+            String aCode = getStandardDepartmentCode(aRaw);
+
+            if (sRaw.equals(aRaw) || sRaw.contains(aRaw) || aRaw.contains(sRaw)) return true;
+            if (!sCode.isEmpty() && !aCode.isEmpty() && sCode.equalsIgnoreCase(aCode)) return true;
+        }
+
+        return false;
+    }
+
+    public static boolean isYearEligible(List<Integer> allowedYears, List<Integer> allowedGradYears, Integer studentYear, Integer studentGradYear) {
+        boolean hasYearFilter = allowedYears != null && !allowedYears.isEmpty();
+        boolean hasGradFilter = allowedGradYears != null && !allowedGradYears.isEmpty();
+
+        if (!hasYearFilter && !hasGradFilter) return true;
+
+        if (hasYearFilter && studentYear != null && allowedYears.contains(studentYear)) {
+            return true;
+        }
+
+        if (hasGradFilter && studentGradYear != null && allowedGradYears.contains(studentGradYear)) {
+            return true;
+        }
+
+        return false;
     }
 }

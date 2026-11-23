@@ -52,6 +52,8 @@ public class StudentController {
         res.put("rollNumber", student.getRollNumber() != null ? student.getRollNumber() : "");
         res.put("college", student.getCollege() != null ? student.getCollege() : "RGUKT Srikakulam");
         res.put("batch", student.getBatch() != null ? student.getBatch() : "2027 Graduating Batch • B.Tech E4 (Final Year)");
+        res.put("year", student.getYear() != null ? student.getYear() : 4);
+        res.put("yearOfStudy", student.getYearOfStudy() != null ? student.getYearOfStudy() : "4th Year (E4)");
         res.put("department", student.getDepartment());
         res.put("semester", student.getSemester());
         res.put("cgpa", student.getCgpa());
@@ -82,6 +84,8 @@ public class StudentController {
             if (body.containsKey("rollNumber")) student.setRollNumber((String) body.get("rollNumber"));
             if (body.containsKey("college")) student.setCollege((String) body.get("college"));
             if (body.containsKey("batch")) student.setBatch((String) body.get("batch"));
+            if (body.containsKey("year")) student.setYear(((Number) body.get("year")).intValue());
+            if (body.containsKey("yearOfStudy")) student.setYearOfStudy((String) body.get("yearOfStudy"));
             if (body.containsKey("semester")) student.setSemester(((Number) body.get("semester")).intValue());
             if (body.containsKey("cgpa")) student.setCgpa(((Number) body.get("cgpa")).doubleValue());
             if (body.containsKey("graduationYear")) student.setGraduationYear(((Number) body.get("graduationYear")).intValue());

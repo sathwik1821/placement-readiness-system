@@ -171,6 +171,12 @@ export default function Placement() {
                     {crit.departments && (
                       <span>Allowed Branches: <strong>{crit.departments.join(', ')}</strong></span>
                     )}
+                    {(crit.allowedYears || crit.allowedGradYears || crit.graduationYear) && (
+                      <span>Allowed Batches: <strong className="text-blue-700">
+                        {crit.allowedYears ? crit.allowedYears.map((y) => `${y}th Year (E${y})`).join(', ') : ''}
+                        {crit.graduationYear ? ` (${crit.graduationYear} Batch)` : ''}
+                      </strong></span>
+                    )}
                     {drive.deadline && (
                       <span className="ml-auto text-rose-600 font-semibold flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
