@@ -229,15 +229,16 @@ public class AnalysisController {
             // Clean previous recommendations for this report
             recommendationRepository.deleteByAnalysisReportId(r.getId());
 
-            // Dynamically populate curated learning resources tailored to the student's lagging competencies & role
+            // Dynamically populate comprehensive learning curriculum covering all competencies required for target career
             List<LearningRecommendation> recsToSave = new ArrayList<>();
-            int maxGapsToRecommend = Math.min(4, skillGaps.size());
+            Set<String> processedSkills = new LinkedHashSet<>();
 
-            for (int i = 0; i < maxGapsToRecommend; i++) {
-                String gapName = (String) skillGaps.get(i).get("skill");
-                String prio = (String) skillGaps.get(i).get("priority");
+            // 1. Add all priority growth areas / skill gaps first (ordered by criticality)
+            for (Map<String, Object> gap : skillGaps) {
+                String gapName = (String) gap.get("skill");
+                String prio = (String) gap.get("priority");
+                processedSkills.add(gapName);
                 List<LearningResourceDef> defs = getCuratedResourcesForSkill(gapName, targetRole);
-
                 for (LearningResourceDef def : defs) {
                     recsToSave.add(new LearningRecommendation(
                         r.getId(),
@@ -247,6 +248,24 @@ public class AnalysisController {
                         def.url,
                         prio
                     ));
+                }
+            }
+
+            // 2. Add all remaining competencies required for this role (satisfying benchmarks) for full career coverage
+            for (String roleSkill : benchmarks.keySet()) {
+                if (!processedSkills.contains(roleSkill)) {
+                    processedSkills.add(roleSkill);
+                    List<LearningResourceDef> defs = getCuratedResourcesForSkill(roleSkill, targetRole);
+                    for (LearningResourceDef def : defs) {
+                        recsToSave.add(new LearningRecommendation(
+                            r.getId(),
+                            roleSkill,
+                            def.type,
+                            def.title,
+                            def.url,
+                            "MASTERY"
+                        ));
+                    }
                 }
             }
 
@@ -381,6 +400,9 @@ public class AnalysisController {
                 break;
             case "Computer Networks":
                 list.add(new LearningResourceDef("COURSE", "Stanford CS144: Introduction to Computer Networks", "https://cs144.github.io/"));
+                break;
+            case "Verbal Ability":
+                list.add(new LearningResourceDef("PRACTICE", "IndiaBIX Verbal Ability & Reading Comprehension Preparation", "https://www.indiabix.com/verbal-ability/questions-and-answers/"));
                 break;
             default:
                 list.add(new LearningResourceDef("PRACTICE", skill + " Targeted Learning Track on LeetCode", "https://leetcode.com/explore/"));

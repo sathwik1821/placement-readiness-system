@@ -16,13 +16,27 @@ import {
   ClipboardCheck,
   HelpCircle,
   Clock,
-  Layers
+  Layers,
+  WifiOff,
+  Compass
 } from 'lucide-react';
 
 export default function Analysis() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const fetchAnalysis = async () => {
     try {
@@ -40,6 +54,10 @@ export default function Analysis() {
   }, []);
 
   const handleRecalculate = async () => {
+    if (!navigator.onLine) {
+      alert('Need internet connection: Please reconnect to the internet to recalculate AI placement analysis.');
+      return;
+    }
     setRefreshing(true);
     try {
       const res = await api.post('/analysis/generate');
@@ -48,6 +66,13 @@ export default function Analysis() {
       alert('Error recalculating analysis: ' + (err.response?.data?.error || err.message));
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleResourceLaunch = (e, url) => {
+    if (!navigator.onLine) {
+      e.preventDefault();
+      alert('Need internet connection: Please connect to the internet to launch this external learning resource.');
     }
   };
 
@@ -93,8 +118,25 @@ export default function Analysis() {
   const targetRole = report?.targetRole || 'Java Full Stack Developer';
   const cleanScore = report?.readinessScore || 0;
 
+  // Build a lookup of skill status
+  const gapSkillsSet = new Set(skillGaps.map((g) => g.skill));
+  const strengthSkillsSet = new Set(strengths.map((s) => s.skill));
+
   return (
     <div className="space-y-8 font-sans">
+      {/* Offline Alert Banner */}
+      {!isOnline && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-center justify-between gap-3 text-xs sm:text-sm font-semibold shadow-xs animate-pulse">
+          <div className="flex items-center gap-2.5">
+            <WifiOff className="w-5 h-5 text-amber-600 shrink-0" />
+            <span>Need internet connection: You are currently offline. Please check your network to refresh analytics and access external roadmaps.</span>
+          </div>
+          <span className="px-2.5 py-1 rounded-md bg-amber-200 text-amber-900 text-[11px] font-bold shrink-0 uppercase tracking-wider">
+            Offline Mode
+          </span>
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -184,27 +226,27 @@ export default function Analysis() {
 
           <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <span className="font-semibold text-slate-700">Campus Placement Diagnostic Protocol:</span>
-            <span>Synthesizes test attempts, domain benchmarks, and academic standing.</span>
+            <span>Synthesizes completed test attempts, role benchmarks, and academic standing.</span>
           </div>
         </div>
       </div>
 
-      {/* Primary Section: In which aspect the student is lagging (Dynamic with Career) */}
+      {/* Primary Section: Priority Skill Growth Areas & Benchmark Gaps */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-7 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-rose-600" />
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
               <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                Identified Lagging Aspects & Competency Deficits
+                Priority Skill Growth Areas & Benchmark Deficits
               </h2>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Identified based on your actual completed assessments compared with hiring standards for <strong className="text-slate-800 font-bold">{targetRole}</strong>.
+              Identified by comparing your actual completed assessment scores against hiring standards for <strong className="text-slate-800 font-bold">{targetRole}</strong>.
             </p>
           </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-            {skillGaps.length} Areas Requiring Remediation
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+            {skillGaps.length} Priority Growth Areas
           </span>
         </div>
 
@@ -260,7 +302,7 @@ export default function Analysis() {
                     <div className="text-xs font-semibold text-slate-600">
                       {isAttempted ? (
                         <span>
-                          Observed: <strong className="text-rose-700 font-mono font-bold">{gap.observed}%</strong> • Benchmark Threshold: <strong className="text-emerald-800 font-mono font-bold">{gap.required}%</strong> • Deficit: <strong className="text-rose-700 font-mono font-bold">-{gap.deficit}%</strong>
+                          Observed: <strong className="text-rose-700 font-mono font-bold">{gap.observed}%</strong> • Benchmark Target: <strong className="text-emerald-800 font-mono font-bold">{gap.required}%</strong> • Deficit: <strong className="text-rose-700 font-mono font-bold">-{gap.deficit}%</strong>
                         </span>
                       ) : (
                         <span>
@@ -285,13 +327,13 @@ export default function Analysis() {
                     />
                   </div>
 
-                  {/* Explainable AI Lagging Diagnosis */}
+                  {/* Role Benchmark Guidance */}
                   <div className="bg-white/90 border border-slate-200 rounded-xl p-3.5 space-y-2 mt-3">
                     <div className="flex items-start gap-2">
                       <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                       <div className="text-xs text-slate-700 leading-relaxed">
                         <strong className="text-slate-900 font-bold block mb-0.5">
-                          AI Lagging Diagnosis for {targetRole}:
+                          Role Benchmark Guidance:
                         </strong>
                         {gap.laggingReason}
                       </div>
@@ -299,7 +341,7 @@ export default function Analysis() {
 
                     {gap.actionPlan && (
                       <div className="flex items-start gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
-                        <strong className="text-blue-700 font-bold shrink-0">Action Step:</strong>
+                        <strong className="text-blue-700 font-bold shrink-0">Target Action:</strong>
                         <span>{gap.actionPlan}</span>
                       </div>
                     )}
@@ -321,58 +363,75 @@ export default function Analysis() {
         )}
       </div>
 
-      {/* Dynamic AI-Curated Learning Curriculum & Remedial Resources */}
+      {/* Comprehensive Dynamic Career Curriculum */}
       <div className="bg-white border border-slate-200/90 rounded-2xl p-7 shadow-xs">
         <div className="flex items-center gap-2.5 mb-2">
           <BookOpen className="w-5 h-5 text-blue-600 stroke-[2.5]" />
           <div>
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-              Dynamic AI-Curated Remedial Curriculum
+              Comprehensive Career Curriculum & Learning Resources
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Authoritative industry practice platforms, documentation, and roadmaps dynamically recommended for your lagging competencies in <strong className="text-slate-800 font-bold">{targetRole}</strong>.
+              Complete end-to-end curriculum covering all competencies required for <strong className="text-slate-800 font-bold">{targetRole}</strong> with direct learning roadmaps.
             </p>
           </div>
         </div>
 
         {recommendations.length === 0 ? (
           <p className="text-xs text-slate-500 py-6 font-medium text-center">
-            No pending remedial modules required.
+            No curriculum modules loaded. Recalculate analysis to generate resources.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
-            {recommendations.map((rec) => (
-              <div
-                key={rec.id}
-                className="p-5 rounded-xl border border-slate-200 hover:border-blue-500 hover:shadow-xs transition-all flex flex-col justify-between bg-white group"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                      {rec.resourceType}
-                    </span>
-                    <span className="text-xs font-bold text-rose-600">
-                      Remediates: {rec.skillGap}
-                    </span>
-                  </div>
-                  <h3 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
-                    {rec.title}
-                  </h3>
-                </div>
+            {recommendations.map((rec) => {
+              const isGap = gapSkillsSet.has(rec.skillGap);
+              const isMastered = strengthSkillsSet.has(rec.skillGap);
 
-                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-end">
-                  <a
-                    href={rec.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
-                  >
-                    <span>Launch Resource</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+              return (
+                <div
+                  key={rec.id}
+                  className="p-5 rounded-xl border border-slate-200 hover:border-blue-500 hover:shadow-xs transition-all flex flex-col justify-between bg-white group"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        {rec.resourceType}
+                      </span>
+                      <span
+                        className={`text-xs font-bold ${
+                          isGap
+                            ? 'text-rose-600'
+                            : isMastered
+                            ? 'text-emerald-700'
+                            : 'text-slate-600'
+                        }`}
+                      >
+                        {isGap ? `Priority Growth: ${rec.skillGap}` : isMastered ? `Mastery Module: ${rec.skillGap}` : `Core Module: ${rec.skillGap}`}
+                      </span>
+                    </div>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {rec.title}
+                    </h3>
+                  </div>
+
+                  <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Authoritative Track Resource
+                    </span>
+                    <a
+                      href={rec.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => handleResourceLaunch(e, rec.url)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+                    >
+                      <span>Launch Resource</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

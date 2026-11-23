@@ -7,6 +7,11 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const err = new Error('Need internet connection: You are currently offline.');
+      err.isOffline = true;
+      return Promise.reject(err);
+    }
     const token = localStorage.getItem('token');
     if (token && token !== 'null' && token !== 'undefined') {
       config.headers = config.headers || {};
@@ -24,6 +29,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (typeof navigator !== 'undefined' && (!navigator.onLine || error.code === 'ERR_NETWORK' || error.message === 'Network Error')) {
+      error.isOffline = true;
+      error.userMessage = 'Need internet connection. Please verify your network to continue.';
+    }
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('role');
