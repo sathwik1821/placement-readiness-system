@@ -191,57 +191,6 @@ export default function Landing() {
               <span>Explore Technology Stack</span>
             </a>
           </div>
-
-          {/* Quick Metrics Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 pt-10 text-left">
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Target Campuses
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
-                RGUKT (E1-E4)
-              </span>
-              <span className="text-[11px] text-blue-400 font-medium">
-                Srikakulam, RKV, Nuzvid, Ongole
-              </span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Question Bank
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
-                13 Tracks
-              </span>
-              <span className="text-[11px] text-emerald-400 font-medium">
-                20+ Questions with Explanations
-              </span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                AI Evaluation
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
-                Gemini 1.5 Pro
-              </span>
-              <span className="text-[11px] text-purple-400 font-medium">
-                Dynamic Technical Interviews
-              </span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Notifications
-              </span>
-              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
-                Centralized
-              </span>
-              <span className="text-[11px] text-amber-400 font-medium">
-                HTML Emails with Audit Trail
-              </span>
-            </div>
-          </div>
         </div>
       </section>
 
