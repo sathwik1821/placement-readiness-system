@@ -48,16 +48,65 @@ public class AssessmentController {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @GetMapping("/categories")
-    public ResponseEntity<?> getCategories() {
+    public ResponseEntity<?> getCategories(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        com.placement.system.model.Student student = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                String token = authHeader.substring(7);
+                String userId = jwtService.extractUserId(token);
+                if (userId != null) {
+                    student = studentRepository.findByUserId(userId).orElse(null);
+                }
+            } catch (Exception ignored) {}
+        }
+
         List<TestCategory> categories = categoryRepository.findAll();
         List<Map<String, Object>> res = new ArrayList<>();
         for (TestCategory c : categories) {
+            if (student != null) {
+                if (c.getIsActive() != null && !c.getIsActive()) {
+                    continue;
+                }
+                // Check target years
+                if (c.getTargetYears() != null && !c.getTargetYears().isBlank()) {
+                    try {
+                        List<Object> years = mapper.readValue(c.getTargetYears(), new TypeReference<List<Object>>() {});
+                        if (!years.isEmpty()) {
+                            final int sYear = student.getYear() != null ? student.getYear() : 0;
+                            boolean match = years.stream().anyMatch(y -> {
+                                String yStr = String.valueOf(y).replace("E", "").replace("e", "").trim();
+                                try {
+                                    return Integer.parseInt(yStr) == sYear;
+                                } catch (Exception ex) {
+                                    return false;
+                                }
+                            });
+                            if (!match) continue;
+                        }
+                    } catch (Exception ignored) {}
+                }
+                // Check target departments
+                if (c.getTargetDepartments() != null && !c.getTargetDepartments().isBlank()) {
+                    try {
+                        List<String> depts = mapper.readValue(c.getTargetDepartments(), new TypeReference<List<String>>() {});
+                        if (!depts.isEmpty() && !com.placement.system.util.RguktUtils.isDepartmentEligible(depts, student.getDepartment())) {
+                            continue;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+
             Map<String, Object> map = new HashMap<>();
             map.put("id", c.getId());
             map.put("name", c.getName());
             map.put("type", c.getType());
             map.put("domain", c.getDomain());
             map.put("description", c.getDescription());
+            map.put("durationMinutes", c.getDurationMinutes() != null ? c.getDurationMinutes() : 30);
+            map.put("passingPercentage", c.getPassingPercentage() != null ? c.getPassingPercentage() : 60.0);
+            map.put("targetYears", c.getTargetYears());
+            map.put("targetDepartments", c.getTargetDepartments());
+            map.put("isActive", c.getIsActive() != null ? c.getIsActive() : true);
             map.put("_count", Map.of("questions", questionRepository.countByTestCategoryId(c.getId())));
             res.add(map);
         }
@@ -141,22 +190,65 @@ public class AssessmentController {
     @PostMapping("/attempts")
     public ResponseEntity<?> startAttempt(@RequestHeader("Authorization") String authHeader, @RequestBody Map<String, String> body) {
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
-        String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
-        if (studentId == null) return ResponseEntity.badRequest().body(Map.of("error", "Student not found"));
+        com.placement.system.model.Student student = studentRepository.findByUserId(userId).orElse(null);
+        if (student == null) return ResponseEntity.badRequest().body(Map.of("error", "Student not found"));
 
         String catId = body.get("testCategoryId") != null ? body.get("testCategoryId") : body.get("categoryId");
         if (catId == null || catId.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "testCategoryId or categoryId is required"));
         }
+
+        TestCategory category = categoryRepository.findById(catId).orElse(null);
+        if (category == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Assessment category not found"));
+        }
+
+        if (category.getIsActive() != null && !category.getIsActive()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This assessment is currently inactive"));
+        }
+
+        // Verify eligibility if targeted
+        if (category.getTargetYears() != null && !category.getTargetYears().isBlank()) {
+            try {
+                List<Object> years = mapper.readValue(category.getTargetYears(), new TypeReference<List<Object>>() {});
+                if (!years.isEmpty()) {
+                    final int sYear = student.getYear() != null ? student.getYear() : 0;
+                    boolean match = years.stream().anyMatch(y -> {
+                        String yStr = String.valueOf(y).replace("E", "").replace("e", "").trim();
+                        try {
+                            return Integer.parseInt(yStr) == sYear;
+                        } catch (Exception ex) {
+                            return false;
+                        }
+                    });
+                    if (!match) {
+                        return ResponseEntity.status(403).body(Map.of("error", "This assessment is restricted to selected academic batches"));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (category.getTargetDepartments() != null && !category.getTargetDepartments().isBlank()) {
+            try {
+                List<String> depts = mapper.readValue(category.getTargetDepartments(), new TypeReference<List<String>>() {});
+                if (!depts.isEmpty() && !com.placement.system.util.RguktUtils.isDepartmentEligible(depts, student.getDepartment())) {
+                    return ResponseEntity.status(403).body(Map.of("error", "This assessment is restricted to other academic branches"));
+                }
+            } catch (Exception ignored) {}
+        }
+
         long qCount = questionRepository.countByTestCategoryId(catId);
         int targetQuestions = (int) Math.min(20, qCount > 0 ? qCount : 20);
 
+        int durationMins = (category.getDurationMinutes() != null && category.getDurationMinutes() > 0)
+                ? category.getDurationMinutes() : 30;
+
         TestAttempt attempt = new TestAttempt();
-        attempt.setStudentId(studentId);
+        attempt.setStudentId(student.getId());
         attempt.setTestCategoryId(catId);
         attempt.setTotalMarks(targetQuestions);
         attempt.setStatus("IN_PROGRESS");
-        attempt.setTimeLimitSeconds(1800); // 30 minutes
+        attempt.setTimeLimitSeconds(durationMins * 60);
         attempt.setStartedAt(LocalDateTime.now());
         attempt = attemptRepository.save(attempt);
 

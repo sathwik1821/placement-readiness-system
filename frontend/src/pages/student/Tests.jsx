@@ -111,11 +111,12 @@ export default function Tests() {
   const isRecommended = (catName) => recommendedList.some((r) => r.toLowerCase() === catName.toLowerCase());
 
   const displayedCategories = filterMode === 'RECOMMENDED'
-    ? categories.filter((c) => isRecommended(c.name))
+    ? categories.filter((c) => isRecommended(c.name) || c.type === 'MOCK' || c.type === 'ASSIGNMENT')
     : categories;
 
-  const commonTests = displayedCategories.filter((c) => c.type === 'COMMON');
+  const mockTests = displayedCategories.filter((c) => c.type === 'MOCK' || c.type === 'ASSIGNMENT');
   const techTests = displayedCategories.filter((c) => c.type === 'TECHNICAL');
+  const commonTests = displayedCategories.filter((c) => c.type === 'COMMON');
 
   return (
     <div className="space-y-8 font-sans">
@@ -154,6 +155,108 @@ export default function Tests() {
           </button>
         </div>
       </div>
+
+      {/* Curated Mock Assessments & Assignments (if available) */}
+      {mockTests.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-purple-200 pb-2">
+            <Sparkles className="w-5 h-5 text-purple-600 stroke-[2.2]" />
+            <h2 className="text-base font-bold text-slate-900">
+              Mock Assessments & Track Assignments
+            </h2>
+            <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+              {mockTests.length} Assigned Suites
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {mockTests.map((cat) => {
+              const latest = getLatestAttempt(cat.id);
+              const isStarting = startingId === cat.id;
+
+              return (
+                <div
+                  key={cat.id}
+                  className="bg-white border-2 border-purple-200/80 rounded-2xl p-5 hover:border-purple-400 hover:shadow-xs transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 border border-purple-200">
+                            {cat.type}
+                          </span>
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                            {cat.domain || cat.department || 'Computer Science'}
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-black text-slate-900">{cat.name}</h3>
+                      </div>
+
+                      {latest ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${latest.percentageScore >= 70
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : latest.percentageScore >= 50
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-rose-100 text-rose-800'
+                              }`}
+                          >
+                            Score: {latest.percentageScore}%
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/student/tests/${latest.id}`)}
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                          >
+                            View Analysis →
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                          Ready for Attempt
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 mb-4 leading-relaxed">{cat.description || 'Targeted mock assessment calibrated for your batch and branch.'}</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{cat._count?.questions || 10} Questions</span>
+                      </span>
+                      <span>• Timed {cat.durationMinutes || 30}m</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleStartTest(cat.id)}
+                      disabled={isStarting}
+                      className="text-xs py-1.5 px-3.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg shadow-xs flex items-center gap-1.5 font-bold transition-colors cursor-pointer"
+                    >
+                      {isStarting ? (
+                        <span>Loading...</span>
+                      ) : latest ? (
+                        <>
+                          <span>Retake Mock</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3.5 h-3.5" />
+                          <span>Start Assessment</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Technical Domain Tests */}
       <section className="space-y-4">
@@ -231,7 +334,7 @@ export default function Tests() {
                       <Clock className="w-3.5 h-3.5" />
                       <span>{cat._count?.questions || 10} Questions</span>
                     </span>
-                    <span>• Timed 20m</span>
+                    <span>• Timed {cat.durationMinutes || 30}m</span>
                   </div>
 
                   <button
@@ -331,7 +434,7 @@ export default function Tests() {
                       <Clock className="w-3.5 h-3.5" />
                       <span>{cat._count?.questions || 10} Questions</span>
                     </span>
-                    <span>• Timed 20m</span>
+                    <span>• Timed {cat.durationMinutes || 30}m</span>
                   </div>
 
                   <button

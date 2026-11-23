@@ -10,4 +10,6 @@ import java.util.List;
 public interface TestAttemptRepository extends JpaRepository<TestAttempt, String> {
     List<TestAttempt> findByStudentIdOrderByStartedAtDesc(String studentId);
     List<TestAttempt> findByStudentIdAndStatusOrderByCompletedAtDesc(String studentId, String status);
+    long countByTestCategoryId(String testCategoryId);
+    List<TestAttempt> findByTestCategoryId(String testCategoryId);
 }
