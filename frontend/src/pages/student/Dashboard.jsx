@@ -672,10 +672,18 @@ export default function StudentDashboard() {
                 return (
                   <div
                     key={att.id}
-                    className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+                    className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/20 transition-all group"
                   >
                     <div>
-                      <h3 className="text-xs font-black text-slate-900">{att.category?.name || 'Assessment'}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-black text-slate-900">{att.category?.name || 'Assessment'}</h3>
+                        <Link
+                          to={`/student/tests/${att.id}`}
+                          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-0.5"
+                        >
+                          <span>Analysis & Key →</span>
+                        </Link>
+                      </div>
                       <p className="text-xs font-medium text-slate-500 mt-0.5">
                         Score: <strong className="text-slate-800">{att.totalScore} / {att.totalMarks}</strong> Marks
                         {att.completedAt && (
@@ -685,21 +693,30 @@ export default function StudentDashboard() {
                         )}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <span
-                        className={`text-base font-black font-mono ${
-                          isPassed ? 'text-emerald-700' : att.percentageScore >= 50 ? 'text-blue-700' : 'text-amber-700'
-                        }`}
+                    <div className="text-right flex items-center gap-3">
+                      <div>
+                        <span
+                          className={`text-base font-black font-mono ${
+                            isPassed ? 'text-emerald-700' : att.percentageScore >= 50 ? 'text-blue-700' : 'text-amber-700'
+                          }`}
+                        >
+                          {att.percentageScore}%
+                        </span>
+                        <span
+                          className={`block text-[10px] font-bold uppercase ${
+                            isPassed ? 'text-emerald-700' : 'text-amber-700'
+                          }`}
+                        >
+                          {isPassed ? 'Passed' : 'Needs Review'}
+                        </span>
+                      </div>
+                      <Link
+                        to={`/student/tests/${att.id}`}
+                        className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-blue-600 group-hover:text-white text-slate-600 transition-colors"
+                        title="View Detailed Question Analysis"
                       >
-                        {att.percentageScore}%
-                      </span>
-                      <span
-                        className={`block text-[10px] font-bold uppercase ${
-                          isPassed ? 'text-emerald-700' : 'text-amber-700'
-                        }`}
-                      >
-                        {isPassed ? 'Passed' : 'Needs Review'}
-                      </span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
                   </div>
                 );

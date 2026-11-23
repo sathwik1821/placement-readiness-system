@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/assessments")
@@ -39,6 +38,9 @@ public class AssessmentController {
 
     @Autowired
     private StudentRepository studentRepository;
+
+    @Autowired
+    private AnalysisController analysisController;
 
     @Autowired
     private JwtService jwtService;
@@ -64,7 +66,7 @@ public class AssessmentController {
 
     @GetMapping("/categories/{id}/questions")
     public ResponseEntity<?> getQuestions(@PathVariable String id) {
-        // Stratified sampling: 3 EASY + 4 MEDIUM + 3 HARD = 10
+        // Stratified sampling: 6 EASY + 8 MEDIUM + 6 HARD = 20 questions
         List<Question> easyQs = questionRepository.findByTestCategoryIdAndDifficulty(id, "EASY");
         List<Question> mediumQs = questionRepository.findByTestCategoryIdAndDifficulty(id, "MEDIUM");
         List<Question> hardQs = questionRepository.findByTestCategoryIdAndDifficulty(id, "HARD");
@@ -74,22 +76,18 @@ public class AssessmentController {
         Collections.shuffle(hardQs);
 
         int totalPool = easyQs.size() + mediumQs.size() + hardQs.size();
-        int target = Math.min(10, totalPool);
+        int target = Math.min(20, totalPool);
 
-        // Desired distribution: 3 EASY, 4 MEDIUM, 3 HARD — adjust proportionally if pool is sparse
-        int wantEasy = 3, wantMedium = 4, wantHard = 3;
-        if (totalPool < 10) {
-            // Take whatever is available
+        int wantEasy = 6, wantMedium = 8, wantHard = 6;
+        if (totalPool < 20) {
             wantEasy = easyQs.size();
             wantMedium = mediumQs.size();
             wantHard = hardQs.size();
         } else {
-            // Clamp to available, then fill remaining from other pools
             wantEasy = Math.min(wantEasy, easyQs.size());
             wantMedium = Math.min(wantMedium, mediumQs.size());
             wantHard = Math.min(wantHard, hardQs.size());
             int remaining = target - wantEasy - wantMedium - wantHard;
-            // Fill from whichever pools have surplus
             if (remaining > 0 && mediumQs.size() > wantMedium) {
                 int extra = Math.min(remaining, mediumQs.size() - wantMedium);
                 wantMedium += extra;
@@ -112,13 +110,14 @@ public class AssessmentController {
         selected.addAll(hardQs.subList(0, wantHard));
         Collections.shuffle(selected);
 
-        // If still nothing from stratified (all difficulty fields might be null), fallback to old path
+        // Fallback if stratified returns empty
         if (selected.isEmpty()) {
             List<Question> allQs = questionRepository.findByTestCategoryId(id);
             Collections.shuffle(allQs);
-            selected = allQs.size() > 10 ? new ArrayList<>(allQs.subList(0, 10)) : new ArrayList<>(allQs);
+            selected = allQs.size() > 20 ? new ArrayList<>(allQs.subList(0, 20)) : new ArrayList<>(allQs);
         }
 
+        // Sanitize for test-taker: DO NOT expose correctAnswer or explanation during the live test
         List<Map<String, Object>> sanitized = new ArrayList<>();
         for (Question q : selected) {
             Map<String, Object> map = new HashMap<>();
@@ -145,16 +144,20 @@ public class AssessmentController {
         String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
         if (studentId == null) return ResponseEntity.badRequest().body(Map.of("error", "Student not found"));
 
-        String catId = body.get("testCategoryId");
+        String catId = body.get("testCategoryId") != null ? body.get("testCategoryId") : body.get("categoryId");
+        if (catId == null || catId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "testCategoryId or categoryId is required"));
+        }
         long qCount = questionRepository.countByTestCategoryId(catId);
-        int targetQuestions = (int) Math.min(10, qCount > 0 ? qCount : 10);
+        int targetQuestions = (int) Math.min(20, qCount > 0 ? qCount : 20);
 
         TestAttempt attempt = new TestAttempt();
         attempt.setStudentId(studentId);
         attempt.setTestCategoryId(catId);
         attempt.setTotalMarks(targetQuestions);
         attempt.setStatus("IN_PROGRESS");
-        attempt.setTimeLimitSeconds(1200); // 20 minutes
+        attempt.setTimeLimitSeconds(1800); // 30 minutes
+        attempt.setStartedAt(LocalDateTime.now());
         attempt = attemptRepository.save(attempt);
 
         return ResponseEntity.ok(attempt);
@@ -166,7 +169,6 @@ public class AssessmentController {
             @RequestHeader("Authorization") String authHeader,
             @RequestBody Map<String, List<Map<String, Object>>> body) {
 
-        // IDOR protection: verify attempt belongs to caller
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
         String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
         if (studentId == null) return ResponseEntity.status(403).body(Map.of("error", "Student not found"));
@@ -174,22 +176,20 @@ public class AssessmentController {
         TestAttempt attempt = attemptRepository.findById(id).orElse(null);
         if (attempt == null) return ResponseEntity.notFound().build();
 
-        // Ownership check
         if (!attempt.getStudentId().equals(studentId)) {
             return ResponseEntity.status(403).body(Map.of("error", "You do not own this test attempt"));
         }
 
-        // Prevent double-submit
         if ("COMPLETED".equals(attempt.getStatus()) || "LATE_SUBMISSION".equals(attempt.getStatus())) {
-            return ResponseEntity.status(409).body(Map.of("error", "This attempt has already been submitted"));
+            // Already submitted, return the full review payload
+            return ResponseEntity.ok(buildAttemptReviewPayload(attempt));
         }
 
-        // Server-side timer enforcement (20 min + 5 min grace = 25 min)
         boolean lateSubmission = false;
         if (attempt.getStartedAt() != null) {
             long elapsedSeconds = Duration.between(attempt.getStartedAt(), LocalDateTime.now()).toSeconds();
-            int gracePeriod = 300; // 5 minutes grace
-            int limit = (attempt.getTimeLimitSeconds() != null ? attempt.getTimeLimitSeconds() : 1200) + gracePeriod;
+            int gracePeriod = 300;
+            int limit = (attempt.getTimeLimitSeconds() != null ? attempt.getTimeLimitSeconds() : 1800) + gracePeriod;
             if (elapsedSeconds > limit) {
                 lateSubmission = true;
             }
@@ -208,18 +208,19 @@ public class AssessmentController {
 
                 Question q = questionRepository.findById(qId).orElse(null);
                 if (q != null) {
-                    boolean isCorrect = q.getCorrectAnswer().trim().equalsIgnoreCase((selected != null ? selected : "").trim());
+                    boolean isAttempted = selected != null && !selected.trim().isBlank();
+                    boolean isCorrect = isAttempted && q.getCorrectAnswer().trim().equalsIgnoreCase(selected.trim());
                     if (isCorrect) {
                         score += q.getMarks();
                         correctCount++;
-                    } else if (selected != null && !selected.isBlank()) {
+                    } else if (isAttempted) {
                         score -= q.getNegativeMarks();
                     }
 
                     TestResponse tr = new TestResponse();
                     tr.setTestAttemptId(attempt.getId());
                     tr.setQuestionId(qId);
-                    tr.setSelectedAnswer(selected != null ? selected : "");
+                    tr.setSelectedAnswer(selected != null ? selected.trim() : "");
                     tr.setIsCorrect(isCorrect);
                     tr.setTimeTaken(timeTaken);
                     responseRepository.save(tr);
@@ -232,7 +233,6 @@ public class AssessmentController {
         int totalQuestions = attempt.getTotalMarks() > 0 ? attempt.getTotalMarks() : Math.max(1, count);
         double accuracyPct = Math.min(100.0, Math.max(0.0, Math.round(((double) correctCount / totalQuestions) * 1000.0) / 10.0));
 
-        // Apply 20% penalty for late submissions
         if (lateSubmission) {
             accuracyPct = Math.max(0.0, accuracyPct * 0.80);
             score = Math.max(0.0, score * 0.80);
@@ -246,7 +246,103 @@ public class AssessmentController {
         attempt.setCompletedAt(LocalDateTime.now());
         attempt = attemptRepository.save(attempt);
 
-        return ResponseEntity.ok(attempt);
+        // Return comprehensive test analysis and review
+        return ResponseEntity.ok(buildAttemptReviewPayload(attempt));
+    }
+
+    @GetMapping("/attempts/{id}/review")
+    public ResponseEntity<?> getAttemptReview(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        String studentId = studentRepository.findByUserId(userId).map(s -> s.getId()).orElse(null);
+        if (studentId == null) return ResponseEntity.status(403).body(Map.of("error", "Student not found"));
+
+        TestAttempt attempt = attemptRepository.findById(id).orElse(null);
+        if (attempt == null) return ResponseEntity.notFound().build();
+
+        if (!attempt.getStudentId().equals(studentId)) {
+            return ResponseEntity.status(403).body(Map.of("error", "You do not own this test attempt"));
+        }
+
+        return ResponseEntity.ok(buildAttemptReviewPayload(attempt));
+    }
+
+    private Map<String, Object> buildAttemptReviewPayload(TestAttempt attempt) {
+        TestCategory category = categoryRepository.findById(attempt.getTestCategoryId()).orElse(null);
+        String categoryName = category != null ? category.getName() : "Assessment";
+
+        List<TestResponse> responses = responseRepository.findByTestAttemptId(attempt.getId());
+        List<Map<String, Object>> questionReviews = new ArrayList<>();
+
+        int correctCount = 0;
+        int incorrectCount = 0;
+        int skippedCount = 0;
+
+        for (TestResponse tr : responses) {
+            Question q = questionRepository.findById(tr.getQuestionId()).orElse(null);
+            if (q == null) continue;
+
+            boolean isAttempted = tr.getSelectedAnswer() != null && !tr.getSelectedAnswer().isBlank();
+            boolean isCorrect = Boolean.TRUE.equals(tr.getIsCorrect());
+
+            if (!isAttempted) {
+                skippedCount++;
+            } else if (isCorrect) {
+                correctCount++;
+            } else {
+                incorrectCount++;
+            }
+
+            Map<String, Object> qr = new LinkedHashMap<>();
+            qr.put("questionId", q.getId());
+            qr.put("questionText", q.getQuestionText());
+            try {
+                qr.put("options", mapper.readValue(q.getOptions(), new TypeReference<List<String>>() {}));
+            } catch (Exception e) {
+                qr.put("options", List.of());
+            }
+            qr.put("selectedAnswer", tr.getSelectedAnswer());
+            qr.put("correctAnswer", q.getCorrectAnswer());
+            qr.put("isCorrect", isCorrect);
+            qr.put("isAttempted", isAttempted);
+            qr.put("explanation", q.getExplanation() != null && !q.getExplanation().isBlank()
+                    ? q.getExplanation()
+                    : "The correct answer is '" + q.getCorrectAnswer() + "'. Review standard documentation for this topic.");
+            qr.put("difficulty", q.getDifficulty());
+            qr.put("topic", q.getTopic());
+            qr.put("marks", q.getMarks());
+            qr.put("negativeMarks", q.getNegativeMarks());
+            qr.put("timeTaken", tr.getTimeTaken());
+
+            questionReviews.add(qr);
+        }
+
+        int totalQuestions = questionReviews.size();
+        if (totalQuestions == 0 && attempt.getTotalMarks() != null) {
+            totalQuestions = attempt.getTotalMarks();
+        }
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalQuestions", totalQuestions);
+        summary.put("correctCount", correctCount);
+        summary.put("incorrectCount", incorrectCount);
+        summary.put("skippedCount", skippedCount);
+        summary.put("totalScore", attempt.getTotalScore());
+        summary.put("totalMarks", attempt.getTotalMarks());
+        summary.put("percentageScore", attempt.getPercentageScore());
+        summary.put("status", attempt.getStatus());
+        summary.put("startedAt", attempt.getStartedAt());
+        summary.put("completedAt", attempt.getCompletedAt());
+        summary.put("categoryName", categoryName);
+        summary.put("testCategoryId", attempt.getTestCategoryId());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("attempt", attempt);
+        result.put("summary", summary);
+        result.put("questions", questionReviews);
+
+        return result;
     }
 
     @GetMapping("/attempts")

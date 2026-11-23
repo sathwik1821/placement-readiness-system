@@ -19,6 +19,10 @@ public class Question {
     private String options; // JSON string of options
 
     private String correctAnswer;
+
+    @Column(columnDefinition = "TEXT")
+    private String explanation;
+
     private String difficulty = "MEDIUM";
     private String topic = "";
     private Integer marks = 1;
@@ -36,6 +40,8 @@ public class Question {
     public void setOptions(String options) { this.options = options; }
     public String getCorrectAnswer() { return correctAnswer; }
     public void setCorrectAnswer(String correctAnswer) { this.correctAnswer = correctAnswer; }
+    public String getExplanation() { return explanation; }
+    public void setExplanation(String explanation) { this.explanation = explanation; }
     public String getDifficulty() { return difficulty; }
     public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
     public String getTopic() { return topic; }

@@ -197,16 +197,25 @@ export default function Tests() {
                     </div>
 
                     {latest ? (
-                      <span
-                        className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${latest.percentageScore >= 70
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : latest.percentageScore >= 50
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                          }`}
-                      >
-                        Score: {latest.percentageScore}%
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span
+                          className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${latest.percentageScore >= 70
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : latest.percentageScore >= 50
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-rose-100 text-rose-800'
+                            }`}
+                        >
+                          Score: {latest.percentageScore}%
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/student/tests/${latest.id}`)}
+                          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          View Analysis →
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                         Unattempted
@@ -288,16 +297,25 @@ export default function Tests() {
                     </div>
 
                     {latest ? (
-                      <span
-                        className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${latest.percentageScore >= 70
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : latest.percentageScore >= 50
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                          }`}
-                      >
-                        Score: {latest.percentageScore}%
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span
+                          className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${latest.percentageScore >= 70
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : latest.percentageScore >= 50
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-rose-100 text-rose-800'
+                            }`}
+                        >
+                          Score: {latest.percentageScore}%
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/student/tests/${latest.id}`)}
+                          className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          View Analysis →
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                         Unattempted
