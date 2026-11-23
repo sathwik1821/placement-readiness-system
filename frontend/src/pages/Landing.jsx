@@ -150,11 +150,11 @@ export default function Landing() {
               Sign In
             </Link>
             <button
-              onClick={() => handleQuickLogin('arjun@student.edu', 'Student@123', 'STUDENT')}
+              onClick={() => handleQuickLogin('s210018@rguktsklm.ac.in', 'Student@123', 'STUDENT')}
               disabled={quickLoginLoading}
               className="btn-primary bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
             >
-              <span>{quickLoginLoading ? 'Entering...' : 'Demo Student'}</span>
+              <span>{quickLoginLoading ? 'Entering...' : 'RGUKT Student'}</span>
               <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           </div>
@@ -175,11 +175,11 @@ export default function Landing() {
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <button
-              onClick={() => handleQuickLogin('arjun@student.edu', 'Student@123', 'STUDENT')}
+              onClick={() => handleQuickLogin('s210018@rguktsklm.ac.in', 'Student@123', 'STUDENT')}
               className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition-all"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Launch Student Workspace</span>
+              <span>Launch RGUKT Student Portal</span>
             </button>
 
             <button
@@ -663,7 +663,7 @@ export default function Landing() {
                     </li>
                   </ul>
                   <button
-                    onClick={() => handleQuickLogin('arjun@student.edu', 'Student@123', 'STUDENT')}
+                    onClick={() => handleQuickLogin('s210018@rguktsklm.ac.in', 'Student@123', 'STUDENT')}
                     className="mt-6 btn-primary bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl"
                   >
                     Launch Student Portal Demo
@@ -672,7 +672,7 @@ export default function Landing() {
                 <div className="p-6 md:border-l border-slate-800 text-xs space-y-3 font-mono">
                   <div className="flex justify-between text-slate-400 pb-2 border-b border-slate-800">
                     <span>Student Profile</span>
-                    <span className="text-blue-400 font-bold">Arjun Sharma • CSE</span>
+                    <span className="text-blue-400 font-bold">Sathwik (S210018) • RGUKT SKLM CSE</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">CGPA:</span>

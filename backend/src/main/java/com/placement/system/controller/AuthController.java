@@ -53,22 +53,49 @@ public class AuthController {
         String role = (String) payload.get("role");
         String name = (String) payload.get("name");
 
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
+        email = email.trim().toLowerCase();
+
+        if ("STUDENT".equalsIgnoreCase(role)) {
+            if (!com.placement.system.util.RguktUtils.isRguktStudentEmail(email)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "error", "Student registration is exclusively restricted to RGUKT institutional candidates. Please use your official RGUKT institutional email (e.g. s210018@rguktsklm.ac.in for 2027 batch, s22... for 2028 batch)."
+                ));
+            }
+        }
+
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "Email already registered in system"));
+                    .body(Map.of("error", "Email already registered in system. Please sign in instead."));
         }
 
         User user = userRepository.save(new User(email, password, role));
 
-        if ("STUDENT".equals(role)) {
+        if ("STUDENT".equalsIgnoreCase(role)) {
+            com.placement.system.util.RguktUtils.RguktStudentInfo info = com.placement.system.util.RguktUtils.parseStudentEmail(email);
             Student student = new Student();
             student.setUserId(user.getId());
-            student.setName(name != null ? name : email.split("@")[0]);
-            student.setDepartment("Computer Science");
+            student.setEmail(email);
+            if (info != null) {
+                student.setRollNumber(info.getRollNumber());
+                student.setCollege(info.getCollege());
+                student.setBatch(info.getBatch());
+                student.setGraduationYear(info.getGraduationYear());
+                student.setSemester(info.getGraduationYear() == 2027 ? 8 : (info.getGraduationYear() == 2028 ? 6 : 8));
+                student.setName(name != null && !name.isBlank() ? name : "Student (" + info.getRollNumber() + ")");
+            } else {
+                student.setName(name != null && !name.isBlank() ? name : email.split("@")[0]);
+            }
+            student.setDepartment("Computer Science & Engineering");
             student = studentRepository.save(student);
 
             CareerGoal goal = new CareerGoal();
             goal.setStudentId(student.getId());
+            goal.setTargetRole("Java Full Stack Developer");
+            goal.setTargetDomain("Distributed Systems");
+            goal.setTargetIndustry("Information Technology");
             careerGoalRepository.save(goal);
         }
 

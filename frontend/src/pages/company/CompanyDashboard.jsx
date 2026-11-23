@@ -332,12 +332,22 @@ export default function CompanyDashboard() {
                     <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3.5 pl-2 font-bold text-slate-900">
                         {app.student?.name || 'Candidate #' + app.studentId?.slice(0, 6)}
-                        <span className="block text-xs font-normal text-slate-500">
-                          {app.student?.user?.email || 'Registered Student'}
-                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {app.student?.rollNumber && (
+                            <span className="text-[11px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                              {app.student.rollNumber}
+                            </span>
+                          )}
+                          <span className="text-xs font-normal text-slate-500 truncate max-w-[170px]">
+                            {app.student?.email || app.student?.user?.email || 'Registered Student'}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3.5 text-slate-700 font-medium">
                         {app.student?.department || 'Engineering'}
+                        <span className="block text-[11px] font-semibold text-slate-400">
+                          {app.student?.graduationYear ? `${app.student.graduationYear} Batch` : '2027 Batch'}
+                        </span>
                       </td>
                       <td className="py-3.5 font-bold font-mono text-slate-900">
                         {app.student?.cgpa ? app.student.cgpa.toFixed(2) : '8.40'}

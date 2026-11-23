@@ -38,6 +38,9 @@ public class CompanyController {
     private StudentRepository studentRepository;
 
     @Autowired
+    private com.placement.system.repository.UserRepository userRepository;
+
+    @Autowired
     private AnalysisReportRepository reportRepository;
 
     @Autowired
@@ -158,6 +161,9 @@ public class CompanyController {
             map.put("appliedAt", a.getAppliedAt());
 
             Student s = studentRepository.findById(a.getStudentId()).orElse(null);
+            if (s != null && (s.getEmail() == null || s.getEmail().isBlank())) {
+                userRepository.findById(s.getUserId()).ifPresent(u -> s.setEmail(u.getEmail()));
+            }
             map.put("student", s);
 
             if (s != null) {

@@ -22,6 +22,9 @@ public class StudentController {
     private StudentRepository studentRepository;
 
     @Autowired
+    private com.placement.system.repository.UserRepository userRepository;
+
+    @Autowired
     private CareerGoalRepository careerGoalRepository;
 
     @Autowired
@@ -37,10 +40,18 @@ public class StudentController {
 
         CareerGoal goal = careerGoalRepository.findByStudentId(student.getId()).orElse(null);
 
+        String userEmail = student.getEmail() != null && !student.getEmail().isBlank()
+                ? student.getEmail()
+                : userRepository.findById(student.getUserId()).map(com.placement.system.model.User::getEmail).orElse("");
+
         Map<String, Object> res = new HashMap<>();
         res.put("id", student.getId());
         res.put("userId", student.getUserId());
         res.put("name", student.getName());
+        res.put("email", userEmail);
+        res.put("rollNumber", student.getRollNumber() != null ? student.getRollNumber() : "");
+        res.put("college", student.getCollege() != null ? student.getCollege() : "RGUKT Srikakulam");
+        res.put("batch", student.getBatch() != null ? student.getBatch() : "2027 Graduating Batch • B.Tech E4 (Final Year)");
         res.put("department", student.getDepartment());
         res.put("semester", student.getSemester());
         res.put("cgpa", student.getCgpa());
@@ -68,6 +79,9 @@ public class StudentController {
         try {
             if (body.containsKey("name")) student.setName((String) body.get("name"));
             if (body.containsKey("department")) student.setDepartment((String) body.get("department"));
+            if (body.containsKey("rollNumber")) student.setRollNumber((String) body.get("rollNumber"));
+            if (body.containsKey("college")) student.setCollege((String) body.get("college"));
+            if (body.containsKey("batch")) student.setBatch((String) body.get("batch"));
             if (body.containsKey("semester")) student.setSemester(((Number) body.get("semester")).intValue());
             if (body.containsKey("cgpa")) student.setCgpa(((Number) body.get("cgpa")).doubleValue());
             if (body.containsKey("graduationYear")) student.setGraduationYear(((Number) body.get("graduationYear")).intValue());

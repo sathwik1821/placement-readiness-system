@@ -6,10 +6,14 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({
     name: '',
+    email: '',
+    rollNumber: '',
+    college: '',
+    batch: '',
     department: '',
     semester: 8,
     cgpa: 0,
-    graduationYear: 2025,
+    graduationYear: 2027,
     backlogs: 0,
     phone: '',
     portfolioLink: '',
@@ -41,10 +45,14 @@ export default function Profile() {
 
         setForm({
           name: data.name || '',
-          department: data.department || '',
+          email: data.email || '',
+          rollNumber: data.rollNumber || 'S210018',
+          college: data.college || 'RGUKT Srikakulam',
+          batch: data.batch || '2027 Graduating Batch • B.Tech E4 (Final Year)',
+          department: data.department || 'Computer Science & Engineering',
           semester: data.semester || 8,
           cgpa: data.cgpa || 0,
-          graduationYear: data.graduationYear || 2025,
+          graduationYear: data.graduationYear || 2027,
           backlogs: data.backlogs || 0,
           phone: data.phone || '',
           portfolioLink: data.portfolioLink || '',
@@ -168,6 +176,31 @@ export default function Profile() {
             <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
               Academic & Contact Metrics
             </h2>
+          </div>
+
+          {/* RGUKT Institutional Verification Badge */}
+          <div className="mb-5 p-4 rounded-xl bg-slate-900 border border-slate-800 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                  {form.college || 'RGUKT Srikakulam'}
+                </span>
+                <span className="text-xs font-mono font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                  ID: {form.rollNumber || 'S210018'}
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-slate-300 mt-1">
+                {form.batch || '2027 Graduating Batch • B.Tech E4 (Final Year)'}
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] text-slate-400 block font-mono">
+                {form.email || 's210018@rguktsklm.ac.in'}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 mt-0.5">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Verified RGUKT Student
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

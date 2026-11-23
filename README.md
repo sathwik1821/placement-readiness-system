@@ -65,13 +65,13 @@ npm run dev
 ```
 
 ### Demo Credentials
-| Role | Email | Password |
-|---|---|---|
-| Student (Arjun) | `arjun@student.edu` | `Student@123` |
-| Student (Priya) | `priya@student.edu` | `Student@123` |
-| Placement Officer | `officer@college.edu` | `Officer@123` |
-| Corporate Recruiter | `hr@techcorp.com` | `Company@123` |
-| System Admin | `admin@system.com` | `Admin@123` |
+| Role | Email | Password | Details |
+|---|---|---|---|
+| RGUKT Student (2027 Final Year Batch) | `s210018@rguktsklm.ac.in` | `Student@123` | ID: S210018, CSE, B.Tech E4 |
+| RGUKT Student (2028 Pre-Final Year Batch) | `s220145@rguktsklm.ac.in` | `Student@123` | ID: S220145, CSE, B.Tech E3 |
+| Placement Officer (TPO) | `officer@college.edu` | `Officer@123` | Full TPO console access |
+| Corporate Recruiter | `hr@techcorp.com` | `Company@123` | Drive publishing & candidate review |
+| System Admin | `admin@system.com` | `Admin@123` | Question bank & user auditing |
 
 ---
 

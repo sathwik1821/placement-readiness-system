@@ -14,10 +14,14 @@ public class Student {
     private String userId;
 
     private String name;
-    private String department;
+    private String email = "";
+    private String rollNumber = "";
+    private String college = "RGUKT Srikakulam";
+    private String batch = "2027 Graduating Batch • B.Tech E4 (Final Year)";
+    private String department = "Computer Science & Engineering";
     private Integer semester = 8;
     private Double cgpa = 0.0;
-    private Integer graduationYear = 2025;
+    private Integer graduationYear = 2027;
     private Integer backlogs = 0;
     private String phone = "";
 
@@ -40,6 +44,14 @@ public class Student {
     public void setUserId(String userId) { this.userId = userId; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getRollNumber() { return rollNumber; }
+    public void setRollNumber(String rollNumber) { this.rollNumber = rollNumber; }
+    public String getCollege() { return college; }
+    public void setCollege(String college) { this.college = college; }
+    public String getBatch() { return batch; }
+    public void setBatch(String batch) { this.batch = batch; }
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }
     public Integer getSemester() { return semester; }

@@ -155,11 +155,23 @@ export default function Applications() {
                         <tr key={app.id} className="hover:bg-gray-50/60 transition-colors">
                           <td className="py-3.5 px-4 font-bold text-gray-900">
                             {student?.name}
-                            <span className="block text-xs font-normal text-gray-400">
-                              {student?.user?.email}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              {student?.rollNumber && (
+                                <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                  {student.rollNumber}
+                                </span>
+                              )}
+                              <span className="text-xs font-normal text-gray-400 truncate max-w-[180px]">
+                                {student?.email || student?.user?.email}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-gray-600">
+                            {student?.department}
+                            <span className="block text-[11px] font-semibold text-slate-500">
+                              {student?.graduationYear ? `${student.graduationYear} Batch` : '2027 Batch'}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-gray-600">{student?.department}</td>
                           <td className="py-3.5 px-4 font-bold text-gray-900">{student?.cgpa}</td>
                           <td className="py-3.5 px-4 text-slate-800 font-semibold">
                             {student?.careerGoal?.targetRole || 'Software'}

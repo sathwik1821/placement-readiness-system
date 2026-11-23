@@ -23,10 +23,10 @@ echo Backend API Endpoint: http://localhost:5000/api
 echo H2 Database Console:  http://localhost:5000/h2-console
 echo.
 echo Login Credentials (Default Password: <Role>@123):
-echo   - Student:   arjun@student.edu  (Password: Student@123)
-echo   - Student:   priya@student.edu  (Password: Student@123)
-echo   - Officer:   officer@college.edu (Password: Officer@123)
-echo   - Recruiter: hr@techcorp.com    (Password: Company@123)
-echo   - Admin:     admin@system.com   (Password: Admin@123)
+echo   - Student (2027 Batch): s210018@rguktsklm.ac.in  (Password: Student@123)
+echo   - Student (2028 Batch): s220145@rguktsklm.ac.in  (Password: Student@123)
+echo   - Officer:              officer@college.edu       (Password: Officer@123)
+echo   - Recruiter:            hr@techcorp.com           (Password: Company@123)
+echo   - Admin:                admin@system.com          (Password: Admin@123)
 echo ======================================================================
 pause

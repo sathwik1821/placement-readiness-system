@@ -143,7 +143,12 @@ public class OfficerController {
     public ResponseEntity<?> getDriveApplications(@PathVariable String id) {
         List<PlacementApplication> apps = applicationRepository.findByDriveIdOrderByAppliedAtDesc(id);
         for (PlacementApplication a : apps) {
-            studentRepository.findById(a.getStudentId()).ifPresent(s -> a.setStudent(s));
+            studentRepository.findById(a.getStudentId()).ifPresent(s -> {
+                if (s.getEmail() == null || s.getEmail().isBlank()) {
+                    userRepository.findById(s.getUserId()).ifPresent(u -> s.setEmail(u.getEmail()));
+                }
+                a.setStudent(s);
+            });
         }
         return ResponseEntity.ok(apps);
     }

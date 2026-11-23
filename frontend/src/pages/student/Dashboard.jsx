@@ -146,14 +146,24 @@ export default function StudentDashboard() {
       {/* Top Banner Greeting */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-semibold mb-3">
-            Academic Year 2024–2025 • Final-Year Cohort
-          </span>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-semibold">
+              {profile?.college || 'RGUKT Srikakulam'}
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-semibold">
+              {profile?.batch || `${profile?.graduationYear || 2027} Graduating Batch • B.Tech E4`}
+            </span>
+            {profile?.rollNumber && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700 text-xs font-mono font-bold">
+                ID: {profile.rollNumber}
+              </span>
+            )}
+          </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight mt-1">
             Welcome, {profile?.name || 'Candidate'}!
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl leading-relaxed">
-            Department of {profile?.department} • Academic CGPA: <strong className="text-white font-bold">{profile?.cgpa}</strong>
+            Department of {profile?.department || 'Computer Science & Engineering'} • Academic CGPA: <strong className="text-white font-bold">{profile?.cgpa}</strong>
           </p>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-xs text-slate-400">Active Evaluation Track:</span>

@@ -67,51 +67,103 @@ public class DatabaseSeeder {
                 company = companyRepository.findAll().stream().findFirst().orElse(null);
             }
 
-            // 4. Students
+            // 4. Students (RGUKT Srikakulam Institutional Cohort)
+            // Auto-migrate legacy demo student accounts if present
+            userRepository.findByEmail("arjun@student.edu").ifPresent(oldUser -> {
+                oldUser.setEmail("s210018@rguktsklm.ac.in");
+                userRepository.save(oldUser);
+                studentRepository.findByUserId(oldUser.getId()).ifPresent(s -> {
+                    s.setEmail("s210018@rguktsklm.ac.in");
+                    s.setRollNumber("S210018");
+                    s.setName("Sathwik (S210018)");
+                    s.setCollege("RGUKT Srikakulam");
+                    s.setBatch("2027 Graduating Batch • B.Tech E4 (Final Year)");
+                    s.setGraduationYear(2027);
+                    s.setDepartment("Computer Science & Engineering");
+                    studentRepository.save(s);
+                });
+            });
+
+            userRepository.findByEmail("priya@student.edu").ifPresent(oldUser -> {
+                oldUser.setEmail("s220145@rguktsklm.ac.in");
+                userRepository.save(oldUser);
+                studentRepository.findByUserId(oldUser.getId()).ifPresent(s -> {
+                    s.setEmail("s220145@rguktsklm.ac.in");
+                    s.setRollNumber("S220145");
+                    s.setName("Priya Patel (S220145)");
+                    s.setCollege("RGUKT Srikakulam");
+                    s.setBatch("2028 Graduating Batch • B.Tech E3 (Pre-Final Year)");
+                    s.setGraduationYear(2028);
+                    s.setDepartment("Computer Science & Engineering");
+                    studentRepository.save(s);
+                });
+            });
+
             Student arjun = null;
-            if (!userRepository.existsByEmail("arjun@student.edu")) {
-                User arjunUser = userRepository.save(new User("arjun@student.edu", "Student@123", "STUDENT"));
+            if (!userRepository.existsByEmail("s210018@rguktsklm.ac.in")) {
+                User sathwikUser = userRepository.save(new User("s210018@rguktsklm.ac.in", "Student@123", "STUDENT"));
                 arjun = new Student();
-                arjun.setUserId(arjunUser.getId());
-                arjun.setName("Arjun Sharma");
-                arjun.setDepartment("Computer Science");
+                arjun.setUserId(sathwikUser.getId());
+                arjun.setEmail("s210018@rguktsklm.ac.in");
+                arjun.setRollNumber("S210018");
+                arjun.setName("Sathwik (S210018)");
+                arjun.setCollege("RGUKT Srikakulam");
+                arjun.setBatch("2027 Graduating Batch • B.Tech E4 (Final Year)");
+                arjun.setDepartment("Computer Science & Engineering");
                 arjun.setSemester(8);
-                arjun.setCgpa(8.45);
-                arjun.setGraduationYear(2025);
+                arjun.setCgpa(8.85);
+                arjun.setGraduationYear(2027);
                 arjun.setBacklogs(0);
                 arjun.setPhone("+91 91234 56780");
-                arjun.setSkills(mapper.writeValueAsString(List.of("Python", "Data Structures", "React", "SQL", "FastAPI", "Docker")));
-                arjun.setInterests(mapper.writeValueAsString(List.of("Full-Stack Development", "AI/ML Engineering", "Distributed Systems")));
+                arjun.setSkills(mapper.writeValueAsString(List.of("Java", "Spring Boot", "React", "PostgreSQL", "Data Structures", "Docker")));
+                arjun.setInterests(mapper.writeValueAsString(List.of("Java Full Stack Developer", "Cloud Systems")));
                 arjun = studentRepository.save(arjun);
 
                 CareerGoal goal = new CareerGoal();
                 goal.setStudentId(arjun.getId());
-                goal.setTargetRole("Software Developer");
+                goal.setTargetRole("Java Full Stack Developer");
                 goal.setTargetDomain("Cloud & Systems");
                 goal.setTargetIndustry("Technology");
                 careerGoalRepository.save(goal);
             } else {
-                arjun = studentRepository.findAll().stream().findFirst().orElse(null);
+                User u = userRepository.findByEmail("s210018@rguktsklm.ac.in").orElse(null);
+                if (u != null) {
+                    arjun = studentRepository.findByUserId(u.getId()).orElse(null);
+                    if (arjun != null && (arjun.getRollNumber() == null || arjun.getRollNumber().isBlank())) {
+                        arjun.setEmail("s210018@rguktsklm.ac.in");
+                        arjun.setRollNumber("S210018");
+                        arjun.setName("Sathwik (S210018)");
+                        arjun.setCollege("RGUKT Srikakulam");
+                        arjun.setBatch("2027 Graduating Batch • B.Tech E4 (Final Year)");
+                        arjun.setGraduationYear(2027);
+                        arjun.setDepartment("Computer Science & Engineering");
+                        arjun = studentRepository.save(arjun);
+                    }
+                }
             }
 
-            if (!userRepository.existsByEmail("priya@student.edu")) {
-                User priyaUser = userRepository.save(new User("priya@student.edu", "Student@123", "STUDENT"));
+            if (!userRepository.existsByEmail("s220145@rguktsklm.ac.in")) {
+                User priyaUser = userRepository.save(new User("s220145@rguktsklm.ac.in", "Student@123", "STUDENT"));
                 Student priya = new Student();
                 priya.setUserId(priyaUser.getId());
-                priya.setName("Priya Patel");
-                priya.setDepartment("Information Technology");
-                priya.setSemester(8);
-                priya.setCgpa(7.90);
-                priya.setGraduationYear(2025);
+                priya.setEmail("s220145@rguktsklm.ac.in");
+                priya.setRollNumber("S220145");
+                priya.setName("Priya Patel (S220145)");
+                priya.setCollege("RGUKT Srikakulam");
+                priya.setBatch("2028 Graduating Batch • B.Tech E3 (Pre-Final Year)");
+                priya.setDepartment("Computer Science & Engineering");
+                priya.setSemester(6);
+                priya.setCgpa(8.65);
+                priya.setGraduationYear(2028);
                 priya.setBacklogs(0);
                 priya.setPhone("+91 91234 56781");
-                priya.setSkills(mapper.writeValueAsString(List.of("JavaScript", "Node.js", "Express", "MongoDB", "TailwindCSS")));
-                priya.setInterests(mapper.writeValueAsString(List.of("Full Stack Web", "Cloud Infrastructure")));
+                priya.setSkills(mapper.writeValueAsString(List.of("JavaScript", "Node.js", "Express", "MongoDB", "React", "TailwindCSS")));
+                priya.setInterests(mapper.writeValueAsString(List.of("MERN Full Stack Developer", "Web Applications")));
                 priya = studentRepository.save(priya);
 
                 CareerGoal goal = new CareerGoal();
                 goal.setStudentId(priya.getId());
-                goal.setTargetRole("Full Stack Developer");
+                goal.setTargetRole("MERN Full Stack Developer");
                 goal.setTargetDomain("Web Applications");
                 goal.setTargetIndustry("SaaS Platforms");
                 careerGoalRepository.save(goal);

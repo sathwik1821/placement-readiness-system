@@ -80,9 +80,17 @@ public class PlacementController {
                     // Support both "departments" and "allowedDepartments"
                     List<String> allowedDepts = extractDepartments(crit);
                     if (allowedDepts != null && !allowedDepts.isEmpty() && student.getDepartment() != null) {
-                        boolean deptMatch = allowedDepts.stream()
-                                .anyMatch(dept -> dept.trim().equalsIgnoreCase(student.getDepartment().trim()));
+                        String sDept = student.getDepartment().trim().toLowerCase();
+                        boolean deptMatch = allowedDepts.stream().anyMatch(dept -> {
+                            String targetDept = dept.trim().toLowerCase();
+                            return targetDept.equalsIgnoreCase(sDept) || sDept.contains(targetDept) || targetDept.contains(sDept);
+                        });
                         if (!deptMatch) isEligible = false;
+                    }
+
+                    if (crit.containsKey("graduationYear") && student.getGraduationYear() != null) {
+                        int reqYear = ((Number) crit.get("graduationYear")).intValue();
+                        if (!student.getGraduationYear().equals(reqYear)) isEligible = false;
                     }
                 }
             } catch (Exception e) {
@@ -145,11 +153,22 @@ public class PlacementController {
 
                 List<String> allowedDepts = extractDepartments(crit);
                 if (allowedDepts != null && !allowedDepts.isEmpty() && student.getDepartment() != null) {
-                    boolean deptMatch = allowedDepts.stream()
-                        .anyMatch(d -> d.trim().equalsIgnoreCase(student.getDepartment().trim()));
+                    String sDept = student.getDepartment().trim().toLowerCase();
+                    boolean deptMatch = allowedDepts.stream().anyMatch(dept -> {
+                        String targetDept = dept.trim().toLowerCase();
+                        return targetDept.equalsIgnoreCase(sDept) || sDept.contains(targetDept) || targetDept.contains(sDept);
+                    });
                     if (!deptMatch) {
                         return ResponseEntity.status(403).body(Map.of("error",
                             "Your department (" + student.getDepartment() + ") is not eligible for this drive"));
+                    }
+                }
+
+                if (crit.containsKey("graduationYear") && student.getGraduationYear() != null) {
+                    int reqYear = ((Number) crit.get("graduationYear")).intValue();
+                    if (!student.getGraduationYear().equals(reqYear)) {
+                        return ResponseEntity.status(403).body(Map.of("error",
+                            "This drive is restricted to the " + reqYear + " graduating batch. Your batch: " + student.getGraduationYear()));
                     }
                 }
             }

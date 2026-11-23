@@ -13,15 +13,22 @@ import {
   Mail,
   User,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  UserPlus,
+  AlertCircle,
+  School
 } from 'lucide-react';
 
 export default function Login() {
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeQuickRole, setActiveQuickRole] = useState(null);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
@@ -32,17 +39,79 @@ export default function Login() {
     ADMIN: '/admin'
   };
 
+  // Helper to parse RGUKT student ID & graduating batch in real time
+  const parseRguktEmail = (val) => {
+    if (!val) return null;
+    const match = val.trim().match(/^[sS](\d{2})(\d{4,6})@((?:[a-zA-Z0-9-]+\.)?rgukt(?:[a-zA-Z0-9-]*)?\.ac\.in)$/i);
+    if (!match) return null;
+    const yearShort = parseInt(match[1], 10);
+    const admissionYear = 2000 + yearShort;
+    const graduationYear = admissionYear + 6;
+    const rollNumber = `S${match[1]}${match[2]}`.toUpperCase();
+    const campus = match[3].toLowerCase().includes('sklm') ? 'RGUKT Srikakulam' : 'RGUKT';
+    const yearPhase = graduationYear === 2027
+      ? 'B.Tech E4 (Final Year)'
+      : graduationYear === 2028
+      ? 'B.Tech E3 (Pre-Final Year)'
+      : `B.Tech Class of ${graduationYear}`;
+    return { rollNumber, admissionYear, graduationYear, campus, yearPhase };
+  };
+
+  const detectedStudentInfo = parseRguktEmail(email);
+
   const handleLogin = async (e) => {
     e?.preventDefault();
     setError('');
+    setSuccessMsg('');
     setLoading(true);
 
     try {
-      const res = await api.post('/auth/login', { email, password });
-      login(res.data.token, res.data.role, { email });
+      const res = await api.post('/auth/login', { email: email.trim(), password });
+      login(res.data.token, res.data.role, { email: email.trim() });
       navigate(redirectRoutes[res.data.role] || '/student');
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid institutional credentials. Please check your email and password.');
+      setError(err.response?.data?.error || 'Invalid credentials. Please verify your email and password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (!detectedStudentInfo) {
+      setError('Student registration is strictly restricted to RGUKT institutional email addresses (e.g., s210018@rguktsklm.ac.in).');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must contain at least 6 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/register', {
+        email: email.trim(),
+        password,
+        name: name.trim() || `Student (${detectedStudentInfo.rollNumber})`,
+        role: 'STUDENT'
+      });
+
+      setSuccessMsg('RGUKT Student verification successful! Redirecting to workspace...');
+      login(res.data.token, res.data.role, { email: email.trim() });
+      setTimeout(() => {
+        navigate('/student');
+      }, 800);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Registration failed. The email may already be in use.');
     } finally {
       setLoading(false);
     }
@@ -59,7 +128,6 @@ export default function Login() {
       navigate(redirectRoutes[res.data.role] || '/student');
     } catch (err) {
       console.warn('API authentication error, applying fallback session:', err);
-      // Fallback in case of network latency
       const fallbackToken = 'demo-token-' + Date.now();
       login(fallbackToken, targetRole, { email: targetEmail });
       navigate(redirectRoutes[targetRole] || '/student');
@@ -72,12 +140,12 @@ export default function Login() {
   const quickRoles = [
     {
       role: 'STUDENT',
-      name: 'Arjun Sharma',
-      email: 'arjun@student.edu',
+      name: 'Sathwik (S210018)',
+      email: 's210018@rguktsklm.ac.in',
       password: 'Student@123',
-      label: 'Student Portal',
-      badge: 'CS Senior • Batch 2026',
-      desc: 'Access readiness index, mock interview engine, and placement drives',
+      label: 'RGUKT Student Portal',
+      badge: 'RGUKT SKLM • 2027 Batch (E4)',
+      desc: 'Final-year B.Tech placement candidate (ID: S210018) • Java Full Stack Track',
       icon: GraduationCap,
       colorClass: 'border-blue-500/40 hover:border-blue-400 bg-blue-950/20 hover:bg-blue-900/30 text-blue-400',
       btnClass: 'bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold'
@@ -121,7 +189,7 @@ export default function Login() {
   ];
 
   const secondaryQuickAccounts = [
-    { name: 'Priya Patel (Student - IS Track)', email: 'priya@student.edu', password: 'Student@123', role: 'STUDENT' }
+    { name: 'Priya Patel (S220145 - 2028 Batch • E3)', email: 's220145@rguktsklm.ac.in', password: 'Student@123', role: 'STUDENT' }
   ];
 
   return (
@@ -138,19 +206,26 @@ export default function Login() {
                 Ascend
               </h1>
               <span className="text-xs font-bold text-blue-400 uppercase tracking-widest block mt-1">
-                Institutional Placement Platform
+                RGUKT Institutional Placement Platform
               </span>
             </div>
           </Link>
           <p className="text-sm text-slate-300 max-w-lg mx-auto">
-            Select a verified role below for direct evaluation access, or authenticate with institutional credentials.
+            Select a verified role below for direct evaluation access, or authenticate with your RGUKT institutional credentials.
           </p>
         </div>
 
         {error && (
           <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center gap-3 max-w-xl mx-auto">
-            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-3 max-w-xl mx-auto">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{successMsg}</span>
           </div>
         )}
 
@@ -162,7 +237,7 @@ export default function Login() {
               <span>Direct 1-Click Role Access</span>
             </h2>
             <span className="text-xs font-medium text-slate-400">
-              Instant authentication without typing credentials
+              Instant evaluation access with pre-configured accounts
             </span>
           </div>
 
@@ -202,7 +277,7 @@ export default function Login() {
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-slate-800/80">
-                    <span className="text-xs font-mono text-slate-400 truncate max-w-[170px]">
+                    <span className="text-xs font-mono text-slate-400 truncate max-w-[200px]" title={item.email}>
                       {item.email}
                     </span>
 
@@ -247,68 +322,209 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Section 2: Standard Manual Sign In Form */}
+        {/* Section 2: Sign In / Register Tabs & Form */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl max-w-xl mx-auto">
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
-            <Lock className="w-4 h-4 text-blue-400" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Or Sign In With Custom Institutional Credentials
-            </h2>
+          {/* Tabs */}
+          <div className="flex items-center p-1 bg-slate-950 border border-slate-800 rounded-xl mb-6">
+            <button
+              type="button"
+              onClick={() => { setAuthMode('signin'); setError(''); setSuccessMsg(''); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
+                authMode === 'signin'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Institutional Sign In</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAuthMode('register'); setError(''); setSuccessMsg(''); }}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
+                authMode === 'register'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>RGUKT Student Registration</span>
+            </button>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                Institutional Email ID
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. arjun@student.edu"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+          {authMode === 'signin' ? (
+            /* Sign In Form */
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Institutional Email ID
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. s210018@rguktsklm.ac.in"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  RGUKT Students: Use your student ID mail (<span className="text-blue-400 font-mono">s21...</span> for 2027 batch, <span className="text-blue-400 font-mono">s22...</span> for 2028 batch)
+                </p>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
-                Account Password
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Account Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              {loading && !activeQuickRole ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Authenticating Session...</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-sm">Sign In to Dashboard</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {loading && !activeQuickRole ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Authenticating Session...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm">Sign In to Dashboard</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* Student Self-Registration Form */
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl text-xs text-blue-200 flex items-start gap-2.5">
+                <School className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-bold text-white block mb-0.5">RGUKT Student Gate</strong>
+                  Student registration is verified against RGUKT institutional identity. Your graduating batch and university ID are calculated automatically.
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Candidate Full Name
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Sathwik V"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Official RGUKT Student Email ID
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. s210018@rguktsklm.ac.in"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                </div>
+
+                {/* Real-time batch detector chip */}
+                {detectedStudentInfo ? (
+                  <div className="mt-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>
+                      <strong>Verified:</strong> {detectedStudentInfo.campus} • Roll No: <code className="bg-emerald-950 px-1 py-0.5 rounded font-mono font-bold text-emerald-200">{detectedStudentInfo.rollNumber}</code> • {detectedStudentInfo.graduationYear} Graduating Batch ({detectedStudentInfo.yearPhase})
+                    </span>
+                  </div>
+                ) : email.length > 5 ? (
+                  <div className="mt-2 text-[11px] text-amber-400 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Must be in format: <code className="bg-slate-900 px-1 rounded text-amber-300">s21XXXX@rguktsklm.ac.in</code></span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    Create Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Min. 6 chars"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat password"
+                      className="w-full pl-10 pr-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !detectedStudentInfo}
+                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Creating Verified RGUKT Profile...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm">Register & Enter Student Workspace</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
         </div>
 
         {/* Footer info */}
