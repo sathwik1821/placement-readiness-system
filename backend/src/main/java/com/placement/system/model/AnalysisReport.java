@@ -15,6 +15,8 @@ public class AnalysisReport {
     @Column(nullable = false)
     private String studentId;
 
+    private String targetRole = "Java Full Stack Developer";
+
     private Double readinessScore = 0.0;
 
     @Column(columnDefinition = "TEXT")
@@ -40,6 +42,8 @@ public class AnalysisReport {
     public void setId(String id) { this.id = id; }
     public String getStudentId() { return studentId; }
     public void setStudentId(String studentId) { this.studentId = studentId; }
+    public String getTargetRole() { return targetRole; }
+    public void setTargetRole(String targetRole) { this.targetRole = targetRole; }
     public Double getReadinessScore() { return readinessScore; }
     public void setReadinessScore(Double readinessScore) { this.readinessScore = readinessScore; }
     public String getReadinessBreakdown() { return readinessBreakdown; }

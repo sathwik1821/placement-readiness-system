@@ -1,6 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api/axios';
-import { User, Target, Save, CheckCircle2 } from 'lucide-react';
+import {
+  User,
+  Target,
+  Save,
+  CheckCircle2,
+  Sparkles,
+  Coffee,
+  Code2,
+  Cpu,
+  BarChart3,
+  Cloud,
+  GraduationCap,
+  Building2,
+  ArrowRight
+} from 'lucide-react';
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -16,20 +30,61 @@ export default function Profile() {
     graduationYear: 2027,
     backlogs: 0,
     phone: '',
-    portfolioLink: '',
-    skills: '',
-    interests: ''
+    portfolioLink: ''
   });
 
   const [careerGoal, setCareerGoal] = useState({
-    targetRole: 'Software Developer',
-    targetDomain: 'Engineering',
-    targetIndustry: 'Technology'
+    targetRole: 'Java Full Stack Developer',
+    targetDomain: 'Enterprise Distributed Systems',
+    targetIndustry: 'Technology & Product'
   });
 
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const careerTracks = [
+    {
+      role: 'Java Full Stack Developer',
+      shortName: 'Java Full Stack',
+      icon: Coffee,
+      stack: 'Spring Boot • React • SQL • DSA',
+      focus: 'Enterprise microservices, Spring Data JPA, and modern React web applications',
+      badgeClass: 'text-amber-500 bg-amber-50 border-amber-200'
+    },
+    {
+      role: 'MERN Full Stack Developer',
+      shortName: 'MERN Stack',
+      icon: Code2,
+      stack: 'React • Node.js • Express • MongoDB',
+      focus: 'Modern JavaScript web apps, asynchronous REST APIs, and reactive frontend architectures',
+      badgeClass: 'text-blue-500 bg-blue-50 border-blue-200'
+    },
+    {
+      role: 'AI / ML Engineer',
+      shortName: 'AI / ML Track',
+      icon: Cpu,
+      stack: 'Python • Machine Learning • Neural Networks',
+      focus: 'Supervised/unsupervised models, predictive data pipelines, and algorithmic optimization',
+      badgeClass: 'text-purple-500 bg-purple-50 border-purple-200'
+    },
+    {
+      role: 'Data Analyst',
+      shortName: 'Data Analytics',
+      icon: BarChart3,
+      stack: 'Advanced SQL • PowerBI • Pandas • Statistics',
+      focus: 'Business intelligence, analytical querying, ETL data pipelines, and quantitative reporting',
+      badgeClass: 'text-emerald-500 bg-emerald-50 border-emerald-200'
+    },
+    {
+      role: 'Cloud & DevOps Engineer',
+      shortName: 'Cloud & DevOps',
+      icon: Cloud,
+      stack: 'Docker • Kubernetes • Networks • Linux',
+      focus: 'Container orchestration, CI/CD automation, cloud infrastructure, and network protocols',
+      badgeClass: 'text-indigo-500 bg-indigo-50 border-indigo-200'
+    }
+  ];
 
   useEffect(() => {
     async function fetchProfile() {
@@ -37,11 +92,6 @@ export default function Profile() {
         const res = await api.get('/students/profile');
         const data = res.data;
         setProfile(data);
-
-        let parsedSkills = [];
-        try { parsedSkills = JSON.parse(data.skills); } catch { parsedSkills = []; }
-        let parsedInterests = [];
-        try { parsedInterests = JSON.parse(data.interests); } catch { parsedInterests = []; }
 
         setForm({
           name: data.name || '',
@@ -57,16 +107,14 @@ export default function Profile() {
           graduationYear: data.graduationYear || 2027,
           backlogs: data.backlogs || 0,
           phone: data.phone || '',
-          portfolioLink: data.portfolioLink || '',
-          skills: parsedSkills.join(', '),
-          interests: parsedInterests.join(', ')
+          portfolioLink: data.portfolioLink || ''
         });
 
         if (data.careerGoal) {
           setCareerGoal({
-            targetRole: data.careerGoal.targetRole || 'Software Developer',
-            targetDomain: data.careerGoal.targetDomain || 'Engineering',
-            targetIndustry: data.careerGoal.targetIndustry || 'Technology'
+            targetRole: data.careerGoal.targetRole || 'Java Full Stack Developer',
+            targetDomain: data.careerGoal.targetDomain || 'Enterprise Distributed Systems',
+            targetIndustry: data.careerGoal.targetIndustry || 'Technology & Product'
           });
         }
       } catch (err) {
@@ -84,22 +132,15 @@ export default function Profile() {
     setSuccess(false);
 
     try {
-      const skillsArray = form.skills.split(',').map((s) => s.trim()).filter(Boolean);
-      const interestsArray = form.interests.split(',').map((s) => s.trim()).filter(Boolean);
-
       await Promise.all([
-        api.put('/students/profile', {
-          ...form,
-          skills: skillsArray,
-          interests: interestsArray
-        }),
+        api.put('/students/profile', form),
         api.put('/students/career-goal', careerGoal)
       ]);
 
-      // Trigger analysis recalculation
-      await api.post('/analysis/generate').catch(() => { });
+      // Automatically recalculate readiness analysis with updated career role & weights
+      await api.post('/analysis/generate').catch(() => {});
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccess(false), 3500);
     } catch (err) {
       alert('Error updating profile: ' + (err.response?.data?.error || err.message));
     } finally {
@@ -115,68 +156,126 @@ export default function Profile() {
     );
   }
 
+  const selectedTrack = careerTracks.find((t) => t.role === careerGoal.targetRole) || careerTracks[0];
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 font-sans">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-          Student Profile & Career Goal Repository
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+          Student Profile & Career Goal Configuration
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Maintain verified academic credentials, verified skills, and target role ontologies.
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          Configure your target industry role to dynamically calibrate AI readiness benchmarks, lagging competencies, and remedial resources.
         </p>
       </div>
 
       {success && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2.5 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Profile and Career Goal successfully updated! AI models refreshed.</span>
+          <span>Profile and Target Career Track updated successfully! AI placement readiness models recalibrated.</span>
         </div>
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
-        {/* Career Goal Selection */}
-        <div className="card bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
-            <Target className="w-5 h-5 text-blue-600" />
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-              Primary Target Career Goal
-            </h2>
+        {/* Career Goal & Track Selection Section */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100 mb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-600" />
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                  Target Career Track & Industry Goal
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Select the target role you want your placement assessments and detailed analysis to evaluate against.
+              </p>
+            </div>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700">
+              Active: {selectedTrack.shortName}
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label">Target Industry Career Role</label>
-              <select
-                value={careerGoal.targetRole}
-                onChange={(e) => setCareerGoal({ ...careerGoal, targetRole: e.target.value })}
-                className="input font-bold text-slate-900"
-              >
-                <option value="Java Full Stack Developer">Java Full Stack Developer (Spring Boot + React)</option>
-                <option value="MERN Full Stack Developer">MERN Full Stack Developer (React + Node + Mongo)</option>
-                <option value="AI / ML Engineer">AI / ML Engineer (Python + Neural Networks)</option>
-                <option value="Data Analyst">Data Analyst (SQL + PowerBI + Pandas)</option>
-              </select>
-            </div>
+          {/* Interactive Career Track Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-6">
+            {careerTracks.map((trk) => {
+              const Icon = trk.icon;
+              const isSelected = careerGoal.targetRole === trk.role;
 
+              return (
+                <button
+                  key={trk.role}
+                  type="button"
+                  onClick={() => setCareerGoal({ ...careerGoal, targetRole: trk.role })}
+                  className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                    isSelected
+                      ? 'border-blue-600 bg-blue-50/50 shadow-xs ring-2 ring-blue-600/20'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      {isSelected && (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                          Selected
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-xs font-black text-slate-900">{trk.role}</h3>
+                    <p className="text-[11px] font-mono text-blue-700 font-bold mt-1">
+                      {trk.stack}
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2.5 pt-2 border-t border-slate-100 line-clamp-2">
+                    {trk.focus}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
             <div>
-              <label className="label">Specialized Domain Track</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Specialized Domain Track
+              </label>
               <input
                 type="text"
                 value={careerGoal.targetDomain}
                 onChange={(e) => setCareerGoal({ ...careerGoal, targetDomain: e.target.value })}
-                placeholder="e.g. Distributed Enterprise Architectures"
-                className="input"
+                placeholder="e.g. Distributed Enterprise Architectures, Fintech, SaaS"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Target Industry Sector
+              </label>
+              <input
+                type="text"
+                value={careerGoal.targetIndustry}
+                onChange={(e) => setCareerGoal({ ...careerGoal, targetIndustry: e.target.value })}
+                placeholder="e.g. Technology & Product, Financial Services, Healthtech"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
           </div>
         </div>
 
         {/* Academic & Personal Records */}
-        <div className="card">
-          <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
             <User className="w-5 h-5 text-blue-600" />
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-              Academic & Contact Metrics
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+              Academic & Institutional Records
             </h2>
           </div>
 
@@ -200,36 +299,36 @@ export default function Profile() {
                 {form.email || 's210018@rguktsklm.ac.in'}
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 mt-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Verified RGUKT Student
+                <CheckCircle2 className="w-3.5 h-3.5" /> Verified Institutional Student
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="label">Full Candidate Name</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Full Candidate Name</label>
               <input
                 type="text"
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="input"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="label">Department / Branch</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Department / Branch</label>
               <input
                 type="text"
                 required
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
-                className="input"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="label">Cumulative Grade Point Average (CGPA / 10)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Cumulative Grade Point Average (CGPA / 10)</label>
               <input
                 type="number"
                 step="0.01"
@@ -238,103 +337,72 @@ export default function Profile() {
                 required
                 value={form.cgpa}
                 onChange={(e) => setForm({ ...form, cgpa: parseFloat(e.target.value) || 0 })}
-                className="input font-bold"
+                className="w-full text-xs font-bold font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="label">Active Backlogs Count</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Active Backlogs Count</label>
               <input
                 type="number"
                 min="0"
                 required
                 value={form.backlogs}
                 onChange={(e) => setForm({ ...form, backlogs: parseInt(e.target.value, 10) || 0 })}
-                className="input"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="label">Current Academic Semester</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Current Academic Semester</label>
               <input
                 type="number"
                 min="1"
                 max="8"
                 value={form.semester}
                 onChange={(e) => setForm({ ...form, semester: parseInt(e.target.value, 10) || 8 })}
-                className="input"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="label">Graduation Year</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Graduation Year</label>
               <input
                 type="number"
                 value={form.graduationYear}
                 onChange={(e) => setForm({ ...form, graduationYear: parseInt(e.target.value, 10) || 2027 })}
-                className="input"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="label">Year of Study (Institutional Phase)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Year of Study (Institutional Phase)</label>
               <input
                 type="text"
                 readOnly
                 value={form.yearOfStudy || '4th Year (E4)'}
-                className="input bg-gray-50 text-gray-700 font-bold cursor-not-allowed"
+                className="w-full text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="label">Contact Phone</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Contact Phone</label>
               <input
                 type="text"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="input"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
 
-            <div>
-              <label className="label">Portfolio or GitHub URL</label>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Portfolio or GitHub URL</label>
               <input
                 type="url"
                 value={form.portfolioLink}
                 onChange={(e) => setForm({ ...form, portfolioLink: e.target.value })}
-                placeholder="https://github.com/..."
-                className="input"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Technical Skills & Interests */}
-        <div className="card">
-          <div className="space-y-4">
-            <div>
-              <label className="label">
-                Verified Technical Skills <span className="text-gray-400 font-normal">(Comma-delimited)</span>
-              </label>
-              <input
-                type="text"
-                value={form.skills}
-                onChange={(e) => setForm({ ...form, skills: e.target.value })}
-                placeholder="e.g. Python, React, SQL, Docker, C++"
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="label">
-                Professional Interests <span className="text-gray-400 font-normal">(Comma-delimited)</span>
-              </label>
-              <input
-                type="text"
-                value={form.interests}
-                onChange={(e) => setForm({ ...form, interests: e.target.value })}
-                placeholder="e.g. Microservices, AI/ML Engineering, Cloud Security"
-                className="input"
+                placeholder="https://github.com/your-username"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               />
             </div>
           </div>
@@ -344,10 +412,10 @@ export default function Profile() {
           <button
             type="submit"
             disabled={saving}
-            className="btn-primary bg-blue-600 hover:bg-blue-500 py-3 px-6 text-xs sm:text-sm font-bold flex items-center gap-2 rounded-xl shadow-sm transition-colors"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 text-xs sm:text-sm flex items-center gap-2 rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'Persisting Changes...' : 'Save & Sync AI Models'}</span>
+            <span>{saving ? 'Saving & Calibrating Models...' : 'Save Profile & Recalibrate AI'}</span>
           </button>
         </div>
       </form>
