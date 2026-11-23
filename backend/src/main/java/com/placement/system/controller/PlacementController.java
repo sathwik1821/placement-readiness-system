@@ -2,12 +2,15 @@ package com.placement.system.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.placement.system.model.Notification;
 import com.placement.system.model.PlacementApplication;
 import com.placement.system.model.PlacementDrive;
 import com.placement.system.model.Student;
+import com.placement.system.repository.NotificationRepository;
 import com.placement.system.repository.PlacementApplicationRepository;
 import com.placement.system.repository.PlacementDriveRepository;
 import com.placement.system.repository.StudentRepository;
+import com.placement.system.repository.PlacementOfficerRepository;
 import com.placement.system.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,6 +32,12 @@ public class PlacementController {
 
     @Autowired
     private StudentRepository studentRepository;
+
+    @Autowired
+    private PlacementOfficerRepository officerRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -67,6 +76,13 @@ public class PlacementController {
                     if (crit.containsKey("maxBacklogs")) {
                         int maxB = ((Number) crit.get("maxBacklogs")).intValue();
                         if (student.getBacklogs() > maxB) isEligible = false;
+                    }
+                    // Support both "departments" and "allowedDepartments"
+                    List<String> allowedDepts = extractDepartments(crit);
+                    if (allowedDepts != null && !allowedDepts.isEmpty() && student.getDepartment() != null) {
+                        boolean deptMatch = allowedDepts.stream()
+                                .anyMatch(dept -> dept.trim().equalsIgnoreCase(student.getDepartment().trim()));
+                        if (!deptMatch) isEligible = false;
                     }
                 }
             } catch (Exception e) {
@@ -127,26 +143,44 @@ public class PlacementController {
                     }
                 }
 
-                if (crit.containsKey("allowedDepartments")) {
-                    @SuppressWarnings("unchecked")
-                    List<String> allowedDepts = (List<String>) crit.get("allowedDepartments");
-                    if (allowedDepts != null && !allowedDepts.isEmpty()) {
-                        String studentDept = student.getDepartment();
-                        boolean deptMatch = allowedDepts.stream()
-                            .anyMatch(d -> d.equalsIgnoreCase(studentDept));
-                        if (!deptMatch) {
-                            return ResponseEntity.status(403).body(Map.of("error",
-                                "Your department (" + studentDept + ") is not eligible for this drive"));
-                        }
+                List<String> allowedDepts = extractDepartments(crit);
+                if (allowedDepts != null && !allowedDepts.isEmpty() && student.getDepartment() != null) {
+                    boolean deptMatch = allowedDepts.stream()
+                        .anyMatch(d -> d.trim().equalsIgnoreCase(student.getDepartment().trim()));
+                    if (!deptMatch) {
+                        return ResponseEntity.status(403).body(Map.of("error",
+                            "Your department (" + student.getDepartment() + ") is not eligible for this drive"));
                     }
                 }
             }
         } catch (Exception e) {
-            // If criteria parsing fails, allow application (fail-open for malformed criteria)
+            // Fail-open for malformed criteria
         }
 
         PlacementApplication app = new PlacementApplication(student.getId(), id);
         app = applicationRepository.save(app);
+
+        // Notify TPO and student
+        try {
+            notificationRepository.save(new Notification(
+                userId,
+                "Application Submitted",
+                "You successfully applied for " + drive.getTitle() + " (" + drive.getJobRole() + ").",
+                "APPLICATION"
+            ));
+
+            officerRepository.findAll().forEach(off -> {
+                if (off.getUserId() != null) {
+                    notificationRepository.save(new Notification(
+                        off.getUserId(),
+                        "New Applicant Registered",
+                        student.getName() + " (" + student.getDepartment() + ") applied for " + drive.getTitle() + ".",
+                        "APPLICATION"
+                    ));
+                }
+            });
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok(app);
     }
 
@@ -161,5 +195,16 @@ public class PlacementController {
             driveRepository.findById(a.getDriveId()).ifPresent(d -> a.setDrive(d));
         }
         return ResponseEntity.ok(apps);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> extractDepartments(Map<String, Object> crit) {
+        if (crit.containsKey("departments") && crit.get("departments") instanceof List) {
+            return (List<String>) crit.get("departments");
+        }
+        if (crit.containsKey("allowedDepartments") && crit.get("allowedDepartments") instanceof List) {
+            return (List<String>) crit.get("allowedDepartments");
+        }
+        return null;
     }
 }

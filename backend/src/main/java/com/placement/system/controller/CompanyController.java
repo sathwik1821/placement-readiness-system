@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placement.system.model.Company;
 import com.placement.system.model.CompanyFeedbackReport;
+import com.placement.system.model.Notification;
 import com.placement.system.model.PlacementApplication;
 import com.placement.system.model.PlacementDrive;
 import com.placement.system.model.PlacementOfficer;
@@ -44,6 +45,9 @@ public class CompanyController {
 
     @Autowired
     private CompanyFeedbackReportRepository feedbackReportRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -108,8 +112,21 @@ public class CompanyController {
 
             Object critObj = body.get("eligibilityCriteria");
             d.setEligibilityCriteria(critObj instanceof String ? (String) critObj : mapper.writeValueAsString(critObj));
-            d = driveRepository.save(d);
-            return ResponseEntity.ok(d);
+            final PlacementDrive savedDrive = driveRepository.save(d);
+
+            // Notify TPO
+            officerRepository.findAll().forEach(off -> {
+                if (off.getUserId() != null) {
+                    notificationRepository.save(new Notification(
+                        off.getUserId(),
+                        "New Campus Drive Requisition",
+                        (company != null ? company.getCompanyName() : "A recruiter") + " submitted requisition: " + savedDrive.getTitle(),
+                        "DRIVE"
+                    ));
+                }
+            });
+
+            return ResponseEntity.ok(savedDrive);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -120,7 +137,6 @@ public class CompanyController {
             @PathVariable String id,
             @RequestHeader("Authorization") String authHeader) {
 
-        // Cross-tenant protection: verify drive belongs to calling company
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
         Company company = companyRepository.findByUserId(userId).orElse(null);
         PlacementDrive drive = driveRepository.findById(id).orElse(null);
@@ -165,7 +181,6 @@ public class CompanyController {
             @RequestHeader("Authorization") String authHeader,
             @RequestBody Map<String, String> body) {
 
-        // Cross-tenant protection: verify drive belongs to calling company
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
         Company company = companyRepository.findByUserId(userId).orElse(null);
         PlacementDrive drive = driveRepository.findById(driveId).orElse(null);
@@ -179,9 +194,25 @@ public class CompanyController {
         PlacementApplication app = applicationRepository.findById(appId).orElse(null);
         if (app == null) return ResponseEntity.notFound().build();
 
-        app.setStatus(body.get("status"));
+        String newStatus = body.get("status");
+        app.setStatus(newStatus);
         app.setUpdatedAt(LocalDateTime.now());
         app = applicationRepository.save(app);
+
+        // Notify student of status update
+        try {
+            studentRepository.findById(app.getStudentId()).ifPresent(st -> {
+                if (st.getUserId() != null) {
+                    notificationRepository.save(new Notification(
+                        st.getUserId(),
+                        "Application Status Update: " + newStatus,
+                        "Your application status for " + drive.getTitle() + " has been updated to " + newStatus + ".",
+                        "SHORTLIST"
+                    ));
+                }
+            });
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok(app);
     }
 

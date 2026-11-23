@@ -2,14 +2,17 @@ package com.placement.system.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placement.system.model.CompanyFeedbackReport;
+import com.placement.system.model.Notification;
 import com.placement.system.model.PlacementApplication;
 import com.placement.system.model.PlacementDrive;
 import com.placement.system.model.PlacementOfficer;
 import com.placement.system.repository.CompanyFeedbackReportRepository;
+import com.placement.system.repository.NotificationRepository;
 import com.placement.system.repository.PlacementApplicationRepository;
 import com.placement.system.repository.PlacementDriveRepository;
 import com.placement.system.repository.PlacementOfficerRepository;
 import com.placement.system.repository.StudentRepository;
+import com.placement.system.repository.UserRepository;
 import com.placement.system.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +38,13 @@ public class OfficerController {
     private StudentRepository studentRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private CompanyFeedbackReportRepository feedbackReportRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @Autowired
     private JwtService jwtService;
@@ -82,8 +91,21 @@ public class OfficerController {
 
             Object critObj = body.get("eligibilityCriteria");
             d.setEligibilityCriteria(critObj instanceof String ? (String) critObj : mapper.writeValueAsString(critObj));
-            d = driveRepository.save(d);
-            return ResponseEntity.ok(d);
+            final PlacementDrive savedDrive = driveRepository.save(d);
+
+            // Broadcast notification to all students
+            studentRepository.findAll().forEach(st -> {
+                if (st.getUserId() != null) {
+                    notificationRepository.save(new Notification(
+                        st.getUserId(),
+                        "New Placement Drive Published",
+                        savedDrive.getTitle() + " (" + savedDrive.getJobRole() + ", " + savedDrive.getCtc() + ") is now accepting applications.",
+                        "DRIVE"
+                    ));
+                }
+            });
+
+            return ResponseEntity.ok(savedDrive);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -98,6 +120,21 @@ public class OfficerController {
         if (newStatus != null && !newStatus.isBlank()) {
             drive.setStatus(newStatus.toUpperCase());
             drive = driveRepository.save(drive);
+
+            // If drive is now PUBLISHED, notify students
+            if ("PUBLISHED".equalsIgnoreCase(newStatus)) {
+                PlacementDrive finalDrive = drive;
+                studentRepository.findAll().forEach(st -> {
+                    if (st.getUserId() != null) {
+                        notificationRepository.save(new Notification(
+                            st.getUserId(),
+                            "Drive Approved & Live",
+                            finalDrive.getTitle() + " has been approved by the placement cell and is now open for applications.",
+                            "DRIVE"
+                        ));
+                    }
+                });
+            }
         }
         return ResponseEntity.ok(drive);
     }
@@ -123,9 +160,25 @@ public class OfficerController {
                 "This drive is managed by a recruiter — candidate status changes are restricted to the recruiting company"));
         }
 
-        app.setStatus(body.get("status"));
+        String newStatus = body.get("status");
+        app.setStatus(newStatus);
         app.setUpdatedAt(LocalDateTime.now());
         app = applicationRepository.save(app);
+
+        // Notify student
+        try {
+            studentRepository.findById(app.getStudentId()).ifPresent(st -> {
+                if (st.getUserId() != null) {
+                    notificationRepository.save(new Notification(
+                        st.getUserId(),
+                        "Application Status: " + newStatus,
+                        "Your application status for " + (drive != null ? drive.getTitle() : "campus drive") + " is now " + newStatus + ".",
+                        "SHORTLIST"
+                    ));
+                }
+            });
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok(app);
     }
 

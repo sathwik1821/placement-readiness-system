@@ -42,6 +42,7 @@ export default function MockInterview() {
   // Voice Speech Recognition & TTS States
   const [isListening, setIsListening] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [speechSupported, setSpeechSupported] = useState(false);
   const [webcamEnabled, setWebcamEnabled] = useState(false);
   const [selectedHistorySession, setSelectedHistorySession] = useState(null);
 
@@ -52,17 +53,20 @@ export default function MockInterview() {
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
+      setSpeechSupported(true);
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
-      recognition.interimResults = true;
+      recognition.interimResults = false;
       recognition.lang = 'en-US';
 
       recognition.onresult = (event) => {
-        let transcript = '';
+        let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          finalTranscript += event.results[i][0].transcript + ' ';
         }
-        setAnswerText((prev) => (prev ? prev + ' ' + transcript : transcript));
+        if (finalTranscript.trim()) {
+          setAnswerText((prev) => (prev ? (prev.trim() + ' ' + finalTranscript.trim()) : finalTranscript.trim()));
+        }
       };
 
       recognition.onerror = (event) => {
@@ -470,9 +474,16 @@ export default function MockInterview() {
               {/* Student Answer Input Box */}
               <div className="card bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="label mb-0">
-                    Your Response (Verbal Speech or Typed Text)
-                  </label>
+                  <div>
+                    <label className="label mb-0">
+                      Your Response (Verbal Speech or Typed Text)
+                    </label>
+                    {!speechSupported && (
+                      <span className="text-[11px] text-amber-600 font-semibold block">
+                        Voice optimized for Chrome/Edge; type response below in other browsers
+                      </span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={toggleListening}

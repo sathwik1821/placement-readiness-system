@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import api from '../api/axios';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -12,13 +13,65 @@ import {
   LogOut,
   Building2,
   Users,
-  Settings,
-  HelpCircle
+  Bell,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 
 function AppLayout({ children }) {
   const { role, logout, user } = useAuthStore();
   const navigate = useNavigate();
+
+  // Notification state
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/notifications');
+      setNotifications(res.data.notifications || []);
+      setUnreadCount(res.data.unreadCount || 0);
+    } catch (e) {
+      // Non-blocking
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 20000); // 20s polling
+    return () => clearInterval(interval);
+  }, []);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.put(`/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, readStatus: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (e) {}
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, readStatus: true })));
+      setUnreadCount(0);
+    } catch (e) {}
+  };
 
   const handleLogout = () => {
     logout();
@@ -127,16 +180,87 @@ function AppLayout({ children }) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50/60">
-        <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-8 py-3.5 flex items-center justify-between shadow-xs">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-8 py-3.5 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2.5 bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1 rounded-full">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-wider">
               AI Readiness Engine Active
             </span>
           </div>
+
           <div className="flex items-center gap-4">
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                title="Notifications"
+              >
+                <Bell className="w-5 h-5 stroke-[2]" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900">Notifications</span>
+                      {unreadCount > 0 && (
+                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-bold">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 mt-2">
+                    {notifications.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-slate-400">
+                        No notifications yet. You're all caught up!
+                      </p>
+                    ) : (
+                      notifications.slice(0, 10).map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => !n.readStatus && handleMarkAsRead(n.id)}
+                          className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
+                            n.readStatus ? 'bg-white hover:bg-slate-50' : 'bg-blue-50/60 hover:bg-blue-50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="text-xs font-bold text-slate-900 leading-tight">
+                              {n.title}
+                            </h4>
+                            {!n.readStatus && (
+                              <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0 mt-1" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                            {n.message}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <span className="text-xs font-medium text-slate-600">
-              Active Session: <strong className="text-slate-900 font-bold">{user?.email || 'User'}</strong>
+              Active: <strong className="text-slate-900 font-bold">{user?.email || 'User'}</strong>
             </span>
           </div>
         </header>
@@ -150,4 +274,3 @@ function AppLayout({ children }) {
 }
 
 export default AppLayout;
-
