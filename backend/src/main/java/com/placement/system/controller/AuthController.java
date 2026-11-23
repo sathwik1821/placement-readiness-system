@@ -77,6 +77,73 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("valid", true, "message", "Email ownership successfully verified"));
     }
 
+    @PostMapping("/forgot-password/send-otp")
+    public ResponseEntity<?> sendForgotPasswordOtp(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email address is required"));
+        }
+        email = email.trim().toLowerCase();
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "error", "No registered account found with email: " + email + ". Please check spelling or register first."
+            ));
+        }
+
+        try {
+            Map<String, Object> res = emailService.sendPasswordResetOtp(email);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to dispatch password reset OTP: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String otp = payload.get("otp");
+        String newPassword = payload.get("newPassword");
+        String confirmPassword = payload.get("confirmPassword");
+
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email address is required"));
+        }
+        email = email.trim().toLowerCase();
+
+        if (otp == null || otp.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Verification OTP code is required"));
+        }
+
+        if (newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("error", "New password must contain at least 6 characters"));
+        }
+
+        if (confirmPassword != null && !confirmPassword.equals(newPassword)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Passwords do not match. Please verify both password entries."));
+        }
+
+        boolean isOtpValid = emailService.verifyOtp(email, otp.trim());
+        if (!isOtpValid) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired verification OTP. Please request a new code."));
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User account not found"));
+        }
+
+        user.setPassword(newPassword);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "Password has been successfully reset! Please sign in with your new password."
+        ));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
@@ -96,6 +163,7 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody Map<String, Object> payload) {
         String email = (String) payload.get("email");
         String password = (String) payload.get("password");
+        String confirmPassword = (String) payload.get("confirmPassword");
         String role = (String) payload.get("role");
         String name = (String) payload.get("name");
         String otp = (String) payload.get("otp");
@@ -104,6 +172,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
         }
         email = email.trim().toLowerCase();
+
+        if (password == null || password.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Password must contain at least 6 characters."));
+        }
+
+        if (confirmPassword != null && !confirmPassword.equals(password)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Passwords do not match. Please ensure both password fields are identical."));
+        }
 
         if ("STUDENT".equalsIgnoreCase(role)) {
             if (!com.placement.system.util.RguktUtils.isRguktStudentEmail(email)) {
