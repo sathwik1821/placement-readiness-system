@@ -14,6 +14,8 @@ public class Job {
     private String company;
     private String location;
     private String jobType = "FULL_TIME"; // FULL_TIME, INTERNSHIP, CONTRACT
+    private String workMode = "HYBRID"; // REMOTE, HYBRID, ONSITE
+    private String domain = "Software Engineering";
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -40,6 +42,10 @@ public class Job {
     public void setLocation(String location) { this.location = location; }
     public String getJobType() { return jobType; }
     public void setJobType(String jobType) { this.jobType = jobType; }
+    public String getWorkMode() { return workMode; }
+    public void setWorkMode(String workMode) { this.workMode = workMode; }
+    public String getDomain() { return domain; }
+    public void setDomain(String domain) { this.domain = domain; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public String getRequirements() { return requirements; }
