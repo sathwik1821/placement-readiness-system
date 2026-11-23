@@ -1,880 +1,454 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
-import api from '../api/axios';
 import {
   GraduationCap,
-  TrendingUp,
-  Bot,
-  Building2,
   Users,
+  Building2,
   ShieldCheck,
-  CheckCircle2,
   ArrowRight,
   Sparkles,
-  BarChart3,
-  BookOpen,
-  Play,
-  RotateCcw,
-  Sliders,
-  Award,
-  HelpCircle,
-  Briefcase
+  Code2,
+  Server,
+  Database,
+  Bot,
+  Mail,
+  CheckCircle2,
+  Lock,
+  Cpu,
+  Layers,
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react';
+import PortalSelectionModal from './auth/components/PortalSelectionModal';
+import { PORTAL_OPTIONS } from './auth/components/PortalSelector';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
-  const [quickLoginLoading, setQuickLoginLoading] = useState(false);
+  const [showPortalModal, setShowPortalModal] = useState(false);
 
-  // Playable Element 1: Interactive Readiness Sandbox
-  const [targetRole, setTargetRole] = useState('Java Full Stack Developer');
-  const [calcCgpa, setCalcCgpa] = useState(8.2);
-  const [calcDsa, setCalcDsa] = useState(78);
-  const [calcCore, setCalcCore] = useState(74);
-  const [calcAptitude, setCalcAptitude] = useState(82);
-  const [calcInterview, setCalcInterview] = useState(75);
-
-  // Playable Element 2: Interactive AI Interview Rubric Simulator
-  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(2); // default to Senior answer
-
-  // Active Stakeholder Portal Tab
-  const [activePortalTab, setActivePortalTab] = useState('STUDENT');
-
-  const handleQuickLogin = async (email, password, role) => {
-    setQuickLoginLoading(true);
-    try {
-      const res = await api.post('/auth/login', { email, password });
-      login(res.data.token, res.data.role, { email });
-      const redirectRoutes = {
-        STUDENT: '/student',
-        PLACEMENT_OFFICER: '/officer',
-        COMPANY: '/company',
-        ADMIN: '/admin'
-      };
-      navigate(redirectRoutes[res.data.role] || '/student');
-    } catch (err) {
-      alert('Login error: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setQuickLoginLoading(false);
-    }
-  };
-
-  // Role Benchmark multipliers
-  const roleWeights = {
-    'Java Full Stack Developer': { cgpa: 0.15, dsa: 0.20, core: 0.25, apt: 0.15, interview: 0.25 },
-    'MERN Full Stack Developer': { cgpa: 0.15, dsa: 0.15, core: 0.30, apt: 0.15, interview: 0.25 },
-    'AI / ML Engineer': { cgpa: 0.20, dsa: 0.25, core: 0.25, apt: 0.20, interview: 0.10 },
-    'Data Analyst': { cgpa: 0.20, dsa: 0.15, core: 0.20, apt: 0.25, interview: 0.20 }
-  };
-
-  const currentW = roleWeights[targetRole] || roleWeights['Java Full Stack Developer'];
-
-  const computedSandboxScore = Math.round(
-    ((calcCgpa / 10.0) * 100 * currentW.cgpa) +
-    (calcDsa * currentW.dsa) +
-    (calcCore * currentW.core) +
-    (calcAptitude * currentW.apt) +
-    (calcInterview * currentW.interview)
-  );
-
-  const radius = 62;
-  const circumference = 2 * Math.PI * radius;
-  const dashoffset = circumference - (computedSandboxScore / 100) * circumference;
-
-  // Interactive Playable Mini-Drill Data
-  const sampleAnswers = [
+  const techStack = [
     {
-      title: 'Vague / Naive Strategy',
-      badge: 'HIGH OUTAGE RISK',
-      badgeColor: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
-      text: 'I would restart the Redis cache cluster whenever the flash sale starts, increase server RAM, and ask users to refresh if the query times out.',
-      techScore: 38,
-      commScore: 48,
-      verdict: 'Lacks distributed synchronization. Re-querying without locks causes severe database stampede under concurrent traffic.'
+      category: 'Frontend Architecture',
+      icon: Code2,
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/20',
+      items: [
+        { name: 'React 18 & Vite', desc: 'Modular Single-Page Application (SPA) architecture with fast HMR bundling.' },
+        { name: 'Tailwind CSS 4', desc: 'Utility-first modern responsive styling, dark theme, and fluid typography.' },
+        { name: 'Zustand & Axios', desc: 'Stateless client JWT storage and automated authorization interceptors.' },
+        { name: 'Lucide React', desc: 'Crisp, accessible iconography across all dashboards and student test consoles.' }
+      ]
     },
     {
-      title: 'Intermediate Strategy',
-      badge: 'MODERATE LATENCY',
-      badgeColor: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
-      text: 'I would extend cache TTL by 2 hours and set up an async background worker to re-fetch product stock from the relational database.',
-      techScore: 68,
-      commScore: 76,
-      verdict: 'Reasonable caching intuition, but does not address thundering herd when an unexpected cold-cache miss occurs.'
+      category: 'Backend & Enterprise Security',
+      icon: Server,
+      color: 'text-emerald-400',
+      bgColor: 'bg-emerald-500/10',
+      borderColor: 'border-emerald-500/20',
+      items: [
+        { name: 'Spring Boot 3.3.4 (Java 21/25)', desc: 'Robust enterprise RESTful backend with isolated domain service layers.' },
+        { name: 'Spring Security 6.x & JWT', desc: 'Stateless OncePerRequestFilter, BCrypt password hashing, and server-side RBAC.' },
+        { name: 'Strict DTO Contracts', desc: 'Encapsulated request/response data transfer objects ensuring zero leaking.' },
+        { name: 'Dual-Mode Authentication', desc: 'Instant backward compatibility with automated security upgrades to BCrypt.' }
+      ]
     },
     {
-      title: 'Senior Architectural Strategy',
-      badge: 'TIER-1 ARCHITECTURE',
-      badgeColor: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-      text: 'I would implement distributed mutex locks (e.g., Redlock) on cache misses so only a single thread recalculates the value while others await. Paired with probabilistic early refresh and stale-while-revalidate headers.',
-      techScore: 96,
-      commScore: 93,
-      verdict: 'Outstanding mastery. Successfully protects backend persistence layer from concurrent thundering herd spikes.'
+      category: 'Relational Database & Migrations',
+      icon: Database,
+      color: 'text-purple-400',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/20',
+      items: [
+        { name: 'PostgreSQL Relational DB', desc: 'ACID-compliant storage for student cohorts, test attempts, drives, and logs.' },
+        { name: 'Spring Data JPA & Hibernate', desc: 'Declarative query derivation, entity relationships, and transactional boundaries.' },
+        { name: 'Flyway Schema Migrations', desc: 'Version-controlled database schema scripts (V1__initial_schema.sql) with baselines.' },
+        { name: 'Connection Pooling', desc: 'High-concurrency HikariCP connection pooling for concurrent assessment traffic.' }
+      ]
+    },
+    {
+      category: 'Generative AI & Mock Interviews',
+      icon: Bot,
+      color: 'text-cyan-400',
+      bgColor: 'bg-cyan-500/10',
+      borderColor: 'border-cyan-500/20',
+      items: [
+        { name: 'Google Gemini 1.5 Pro / Flash', desc: 'Dynamic technical interview prompt orchestration with context memory.' },
+        { name: 'Real-Time Adaptive Dialogue', desc: 'Multi-turn candidate conversational evaluation and follow-up questioning.' },
+        { name: 'Objective Rubric Scoring', desc: 'Algorithmic assessment of technical depth, communication, and problem-solving.' },
+        { name: 'Diagnostic Feedback Transcripts', desc: 'Pinpoint strengths, identified deficit areas, and targeted improvement roadmaps.' }
+      ]
+    },
+    {
+      category: 'Centralized Notification Engine',
+      icon: Mail,
+      color: 'text-amber-400',
+      bgColor: 'bg-amber-500/10',
+      borderColor: 'border-amber-500/20',
+      items: [
+        { name: 'JavaMailSender & Async Pool', desc: 'Non-blocking ThreadPoolTaskExecutor for high-throughput transactional emails.' },
+        { name: 'Branded HTML Templates', desc: 'Mobile-responsive email templates for drive alerts, receipts, and daily digests.' },
+        { name: 'Deduplication Guard', desc: 'Unique event hashing to prevent duplicate notifications for repeated operations.' },
+        { name: 'Audit Trail Logging', desc: 'Delivery logging with delivery status (SENT, FAILED, RETRYING) in PostgreSQL.' }
+      ]
+    },
+    {
+      category: 'Placement Drive Governance',
+      icon: Building2,
+      color: 'text-rose-400',
+      bgColor: 'bg-rose-500/10',
+      borderColor: 'border-rose-500/20',
+      items: [
+        { name: 'Public Recruiter Ingestion', desc: 'Recruiters submit opportunities without accounts; unique reference ID generated.' },
+        { name: 'Single-Use Clarification Tokens', desc: 'Cryptographically expiring tokens for secure recruiter response links.' },
+        { name: 'Institutional Cutoffs', desc: 'Automated filtering by student CGPA, backlogs, branch, and graduation year.' },
+        { name: 'TPO Verification Pipeline', desc: 'Admin screening and TPO approval gates before opportunities publish to students.' }
+      ]
     }
   ];
 
-  const currentAnswer = sampleAnswers[selectedAnswerIndex];
-
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans">
-      {/* Top Navigation Bar with Home Redirect */}
-      <nav className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
-          {/* Brand Logo with Home Redirect */}
-          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm ring-1 ring-blue-400">
-              <GraduationCap className="w-6 h-6 stroke-[2.2]" />
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-blue-600 selection:text-white">
+      {/* 4-Portal Selection Modal */}
+      <PortalSelectionModal
+        isOpen={showPortalModal}
+        onClose={() => setShowPortalModal(false)}
+      />
+
+      {/* Navigation Header */}
+      <nav className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+              <GraduationCap className="w-5 h-5" />
             </div>
             <div>
               <span className="text-xl font-black tracking-tight text-white block leading-none">
                 Ascend
               </span>
-              <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mt-0.5 block">
-                Campus Placement Platform
+              <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase block mt-0.5">
+                RGUKT Placement Ecosystem
               </span>
             </div>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-300">
-            <a href="#theme" className="hover:text-blue-400 transition-colors">Theme & Vision</a>
-            <a href="#calculator" className="hover:text-blue-400 transition-colors">Readiness Lab</a>
-            <a href="#simulator" className="hover:text-blue-400 transition-colors">AI Drill Simulator</a>
-            <a href="#portals" className="hover:text-blue-400 transition-colors">Stakeholder Portals</a>
+          <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
+            <a href="#technologies" className="hover:text-blue-400 transition-colors">
+              Technology Stack
+            </a>
+            <a href="#portals" className="hover:text-blue-400 transition-colors">
+              Stakeholder Portals
+            </a>
+            <a href="#architecture" className="hover:text-blue-400 transition-colors">
+              System Architecture
+            </a>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="text-xs font-bold text-slate-300 hover:text-white px-3.5 py-2 rounded-xl transition-colors"
-            >
-              Sign In
-            </Link>
             <button
-              onClick={() => handleQuickLogin('s210018@rguktsklm.ac.in', 'Student@123', 'STUDENT')}
-              disabled={quickLoginLoading}
-              className="btn-primary bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
+              onClick={() => setShowPortalModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
             >
-              <span>{quickLoginLoading ? 'Entering...' : 'RGUKT Student'}</span>
-              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Sign In</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <header className="relative pt-20 pb-24 px-6 border-b border-slate-800">
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.12]">
-            Empower Campus Careers with <br className="hidden sm:inline" />
-            <span className="text-blue-400">Calibrated Placement Intelligence</span>
+      <section className="relative pt-20 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950 pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Exclusively Designed for Rajiv Gandhi University of Knowledge Technologies</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
+            Integrated Campus Placement & AI Readiness Platform
           </h1>
 
-          <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-xl mx-auto leading-relaxed">
-            Ascend unifies explainable multi-factor readiness scoring, real-time voice AI mock interviews, mathematical skill deficit ranking, and institutional campus recruitment operations.
+          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            Ascend unifies students, training and placement officers, corporate recruiters, and administrators into a high-performance, secure ecosystem powered by Spring Boot, PostgreSQL, and Google Gemini AI.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
             <button
-              onClick={() => handleQuickLogin('s210018@rguktsklm.ac.in', 'Student@123', 'STUDENT')}
-              className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition-all"
+              onClick={() => setShowPortalModal(true)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-xl shadow-blue-500/25 transition-all cursor-pointer"
             >
-              <Play className="w-4 h-4 fill-current" />
-              <span>Launch RGUKT Student Portal</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickLogin('officer@college.edu', 'Officer@123', 'PLACEMENT_OFFICER')}
-              className="px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-sm"
-            >
-              <Building2 className="w-4 h-4 text-emerald-400" />
-              <span>TPO Operations Console</span>
+              <span>Select Portal to Sign In</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
 
             <a
-              href="#calculator"
-              className="px-5 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 font-bold text-xs sm:text-sm transition-all"
+              href="#technologies"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-slate-200 text-sm font-bold transition-colors cursor-pointer"
             >
-              Try Readiness Lab
+              <Cpu className="w-4 h-4 text-blue-400" />
+              <span>Explore Technology Stack</span>
             </a>
           </div>
 
-          {/* Key Metrics Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-16 max-w-3xl mx-auto pt-8 border-t border-slate-800">
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-2xl sm:text-3xl font-black font-mono text-white block">88.4%</span>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider mt-1 block">
-                Cohort Readiness
+          {/* Quick Metrics Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 pt-10 text-left">
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Target Campuses
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
+                RGUKT (E1-E4)
+              </span>
+              <span className="text-[11px] text-blue-400 font-medium">
+                Srikakulam, RKV, Nuzvid, Ongole
               </span>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-400 block">450+</span>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider mt-1 block">
-                Curated Problems
+
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Question Bank
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
+                13 Tracks
+              </span>
+              <span className="text-[11px] text-emerald-400 font-medium">
+                20+ Questions with Explanations
               </span>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-2xl sm:text-3xl font-black font-mono text-blue-400 block">4 Roles</span>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider mt-1 block">
-                Strict RBAC Portals
+
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                AI Evaluation
+              </span>
+              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
+                Gemini 1.5 Pro
+              </span>
+              <span className="text-[11px] text-purple-400 font-medium">
+                Dynamic Technical Interviews
               </span>
             </div>
-            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-2xl sm:text-3xl font-black font-mono text-amber-400 block">100%</span>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider mt-1 block">
-                Explainable Deficits
+
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Notifications
               </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Project Theme & Academic Context Section */}
-      <section id="theme" className="py-20 px-6 border-b border-slate-800 bg-slate-950">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Project Theme & Purpose
-            </h2>
-            <p className="text-sm text-slate-300 mt-3 leading-relaxed">
-              Why traditional academic evaluation fails to reflect hiring readiness.
-            </p>
-          </div>
-
-          <div className="p-8 sm:p-10 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
-            <div className="space-y-4 text-sm sm:text-base text-slate-200 leading-relaxed font-normal max-w-xl">
-              <p>
-                University engineering curricula excel at teaching foundational theory, data structures, and discrete mathematics. However, competitive industry recruitment rounds prioritize high-throughput problem-solving speed, concurrency isolation trade-offs, system scalability, and structured verbal delivery.
-              </p>
-              <p className="text-slate-300">
-                <strong className="text-white font-bold">Ascend</strong> bridges this critical institutional divide. It transforms subjective placement preparation into a deterministic, mathematical discipline:
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-800">
-              <div className="space-y-1.5">
-                <span className="text-xs font-black text-blue-400 uppercase tracking-wider block">
-                  1. Mathematical Deficit Modeling
-                </span>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Computes exact skill gaps using <code className="text-blue-300 font-mono font-bold">Deficit = Benchmark - Observed</code>, ensuring students remediate high-impact bottlenecks first.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider block">
-                  2. Voice AI Interview Simulation
-                </span>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Real-time conversational evaluation combining speech-to-text input, dynamic context-aware follow-ups, and automated NLP rubric scoring.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="text-xs font-black text-amber-400 uppercase tracking-wider block">
-                  3. Recruitment Operations Lifecycle
-                </span>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Automated drive publishing with deterministic eligibility boundaries (CGPA, branches, backlog caps) for transparent institutional hiring.
-                </p>
-              </div>
+              <span className="text-xl sm:text-2xl font-black text-white mt-1 block font-mono">
+                Centralized
+              </span>
+              <span className="text-[11px] text-amber-400 font-medium">
+                HTML Emails with Audit Trail
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Playable Feature 1: The Interactive Placement Readiness Lab */}
-      <section id="calculator" className="py-20 px-6 border-b border-slate-800 bg-slate-950">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Interactive Placement Readiness Lab
+      {/* Stakeholder Portals Section */}
+      <section id="portals" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 bg-slate-950">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              <Users className="w-3.5 h-3.5" />
+              <span>Dedicated Authentication Gateways</span>
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Four Specialized Stakeholder Portals
             </h2>
-            <p className="text-sm text-slate-300 mt-3 leading-relaxed">
-              Select a target role and drag the candidate competency sliders to observe the multi-factor scoring engine recalculate in real-time.
+            <p className="text-xs sm:text-sm text-slate-400">
+              Each stakeholder group accesses an isolated, role-customized portal with specific email verification rules and security controls.
             </p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-sm space-y-8">
-            {/* Playable Role Benchmark Switcher */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-blue-400 stroke-[2.5]" />
-                <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-                  Target Career Benchmark:
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {['Java Full Stack Developer', 'MERN Full Stack Developer', 'AI / ML Engineer', 'Data Analyst'].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setTargetRole(r)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      targetRole === r
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* Sliders Controls Column */}
-              <div className="lg:col-span-7 space-y-5">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                      Academic Standing (CGPA)
-                    </span>
-                    <span className="text-sm font-mono font-bold text-blue-400">{calcCgpa} / 10.0</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5.0"
-                    max="10.0"
-                    step="0.1"
-                    value={calcCgpa}
-                    onChange={(e) => setCalcCgpa(parseFloat(e.target.value))}
-                    className="w-full accent-blue-500 cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.cgpa * 100)}% of Composite</span>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                      Data Structures & Algorithms
-                    </span>
-                    <span className="text-sm font-mono font-bold text-emerald-400">{calcDsa}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={calcDsa}
-                    onChange={(e) => setCalcDsa(parseInt(e.target.value))}
-                    className="w-full accent-emerald-500 cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.dsa * 100)}% • Tree, Graph, DP & Hash Optimizations</span>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                      Core Computer Science Fundamentals
-                    </span>
-                    <span className="text-sm font-mono font-bold text-blue-400">{calcCore}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={calcCore}
-                    onChange={(e) => setCalcCore(parseInt(e.target.value))}
-                    className="w-full accent-blue-500 cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.core * 100)}% • DBMS, OS Kernel, Concurrency</span>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                      Foundational Quantitative Aptitude
-                    </span>
-                    <span className="text-sm font-mono font-bold text-amber-400">{calcAptitude}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={calcAptitude}
-                    onChange={(e) => setCalcAptitude(parseInt(e.target.value))}
-                    className="w-full accent-amber-500 cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.apt * 100)}% • Analytical Reasoning Speed</span>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                      AI Mock Interview Verbal Composure
-                    </span>
-                    <span className="text-sm font-mono font-bold text-indigo-400">{calcInterview}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={calcInterview}
-                    onChange={(e) => setCalcInterview(parseInt(e.target.value))}
-                    className="w-full accent-indigo-500 cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-400 block mt-0.5">Weight: {Math.round(currentW.interview * 100)}% • Technical Depth & STAR Delivery</span>
-                </div>
-              </div>
-
-              {/* Gauge Output Column */}
-              <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 lg:pl-10 lg:border-l border-slate-800 text-center">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 block">
-                  Calibrated {targetRole} Index
-                </span>
-
-                <div className="relative w-44 h-44 flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r={radius}
-                      fill="transparent"
-                      stroke="#1e293b"
-                      strokeWidth="14"
-                    />
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r={radius}
-                      fill="transparent"
-                      stroke={
-                        computedSandboxScore >= 75
-                          ? '#059669'
-                          : computedSandboxScore >= 55
-                          ? '#d97706'
-                          : '#dc2626'
-                      }
-                      strokeWidth="14"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={dashoffset}
-                      strokeLinecap="round"
-                      className="transition-all duration-300"
-                    />
-                  </svg>
-                  <div className="absolute flex flex-col items-center">
-                    <span className="text-4xl font-black font-mono text-white">
-                      {computedSandboxScore}
-                    </span>
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                      / 100 PTS
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <span
-                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full border ${
-                      computedSandboxScore >= 75
-                        ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                        : computedSandboxScore >= 55
-                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                        : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                    }`}
-                  >
-                    {computedSandboxScore >= 75
-                      ? 'Placement Ready (Tier-1)'
-                      : computedSandboxScore >= 55
-                      ? 'Developing Competency'
-                      : 'Critical Skill Gap'}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-300 mt-4 leading-relaxed max-w-xs">
-                  {computedSandboxScore >= 75
-                    ? `Candidate meets competitive benchmark requirements for ${targetRole} recruitment cycles.`
-                    : computedSandboxScore >= 55
-                    ? `Moderate readiness for ${targetRole}. Focus targeted drill hours on lower-scoring sections.`
-                    : `High deficit identified for ${targetRole}. System automatically prioritizes remedial curriculum.`}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Playable Feature 2: Interactive AI Interview Drill Simulator */}
-      <section id="simulator" className="py-20 px-6 border-b border-slate-800 bg-slate-950">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Playable AI Mock Interview Evaluator
-            </h2>
-            <p className="text-sm text-slate-300 mt-3 leading-relaxed">
-              Test how the AI rubric evaluator scores candidate verbal responses. Click an answer below to trigger instant evaluation feedback.
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {/* Live Question Bar */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800">
-              <span className="text-xs font-black uppercase tracking-wider text-blue-400 block mb-1">
-                Interviewer Question (Software Architecture Round):
-              </span>
-              <p className="text-base sm:text-lg font-bold text-white">
-                "How would you address cache stampede and thundering herd when thousands of concurrent requests query an expired cache key during peak traffic?"
-              </p>
-            </div>
-
-            {/* Clickable Candidate Answer Scenarios */}
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block mb-3">
-                Select an answer to simulate real-time AI evaluation:
-              </span>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {sampleAnswers.map((ans, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedAnswerIndex(idx)}
-                    className={`p-5 rounded-2xl text-left border transition-all ${
-                      selectedAnswerIndex === idx
-                        ? 'border-blue-500 bg-slate-900 text-white shadow-sm ring-1 ring-blue-500'
-                        : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-black uppercase tracking-wider">
-                        {ans.title}
-                      </span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${ans.badgeColor}`}>
-                        {ans.badge}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {PORTAL_OPTIONS.map((portal) => {
+              const Icon = portal.icon;
+              return (
+                <div
+                  key={portal.roleId}
+                  className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800/90 flex flex-col justify-between hover:border-slate-700 hover:bg-slate-900 transition-all shadow-xl"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div
+                        className={`w-11 h-11 rounded-xl bg-gradient-to-tr ${portal.gradient} flex items-center justify-center text-white shadow-md`}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span
+                        className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${portal.badgeColor}`}
+                      >
+                        {portal.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-mono line-clamp-3">
-                      "{ans.text}"
+
+                    <h3 className="text-base font-bold text-white">
+                      {portal.title}
+                    </h3>
+                    <p className="text-xs font-medium text-slate-400 mt-0.5">
+                      {portal.subtitle}
                     </p>
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Live Evaluation Feedback Output */}
-            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              <div className="md:col-span-8 space-y-2">
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-400 block">
-                  AI Rubric Diagnostic Synthesis:
-                </span>
-                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-                  {currentAnswer.verdict}
-                </p>
-              </div>
+                    <p className="text-xs text-slate-500 mt-3 leading-relaxed">
+                      {portal.description}
+                    </p>
 
-              <div className="md:col-span-4 flex items-center justify-around border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6 text-center">
-                <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Technical Depth
-                  </span>
-                  <span className="text-3xl font-black font-mono text-emerald-400 mt-1 block">
-                    {currentAnswer.techScore}%
-                  </span>
+                    <div className="mt-4 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] space-y-1">
+                      <span className="text-slate-400 font-semibold block">Required Email Format:</span>
+                      <span className="font-mono text-blue-400 font-bold block">
+                        {portal.emailRule}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-slate-800/80">
+                    <button
+                      onClick={() => navigate(portal.path)}
+                      className={`w-full py-2.5 px-3 rounded-xl bg-gradient-to-r ${portal.gradient} hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer`}
+                    >
+                      <span>Sign In as {portal.title.split(' ')[0]}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                    Communication
-                  </span>
-                  <span className="text-3xl font-black font-mono text-blue-400 mt-1 block">
-                    {currentAnswer.commScore}%
-                  </span>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* 4 Stakeholder Portals Showcase */}
-      <section id="portals" className="py-20 px-6 border-b border-slate-800">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Dedicated Consoles for Every Placement Stakeholder
+      {/* Technologies Section */}
+      <section id="technologies" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 bg-slate-900/40">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Full-Stack Modern Architecture</span>
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Technologies Used in Ascend
             </h2>
-            <p className="text-sm text-slate-300 mt-3 leading-relaxed">
-              Explore the dedicated interfaces customized for each institutional stakeholder.
+            <p className="text-xs sm:text-sm text-slate-400">
+              Engineered with industrial software standards: Spring Boot, Spring Security, PostgreSQL, React 18, and Google Gemini AI.
             </p>
           </div>
 
-          {/* Portal Switcher Tabs */}
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
-            <button
-              onClick={() => setActivePortalTab('STUDENT')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                activePortalTab === 'STUDENT'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
-              }`}
-            >
-              Student Portal
-            </button>
-            <button
-              onClick={() => setActivePortalTab('OFFICER')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                activePortalTab === 'OFFICER'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
-              }`}
-            >
-              Placement Officer (TPO)
-            </button>
-            <button
-              onClick={() => setActivePortalTab('COMPANY')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                activePortalTab === 'COMPANY'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
-              }`}
-            >
-              Corporate Recruiter
-            </button>
-            <button
-              onClick={() => setActivePortalTab('ADMIN')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                activePortalTab === 'ADMIN'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-slate-900 text-slate-300 hover:text-white border border-slate-800'
-              }`}
-            >
-              System Administrator
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {techStack.map((tier, idx) => {
+              const Icon = tier.icon;
+              return (
+                <div
+                  key={idx}
+                  className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-all shadow-xl flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-10 h-10 rounded-xl ${tier.bgColor} ${tier.borderColor} border ${tier.color} flex items-center justify-center shrink-0`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <h3 className="text-base font-bold text-white">
+                        {tier.category}
+                      </h3>
+                    </div>
+
+                    <div className="space-y-3">
+                      {tier.items.map((item, itemIdx) => (
+                        <div key={itemIdx} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/70 text-xs">
+                          <span className="font-bold text-slate-200 block">
+                            {item.name}
+                          </span>
+                          <span className="text-slate-400 leading-relaxed block mt-0.5">
+                            {item.desc}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Placement Workflow Overview */}
+      <section id="architecture" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 bg-slate-950">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <Layers className="w-3.5 h-3.5" />
+              <span>End-to-End Placement Pipeline</span>
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              How the Placement Engine Operates
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400">
+              From corporate requisition intake to student shortlisting, every stage is verified and tracked.
+            </p>
           </div>
 
-          {/* Portal Content View */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-sm">
-            {activePortalTab === 'STUDENT' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div>
-                  <span className="badge-blue text-xs font-bold mb-2">Student Experience</span>
-                  <h3 className="text-2xl font-black text-white mt-1">Student Placement Readiness Hub</h3>
-                  <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                    Students track multi-factor readiness ratings, take timed algorithmic & aptitude diagnostics, review mathematical deficit priorities, conduct AI mock interviews, and apply for campus drives with deterministic pre-validation.
-                  </p>
-                  <ul className="space-y-2 mt-5 text-xs text-slate-300">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
-                      <span>Timed tests with question jump palette and instant scoring</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
-                      <span>Transparent qualification reasons on all placement drives</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
-                      <span>Curated video and coding practice mapped directly to gaps</span>
-                    </li>
-                  </ul>
-                  <button
-                    onClick={() => handleQuickLogin('s210018@rguktsklm.ac.in', 'Student@123', 'STUDENT')}
-                    className="mt-6 btn-primary bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl"
-                  >
-                    Launch Student Portal Demo
-                  </button>
-                </div>
-                <div className="p-6 md:border-l border-slate-800 text-xs space-y-3 font-mono">
-                  <div className="flex justify-between text-slate-400 pb-2 border-b border-slate-800">
-                    <span>Student Profile</span>
-                    <span className="text-blue-400 font-bold">Sathwik (S210018) • RGUKT SKLM CSE</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">CGPA:</span>
-                    <span className="text-white font-bold">8.75 / 10.0</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Target Role:</span>
-                    <span className="text-emerald-400 font-bold">Software Developer</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Readiness Score:</span>
-                    <span className="text-blue-400 font-bold">78% (Placement Ready)</span>
-                  </div>
-                  <p className="text-xs text-slate-400 pt-2 border-t border-slate-800">
-                    Active Drives: TechCorp India, Innovate Labs, CloudScale Global
-                  </p>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[
+              {
+                step: '01',
+                title: 'Recruiter Submits JAF',
+                desc: 'Corporate recruiters submit job descriptions and criteria publicly without mandatory sign-up. A unique reference ID is generated.'
+              },
+              {
+                step: '02',
+                title: 'Admin Verification',
+                desc: 'System admin screens the opportunity, requests clarification via single-use expiring token if needed, and approves for TPO review.'
+              },
+              {
+                step: '03',
+                title: 'TPO Publishes Drive',
+                desc: 'The Training & Placement Officer verifies academic cutoffs and publishes the drive. Asynchronous broadcast emails notify eligible students.'
+              },
+              {
+                step: '04',
+                title: 'Student Applies & Preps',
+                desc: 'Eligible students apply with verified resumes, receive application confirmation with tracking IDs, and prep via AI mock interviews.'
+              }
+            ].map((st, i) => (
+              <div key={i} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs">
+                <span className="text-2xl font-black font-mono text-blue-500 block mb-2">
+                  {st.step}
+                </span>
+                <h4 className="text-sm font-bold text-white mb-1">
+                  {st.title}
+                </h4>
+                <p className="text-slate-400 leading-relaxed">
+                  {st.desc}
+                </p>
               </div>
-            )}
-
-            {activePortalTab === 'OFFICER' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div>
-                  <span className="badge-green text-xs font-bold mb-2">TPO Administrative Control</span>
-                  <h3 className="text-2xl font-black text-white mt-1">Placement Operations Console</h3>
-                  <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                    Placement Officers configure campus recruitment drives with strict barriers (minimum CGPA, department filters, maximum backlog thresholds), monitor batch qualification pipelines, and export recruiter summary sheets.
-                  </p>
-                  <ul className="space-y-2 mt-5 text-xs text-slate-300">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>One-click drive publishing with automated eligibility validation</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Multi-stage candidate review (Applied → Shortlisted → Selected)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>One-click recruiter summary exports for corporate partners</span>
-                    </li>
-                  </ul>
-                  <button
-                    onClick={() => handleQuickLogin('officer@college.edu', 'Officer@123', 'PLACEMENT_OFFICER')}
-                    className="mt-6 btn-primary bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl"
-                  >
-                    Launch TPO Console Demo
-                  </button>
-                </div>
-                <div className="p-6 md:border-l border-slate-800 text-xs space-y-3 font-mono">
-                  <div className="flex justify-between text-slate-400 pb-2 border-b border-slate-800">
-                    <span>Placement Operations</span>
-                    <span className="text-emerald-400 font-bold">TPO Admin Session</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Institutional Drives:</span>
-                    <span className="text-white font-bold">3 Active Drives</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Applications in Pipeline:</span>
-                    <span className="text-emerald-400 font-bold">14 Candidates</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Average Batch Readiness:</span>
-                    <span className="text-blue-400 font-bold">81.4%</span>
-                  </div>
-                  <p className="text-xs text-slate-400 pt-2 border-t border-slate-800">
-                    Status: All criteria deterministic; zero manual triage overhead.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {activePortalTab === 'COMPANY' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div>
-                  <span className="badge-purple text-xs font-bold mb-2">Recruiter Access</span>
-                  <h3 className="text-2xl font-black text-white mt-1">Corporate Talent Acquisition Hub</h3>
-                  <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                    Verified recruiters review verified applicant profiles, inspect aggregate performance metrics across technical domains, and confirm interview shortlists without wading through unqualified resumes.
-                  </p>
-                  <ul className="space-y-2 mt-5 text-xs text-slate-300">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                      <span>Pre-filtered candidate pools meeting exact corporate cutoffs</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                      <span>Privacy-compliant verified candidate performance summaries</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
-                      <span>Integrated interview feedback logging</span>
-                    </li>
-                  </ul>
-                  <button
-                    onClick={() => handleQuickLogin('hr@techcorp.com', 'Company@123', 'COMPANY')}
-                    className="mt-6 btn-primary bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl"
-                  >
-                    Launch Recruiter Portal Demo
-                  </button>
-                </div>
-                <div className="p-6 md:border-l border-slate-800 text-xs space-y-3 font-mono">
-                  <div className="flex justify-between text-slate-400 pb-2 border-b border-slate-800">
-                    <span>Corporate Recruiter</span>
-                    <span className="text-purple-400 font-bold">TechCorp Solutions</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Position:</span>
-                    <span className="text-white font-bold">Associate SDE (14.5 LPA)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Pre-Qualified Pool:</span>
-                    <span className="text-emerald-400 font-bold">100% Eligible (CGPA &ge; 7.5)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Shortlisted Candidates:</span>
-                    <span className="text-purple-400 font-bold">6 Students</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activePortalTab === 'ADMIN' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                <div>
-                  <span className="badge-yellow text-xs font-bold mb-2">Institutional Governance</span>
-                  <h3 className="text-2xl font-black text-white mt-1">System Administration Console</h3>
-                  <p className="text-xs text-slate-300 mt-3 leading-relaxed">
-                    Administrators curate the examination question bank across foundational aptitude and core CS domains, manage user credentials & role access, and monitor platform health.
-                  </p>
-                  <ul className="space-y-2 mt-5 text-xs text-slate-300">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>Full CRUD question repository with options and marking schemes</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>User account directory with search, filtering, and role elevation</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>System health and persistent database infrastructure metrics</span>
-                    </li>
-                  </ul>
-                  <button
-                    onClick={() => handleQuickLogin('admin@system.com', 'Admin@123', 'ADMIN')}
-                    className="mt-6 btn-primary bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2.5 px-5 rounded-xl"
-                  >
-                    Launch Admin Console Demo
-                  </button>
-                </div>
-                <div className="p-6 md:border-l border-slate-800 text-xs space-y-3 font-mono">
-                  <div className="flex justify-between text-slate-400 pb-2 border-b border-slate-800">
-                    <span>Infrastructure Status</span>
-                    <span className="text-amber-400 font-bold">All Systems Operational</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Total Users:</span>
-                    <span className="text-white font-bold">5 Managed Accounts</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Question Bank:</span>
-                    <span className="text-emerald-400 font-bold">14 Curated Questions</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Database Engine:</span>
-                    <span className="text-blue-400 font-bold">Persistent H2 File DB</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            ))}
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-10 px-6 border-t border-slate-800 bg-slate-950 text-slate-400 text-xs">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-              <GraduationCap className="w-5 h-5" />
+      <footer className="py-10 px-4 sm:px-6 lg:px-8 border-t border-slate-800 bg-slate-950 text-slate-500 text-xs">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+              <GraduationCap className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <span className="font-bold text-slate-200 block text-sm">Ascend</span>
-              <span className="text-xs text-slate-400">Campus Placement & Career Readiness Platform</span>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-6 font-semibold text-slate-300">
-            <span>Spring Boot 3.3.4 (Java 21)</span>
-            <span>•</span>
-            <span>React 18 + Vite</span>
-            <span>•</span>
-            <span>Tailwind CSS</span>
-            <span>•</span>
-            <span>H2 Persistent Database</span>
+            <span className="font-bold text-slate-300">Ascend</span>
+            <span>— Rajiv Gandhi University of Knowledge Technologies</span>
           </div>
 
-          <p className="text-slate-400 text-xs">
-            Academic Capstone System. All Rights Reserved.
-          </p>
+          <div className="flex items-center gap-4 text-slate-400">
+            <a href="#technologies" className="hover:text-white transition-colors">Technologies</a>
+            <a href="#portals" className="hover:text-white transition-colors">Portals</a>
+            <button onClick={() => setShowPortalModal(true)} className="hover:text-white transition-colors cursor-pointer">
+              Sign In
+            </button>
+          </div>
+
+          <div className="text-slate-500">
+            © 2026 RGUKT. Placement System v2.0 • Spring Boot & React
+          </div>
         </div>
       </footer>
     </div>

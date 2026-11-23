@@ -18,6 +18,45 @@ public class RguktUtils {
         return RGUKT_EMAIL_PATTERN.matcher(email.trim()).matches();
     }
 
+    /**
+     * Checks if the email matches the TPO (Training & Placement Officer) format.
+     * Enforces that the username part (before @) ends with "tpo" (e.g., officer.tpo@..., placementstpo@..., tpo@...)
+     * or contains "tpo", while preserving compatibility with the institutional demo officer@college.edu.
+     */
+    public static boolean isTpoEmail(String email) {
+        if (email == null || email.isBlank()) return false;
+        String clean = email.trim().toLowerCase();
+        int atIdx = clean.indexOf('@');
+        if (atIdx <= 0 || atIdx == clean.length() - 1) return false;
+        String local = clean.substring(0, atIdx);
+        return local.endsWith("tpo") || local.contains("tpo") || clean.equals("officer@college.edu");
+    }
+
+    /**
+     * Checks if the email matches the Administrator format.
+     * Enforces that the email contains "admin" (e.g. admin@system.com, admin@rguktsklm.ac.in).
+     */
+    public static boolean isAdminEmail(String email) {
+        if (email == null || email.isBlank()) return false;
+        String clean = email.trim().toLowerCase();
+        int atIdx = clean.indexOf('@');
+        if (atIdx <= 0 || atIdx == clean.length() - 1) return false;
+        String local = clean.substring(0, atIdx);
+        return local.contains("admin") || clean.contains("admin");
+    }
+
+    /**
+     * Checks if the email is a valid email format for HR / Corporate Recruiters.
+     * No institutional domain or prefix restriction is imposed since recruiters are external partners.
+     */
+    public static boolean isRecruiterEmail(String email) {
+        if (email == null || email.isBlank()) return false;
+        String clean = email.trim();
+        int atIdx = clean.indexOf('@');
+        int dotIdx = clean.lastIndexOf('.');
+        return atIdx > 0 && dotIdx > atIdx + 1 && dotIdx < clean.length() - 1;
+    }
+
     public static class RguktStudentInfo {
         private final String rollNumber;
         private final int admissionYear;

@@ -12,6 +12,7 @@ import com.placement.system.repository.CompanyRepository;
 import com.placement.system.repository.PlacementOfficerRepository;
 import com.placement.system.repository.StudentRepository;
 import com.placement.system.repository.UserRepository;
+import com.placement.system.util.RguktUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,8 +56,36 @@ public class AuthService {
      */
     public LoginResponseDto login(LoginRequestDto req) {
         String cleanEmail = req.getEmail().trim().toLowerCase();
+
+        // Optional portal-specific role and email format validation
+        if (req.getExpectedRole() != null && !req.getExpectedRole().isBlank()) {
+            String expected = req.getExpectedRole().trim().toUpperCase();
+            if (expected.equals("TPO") || expected.equals("OFFICER")) expected = "PLACEMENT_OFFICER";
+            if (expected.equals("RECRUITER")) expected = "COMPANY";
+
+            if ("STUDENT".equals(expected) && !RguktUtils.isRguktStudentEmail(cleanEmail)) {
+                throw new IllegalArgumentException("Student login requires an RGUKT student institutional email (e.g., s210018@rguktsklm.ac.in)");
+            } else if ("PLACEMENT_OFFICER".equals(expected) && !RguktUtils.isTpoEmail(cleanEmail)) {
+                throw new IllegalArgumentException("Placement Officer portal requires a TPO institutional email format (e.g., tpo@rguktsklm.ac.in, placement.tpo@college.edu)");
+            } else if ("ADMIN".equals(expected) && !RguktUtils.isAdminEmail(cleanEmail)) {
+                throw new IllegalArgumentException("Administrator portal requires an authorized administrator email address (e.g., admin@system.com)");
+            } else if ("COMPANY".equals(expected) && !RguktUtils.isRecruiterEmail(cleanEmail)) {
+                throw new IllegalArgumentException("Recruiter portal requires a valid corporate email address");
+            }
+        }
+
         User user = userRepository.findByEmail(cleanEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password credentials"));
+
+        if (req.getExpectedRole() != null && !req.getExpectedRole().isBlank()) {
+            String expected = req.getExpectedRole().trim().toUpperCase();
+            if (expected.equals("TPO") || expected.equals("OFFICER")) expected = "PLACEMENT_OFFICER";
+            if (expected.equals("RECRUITER")) expected = "COMPANY";
+
+            if (!user.getRole().equalsIgnoreCase(expected)) {
+                throw new IllegalArgumentException("This account is registered with role " + user.getRole() + ". Please sign in through the designated " + user.getRole() + " portal.");
+            }
+        }
 
         if (!matchesPassword(req.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid email or password credentials");

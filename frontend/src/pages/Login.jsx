@@ -1,16 +1,37 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuthStore } from '../store/authStore';
-import { GraduationCap, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
-import SignInForm from './auth/components/SignInForm';
+import { GraduationCap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import PortalSelector, { PORTAL_OPTIONS } from './auth/components/PortalSelector';
+import RoleLoginView from './auth/components/RoleLoginView';
 import RegisterStudentForm from './auth/components/RegisterStudentForm';
 import ForgotPasswordForm from './auth/components/ForgotPasswordForm';
 
 export default function Login() {
+  const { role: rawRole } = useParams();
+  const navigate = useNavigate();
+  const { login } = useAuthStore();
+
+  // Normalize role parameter (e.g. officer -> tpo, company -> recruiter)
+  const role = (() => {
+    if (!rawRole) return null;
+    const lower = rawRole.toLowerCase();
+    if (lower === 'officer') return 'tpo';
+    if (lower === 'company') return 'recruiter';
+    return lower;
+  })();
+
+  const portalConfig = PORTAL_OPTIONS.find((p) => p.roleId === role) || null;
+
   const [authMode, setAuthMode] = useState('signin'); // 'signin' | 'register' | 'forgot_password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Student Registration States
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [department, setDepartment] = useState('Computer Science & Engineering');
@@ -31,61 +52,63 @@ export default function Login() {
   const [forgotDevOtp, setForgotDevOtp] = useState('');
   const [forgotResendTimer, setForgotResendTimer] = useState(0);
 
-  const [loading, setLoading] = useState(false);
-  const [activeQuickRole, setActiveQuickRole] = useState(null);
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const { login } = useAuthStore();
-  const navigate = useNavigate();
+  // Reset inputs when role changes
+  useEffect(() => {
+    setEmail('');
+    setPassword('');
+    setError('');
+    setSuccessMsg('');
+    setAuthMode('signin');
+  }, [role]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (resendTimer > 0) {
       const timer = setInterval(() => setResendTimer((t) => t - 1), 1000);
       return () => clearInterval(timer);
     }
   }, [resendTimer]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (forgotResendTimer > 0) {
       const timer = setInterval(() => setForgotResendTimer((t) => t - 1), 1000);
       return () => clearInterval(timer);
     }
   }, [forgotResendTimer]);
 
-  const handleQuickFill = (role) => {
-    setActiveQuickRole(role);
-    setError('');
-    setSuccessMsg('');
-    if (role === 'STUDENT') {
-      setEmail('s210018@rguktsklm.ac.in');
-      setPassword('Student@123');
-    } else if (role === 'OFFICER') {
-      setEmail('officer@college.edu');
-      setPassword('Officer@123');
-    } else if (role === 'COMPANY') {
-      setEmail('hr@techcorp.com');
-      setPassword('Company@123');
-    } else if (role === 'ADMIN') {
-      setEmail('admin@system.com');
-      setPassword('Admin@123');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccessMsg('');
+
     try {
-      const res = await api.post('/auth/login', { email: email.trim(), password });
+      const roleMap = {
+        student: 'STUDENT',
+        tpo: 'PLACEMENT_OFFICER',
+        recruiter: 'COMPANY',
+        admin: 'ADMIN'
+      };
+
+      const payload = {
+        email: email.trim().toLowerCase(),
+        password,
+        expectedRole: portalConfig ? roleMap[portalConfig.roleId] : undefined
+      };
+
+      const res = await api.post('/auth/login', payload);
       login(res.data.token, res.data.role);
-      const role = res.data.role;
-      if (role === 'ADMIN') navigate('/admin');
-      else if (role === 'PLACEMENT_OFFICER') navigate('/officer');
-      else if (role === 'COMPANY') navigate('/company');
+
+      const userRole = res.data.role;
+      if (userRole === 'ADMIN') navigate('/admin');
+      else if (userRole === 'PLACEMENT_OFFICER') navigate('/officer');
+      else if (userRole === 'COMPANY') navigate('/company');
       else navigate('/student');
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Invalid institutional credentials');
+      setError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'Authentication failed. Please verify your credentials.'
+      );
     } finally {
       setLoading(false);
     }
@@ -104,7 +127,7 @@ export default function Login() {
       const res = await api.post('/auth/send-otp', { email: email.trim().toLowerCase() });
       setRegStep('OTP');
       setResendTimer(60);
-      setSuccessMsg('A 6-digit verification code has been dispatched to your email.');
+      setSuccessMsg('A 6-digit verification code has been dispatched to your RGUKT email.');
       if (res.data?.devOtp) setDevOtpNotice(res.data.devOtp);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to dispatch verification code');
@@ -131,7 +154,7 @@ export default function Login() {
       login(res.data.token, res.data.role);
       navigate('/student');
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(err.response?.data?.error || 'Student registration failed');
     } finally {
       setLoading(false);
     }
@@ -143,7 +166,9 @@ export default function Login() {
     setSuccessMsg('');
     setForgotSending(true);
     try {
-      const res = await api.post('/auth/forgot-password/send-otp', { email: forgotEmail.trim().toLowerCase() });
+      const res = await api.post('/auth/forgot-password/send-otp', {
+        email: forgotEmail.trim().toLowerCase()
+      });
       setForgotStep('OTP');
       setForgotResendTimer(60);
       setSuccessMsg('Verification OTP dispatched to your registered email.');
@@ -183,54 +208,54 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950 pointer-events-none" />
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/15 via-slate-950 to-slate-950 pointer-events-none" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+      {/* Top Ascend Branding */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 mb-2">
         <div className="flex justify-center">
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
               <GraduationCap className="w-6 h-6" />
             </div>
             <span className="text-2xl font-black tracking-tight text-white">Ascend</span>
           </Link>
         </div>
-        <h2 className="mt-4 text-center text-xl font-bold tracking-tight text-white">
-          {authMode === 'signin' && 'RGUKT Institutional Portal Sign In'}
-          {authMode === 'register' && 'Create RGUKT Student Account'}
-          {authMode === 'forgot_password' && 'Reset Institutional Password'}
-        </h2>
-        <p className="mt-1 text-center text-xs text-slate-400">
-          Campus Recruitment & AI Placement Readiness Ecosystem
-        </p>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4 sm:px-0">
-        <div className="bg-slate-900/90 border border-slate-800/80 backdrop-blur-xl py-6 px-6 sm:px-8 shadow-2xl rounded-2xl">
+      <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-lg relative z-10 px-4 sm:px-0">
+        <div className="bg-slate-900/90 border border-slate-800/90 backdrop-blur-xl py-7 px-6 sm:px-8 shadow-2xl rounded-3xl">
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2.5 text-xs text-red-300">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2.5 text-xs text-red-300 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-start gap-2.5 text-xs text-emerald-300">
+            <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-start gap-2.5 text-xs text-emerald-300 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <span>{successMsg}</span>
             </div>
           )}
 
-          {authMode === 'signin' && (
-            <SignInForm
+          {/* View 1: 4-Option Portal Selector when visiting /login without role parameter */}
+          {!portalConfig && authMode === 'signin' && (
+            <PortalSelector />
+          )}
+
+          {/* View 2: Dedicated Role Login when visiting /login/:role */}
+          {portalConfig && authMode === 'signin' && (
+            <RoleLoginView
+              portalConfig={portalConfig}
               email={email}
               setEmail={setEmail}
               password={password}
               setPassword={setPassword}
               loading={loading}
-              activeQuickRole={activeQuickRole}
-              handleSubmit={handleSubmit}
-              handleQuickFill={handleQuickFill}
+              error={error}
+              setError={setError}
+              onSubmit={handleSubmit}
               onSwitchToRegister={() => {
                 setAuthMode('register');
                 setError('');
@@ -245,6 +270,7 @@ export default function Login() {
             />
           )}
 
+          {/* View 3: Student Registration */}
           {authMode === 'register' && (
             <RegisterStudentForm
               name={name}
@@ -258,13 +284,12 @@ export default function Login() {
               department={department}
               setDepartment={setDepartment}
               regStep={regStep}
-              setRegStep={setRegStep}
               otp={otp}
               setOtp={setOtp}
               sendingOtp={sendingOtp}
-              loading={loading}
-              devOtpNotice={devOtpNotice}
               resendTimer={resendTimer}
+              devOtpNotice={devOtpNotice}
+              loading={loading}
               handleSendOtp={handleSendOtp}
               handleRegister={handleRegister}
               onSwitchToSignIn={() => {
@@ -275,6 +300,7 @@ export default function Login() {
             />
           )}
 
+          {/* View 4: Forgot Password */}
           {authMode === 'forgot_password' && (
             <ForgotPasswordForm
               forgotEmail={forgotEmail}
@@ -286,14 +312,13 @@ export default function Login() {
               confirmNewPassword={confirmNewPassword}
               setConfirmNewPassword={setConfirmNewPassword}
               forgotStep={forgotStep}
-              setForgotStep={setForgotStep}
               forgotSending={forgotSending}
               forgotResetting={forgotResetting}
               forgotDevOtp={forgotDevOtp}
               forgotResendTimer={forgotResendTimer}
               handleForgotSendOtp={handleForgotSendOtp}
               handleForgotResetPassword={handleForgotResetPassword}
-              onBackToSignIn={() => {
+              onSwitchToSignIn={() => {
                 setAuthMode('signin');
                 setError('');
                 setSuccessMsg('');

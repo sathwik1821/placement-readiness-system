@@ -73,6 +73,10 @@ export default function App() {
           path="/login"
           element={isAuthenticated ? <Navigate to={roleHome} replace /> : <Login />}
         />
+        <Route
+          path="/login/:role"
+          element={isAuthenticated ? <Navigate to={roleHome} replace /> : <Login />}
+        />
         <Route path="/" element={<Landing />} />
         <Route path="/landing" element={<Landing />} />
 
