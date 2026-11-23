@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
-  Users,
-  Building2,
-  ShieldCheck,
   ArrowRight,
   Sparkles,
   Code2,
@@ -12,15 +9,11 @@ import {
   Database,
   Bot,
   Mail,
-  CheckCircle2,
-  Lock,
+  Building2,
   Cpu,
-  Layers,
-  ChevronRight,
-  ExternalLink
+  Layers
 } from 'lucide-react';
 import PortalSelectionModal from './auth/components/PortalSelectionModal';
-import { PORTAL_OPTIONS } from './auth/components/PortalSelector';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -136,11 +129,8 @@ export default function Landing() {
             <a href="#technologies" className="hover:text-blue-400 transition-colors">
               Technology Stack
             </a>
-            <a href="#portals" className="hover:text-blue-400 transition-colors">
-              Stakeholder Portals
-            </a>
             <a href="#architecture" className="hover:text-blue-400 transition-colors">
-              System Architecture
+              Placement Pipeline
             </a>
           </div>
 
@@ -179,7 +169,7 @@ export default function Landing() {
               onClick={() => setShowPortalModal(true)}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-xl shadow-blue-500/25 transition-all cursor-pointer"
             >
-              <span>Select Portal to Sign In</span>
+              <span>Sign In</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -190,79 +180,6 @@ export default function Landing() {
               <Cpu className="w-4 h-4 text-blue-400" />
               <span>Explore Technology Stack</span>
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Stakeholder Portals Section */}
-      <section id="portals" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-800/80 bg-slate-950">
-        <div className="max-w-7xl mx-auto space-y-12">
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Users className="w-3.5 h-3.5" />
-              <span>Dedicated Authentication Gateways</span>
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Four Specialized Stakeholder Portals
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Each stakeholder group accesses an isolated, role-customized portal with specific email verification rules and security controls.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {PORTAL_OPTIONS.map((portal) => {
-              const Icon = portal.icon;
-              return (
-                <div
-                  key={portal.roleId}
-                  className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800/90 flex flex-col justify-between hover:border-slate-700 hover:bg-slate-900 transition-all shadow-xl"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div
-                        className={`w-11 h-11 rounded-xl bg-gradient-to-tr ${portal.gradient} flex items-center justify-center text-white shadow-md`}
-                      >
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <span
-                        className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${portal.badgeColor}`}
-                      >
-                        {portal.badge}
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-bold text-white">
-                      {portal.title}
-                    </h3>
-                    <p className="text-xs font-medium text-slate-400 mt-0.5">
-                      {portal.subtitle}
-                    </p>
-
-                    <p className="text-xs text-slate-500 mt-3 leading-relaxed">
-                      {portal.description}
-                    </p>
-
-                    <div className="mt-4 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] space-y-1">
-                      <span className="text-slate-400 font-semibold block">Required Email Format:</span>
-                      <span className="font-mono text-blue-400 font-bold block">
-                        {portal.emailRule}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-4 border-t border-slate-800/80">
-                    <button
-                      onClick={() => navigate(portal.path)}
-                      className={`w-full py-2.5 px-3 rounded-xl bg-gradient-to-r ${portal.gradient} hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer`}
-                    >
-                      <span>Sign In as {portal.title.split(' ')[0]}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
       </section>
@@ -389,7 +306,7 @@ export default function Landing() {
 
           <div className="flex items-center gap-4 text-slate-400">
             <a href="#technologies" className="hover:text-white transition-colors">Technologies</a>
-            <a href="#portals" className="hover:text-white transition-colors">Portals</a>
+            <a href="#architecture" className="hover:text-white transition-colors">Pipeline</a>
             <button onClick={() => setShowPortalModal(true)} className="hover:text-white transition-colors cursor-pointer">
               Sign In
             </button>
