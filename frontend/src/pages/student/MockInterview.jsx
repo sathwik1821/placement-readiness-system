@@ -207,13 +207,71 @@ export default function MockInterview() {
         if (profRes.data?.careerGoal?.targetRole) {
           setTargetRole(profRes.data.careerGoal.targetRole);
         }
-        setSessions(sessRes.data || []);
+        const sessionList = sessRes.data || [];
+        setSessions(sessionList);
+
+        // Auto-restore any ongoing interview session so student progress is NEVER lost across re-login or password reset
+        const ongoing = sessionList.find((s) => s.status === 'IN_PROGRESS');
+        if (ongoing) {
+          try {
+            const detailRes = await api.get(`/interviews/sessions/${ongoing.id}/details`);
+            const sess = detailRes.data?.session;
+            const turns = detailRes.data?.turns || [];
+
+            if (sess) {
+              const answeredTurns = [];
+              let pendingQuestion = null;
+
+              for (const t of turns) {
+                if (t.response && (t.response.responseText || t.response.id)) {
+                  answeredTurns.push({
+                    question: t.question,
+                    response: t.response,
+                    keyStrengths: [],
+                    areasForImprovement: [],
+                    aiModel: 'AI Evaluator'
+                  });
+                } else if (!pendingQuestion && t.question) {
+                  pendingQuestion = t.question;
+                }
+              }
+
+              if (pendingQuestion) {
+                setActiveSession(sess);
+                setCurrentQuestion(pendingQuestion);
+                setHistoryResponses(answeredTurns);
+                setCurrentTopic(`${sess.targetRole} Core Competency`);
+                setCurrentDifficulty(answeredTurns.length === 0 ? 'EASY' : answeredTurns.length === 1 ? 'MEDIUM' : 'PROGRESSIVE');
+              }
+            }
+          } catch (restoreErr) {
+            console.warn('Could not restore in-progress interview session:', restoreErr);
+          }
+        }
       } catch (err) {
         console.error('Failed fetching interview data', err);
       }
     }
     fetchInitialData();
   }, []);
+
+  const handleDiscardActiveSession = async () => {
+    if (!activeSession) return;
+    if (!window.confirm('Discard current in-progress interview and start a fresh session?')) return;
+    try {
+      await api.post(`/interviews/sessions/${activeSession.id}/discard`).catch(() => {});
+      setActiveSession(null);
+      setCurrentQuestion(null);
+      setHistoryResponses([]);
+      setIsCompleted(false);
+      setFinalScorecard(null);
+      setAnswerText('');
+      const updatedSessions = await api.get('/interviews/sessions').catch(() => ({ data: [] }));
+      setSessions(updatedSessions.data || []);
+    } catch (err) {
+      console.error('Error discarding session', err);
+    }
+  };
 
   const handleStartInterview = async () => {
     setCreating(true);
@@ -225,7 +283,7 @@ export default function MockInterview() {
       setActiveSession(res.data.session);
       setCurrentQuestion(res.data.question);
       setCurrentTopic(res.data.topic || `${targetRole} Core Competency`);
-      setCurrentDifficulty(res.data.difficulty || 'HARD');
+      setCurrentDifficulty(res.data.difficulty || 'EASY');
       setActiveAiModel(res.data.aiModel || 'gemini-1.5-flash');
       setHistoryResponses([]);
       setIsCompleted(false);
@@ -315,8 +373,65 @@ export default function MockInterview() {
     }
   };
 
+  const completedSessions = sessions.filter((s) => s.status === 'COMPLETED');
+  const completedCount = completedSessions.length;
+  const avgTechScore = completedCount > 0
+    ? Math.round(completedSessions.reduce((acc, s) => acc + (s.technicalScore || s.overallScore || 0), 0) / completedCount)
+    : 0;
+
+  const currentLevelLabel = completedCount === 0
+    ? 'Level 1: Foundational (Easy / Core Concepts)'
+    : completedCount === 1
+    ? 'Level 2: Intermediate (Progressive)'
+    : 'Level 3: Bar-Raiser (Advanced Systems & Architecture)';
+
+  const currentLevelBadge = completedCount === 0
+    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+    : completedCount === 1
+    ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+    : 'bg-purple-500/20 text-purple-300 border-purple-400/30';
+
   return (
     <div className="space-y-8">
+      {/* Student Persistent Interview Progress & Difficulty Tier */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xs">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                AI Interview Progression
+              </span>
+              <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${currentLevelBadge}`}>
+                {currentLevelLabel}
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              {completedCount === 0
+                ? 'Initial Round: Starting with foundational questions that gradually build in depth'
+                : `Progress Verified: ${completedCount} completed mock interview rounds on record`}
+            </h2>
+            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+              Your interview milestone history, difficulty calibration, and scoring analytics are permanently preserved on your student profile and will never get lost across re-logins or password resets.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-5 py-3 text-center min-w-[120px]">
+              <span className="text-[10px] font-black uppercase text-slate-400 block">Rounds Completed</span>
+              <span className="text-2xl font-black font-mono text-emerald-400 my-0.5">{completedCount}</span>
+              <span className="text-[10px] font-bold text-slate-400 block">Saved in DB</span>
+            </div>
+            {completedCount > 0 && (
+              <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl px-5 py-3 text-center min-w-[120px]">
+                <span className="text-[10px] font-black uppercase text-slate-400 block">Avg Technical</span>
+                <span className="text-2xl font-black font-mono text-indigo-400 my-0.5">{avgTechScore}%</span>
+                <span className="text-[10px] font-bold text-slate-400 block">Placement Ready</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Page Header with Dynamic AI Pill & API Key Config */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -556,6 +671,14 @@ export default function MockInterview() {
                   style={{ width: `${((historyResponses.length + 1) / 4) * 100}%` }}
                 />
               </div>
+              <button
+                type="button"
+                onClick={handleDiscardActiveSession}
+                className="text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0"
+                title="Discard this session and start fresh"
+              >
+                Discard & Reset
+              </button>
             </div>
           </div>
 

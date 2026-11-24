@@ -35,8 +35,15 @@ public class GeminiInterviewService {
             String yearOfStudy,
             String skills,
             String testPerformanceSummary,
-            String pastInterviewSummary
-    ) {}
+            String pastInterviewSummary,
+            int completedInterviewCount,
+            String currentLevel
+    ) {
+        public CandidateContext(String studentName, String department, String yearOfStudy,
+                                String skills, String testPerformanceSummary, String pastInterviewSummary) {
+            this(studentName, department, yearOfStudy, skills, testPerformanceSummary, pastInterviewSummary, 0, "FOUNDATIONAL_EASY");
+        }
+    }
 
     public record InitialQuestionResult(String questionText, String topic, String difficulty, String aiModel) {}
     public record AnswerEvaluationResult(double technicalScore, double communicationScore, String aiFeedback,
@@ -61,7 +68,7 @@ public class GeminiInterviewService {
                 if (geminiRes != null && geminiRes.containsKey("question")) {
                     String qText = (String) geminiRes.get("question");
                     String topic = (String) geminiRes.getOrDefault("topic", role + " Core Architecture");
-                    String diff = (String) geminiRes.getOrDefault("difficulty", "HARD");
+                    String diff = (String) geminiRes.getOrDefault("difficulty", "EASY");
                     String modelUsed = (String) geminiRes.getOrDefault("_modelUsed", "gemini-3.5-flash-lite");
                     return new InitialQuestionResult(qText, topic, diff, modelUsed);
                 }
@@ -71,7 +78,7 @@ public class GeminiInterviewService {
         }
 
         // Resilient Contextual Fallback
-        return generateFallbackInitialQuestion(role, interviewType);
+        return generateFallbackInitialQuestion(role, interviewType, candidate);
     }
 
     public InitialQuestionResult generateInitialQuestion(String role, String interviewType, Student student, String customApiKey) {
@@ -296,10 +303,25 @@ public class GeminiInterviewService {
         String skills = candidate != null && candidate.skills() != null ? candidate.skills() : "Core Computer Science, Full Stack Development";
         String testMetrics = candidate != null && candidate.testPerformanceSummary() != null ? candidate.testPerformanceSummary() : "None";
         String pastInterviews = candidate != null && candidate.pastInterviewSummary() != null ? candidate.pastInterviewSummary() : "None";
+        int pastCount = candidate != null ? candidate.completedInterviewCount() : 0;
+        String level = candidate != null && candidate.currentLevel() != null ? candidate.currentLevel() : "FOUNDATIONAL_EASY";
+
+        String difficultyTag = "EASY";
+        String difficultyDirective = """
+        - MANDATORY REQUIREMENT: Question 1 (Turn 1) MUST ALWAYS BE AN EASY, ACCESSIBLE, AND FOUNDATIONAL WARM-UP QUESTION.
+        - Start with fundamental core concepts, essential definitions, everyday patterns, and basic language/framework mechanics.
+        - Examples of expected opening questions:
+          * Java Full Stack: Core OOP differences (e.g. abstract class vs interface, overloading vs overriding), how HashMap/ArrayList work internally, or the role of @Autowired and @RestController in Spring Boot.
+          * MERN / React: Difference between props and state, how useState or useEffect work, or synchronous vs asynchronous JavaScript.
+          * AI / ML: Supervised vs unsupervised learning, what is overfitting and how to avoid it, or precision vs recall.
+          * Data Analytics: Difference between WHERE and HAVING in SQL, INNER vs LEFT JOIN, or common aggregate functions with GROUP BY.
+          * Behavioral: Walk me through a software project or coursework you worked on that you are most proud of.
+        - DO NOT ask about distributed thread pool exhaustion, Bulkheads, cascading failures, memory dump analysis, or zero-downtime database migrations on Question 1!
+        - Keep the tone encouraging, clear, and approachable for a campus placement student.
+        """;
 
         return """
-        You are a Principal Software Engineer and Bar Raiser at a tier-1 technology company (Google, Amazon, Microsoft).
-        You are conducting a live, highly ADAPTIVE campus recruitment mock interview on the ASCEND placement platform.
+        You are an experienced Technical Bar Raiser conducting an ADAPTIVE campus recruitment mock interview on the ASCEND placement platform.
 
         CANDIDATE PROFILE:
         - Target Role: %s
@@ -308,23 +330,21 @@ public class GeminiInterviewService {
         - Department: %s (%s)
         - Verified Candidate Skills: %s
         - Verified Platform Assessment Scores: %s
-        - Prior Interview Performance / Growth Areas: %s
+        - Total Prior Mock Interviews Completed: %d
+        - Prior Interview Track Record: %s
 
-        ADAPTIVE QUESTIONING REQUIREMENTS:
-        1. DEEPLY CALIBRATE TO THE CANDIDATE'S BACKGROUND:
-           - Cross-reference their target role with their verified skills and test scores.
-           - If the candidate exhibits high proficiency (e.g. >= 80%% or 100%% in Java & Spring Boot), DO NOT ask elementary syntax questions (e.g., "what is polymorphism?" or "what is an interface?").
-           - Instead, immediately present an authentic, high-concurrency production engineering challenge (e.g., database connection pool exhaustion under flash sale load, memory leak triage via heap dumps, zero-downtime database migration, or distributed race condition resolution).
-           - If they have identified weaknesses or lower scores in certain areas, weave those core concepts into the problem scenario to assess their recovery.
-        2. Deliver a realistic engineering scenario with concrete constraints, expected trade-offs, and clear technical scope.
+        DIFFICULTY & PROGRESSION DIRECTIVES:
+        %s
+
+        Deliver a realistic, clearly articulated interview question calibrated to the difficulty directive above.
 
         Format your response strictly as valid JSON with keys:
         {
-          "question": "The comprehensive interview scenario prompt",
+          "question": "The interview question prompt",
           "topic": "The exact technical topic / competency",
-          "difficulty": "HARD" or "MEDIUM"
+          "difficulty": "%s"
         }
-        """.formatted(role, type, name, dept, year, skills, testMetrics, pastInterviews);
+        """.formatted(role, type, name, dept, year, skills, testMetrics, pastCount, pastInterviews, difficultyDirective, difficultyTag);
     }
 
     private String buildInitialQuestionPrompt(String role, String type, Student student) {
@@ -383,12 +403,14 @@ public class GeminiInterviewService {
            - technicalScore (0-100): Evaluate conceptual precision, architectural awareness, accuracy, and awareness of trade-offs.
            - communicationScore (0-100): Evaluate structured articulation (Problem -> Solution -> Trade-offs -> Edge cases), clarity, and professional tone.
         2. CONSTRUCTIVE SENIOR CRITIQUE:
-           - aiFeedback: 2-3 sentences of incisive feedback. Acknowledge what was technically sound, directly call out any gaps, misconceptions, or hand-waving, and state how a principal engineer would address the problem.
-        3. DYNAMIC ADAPTIVE FOLLOW-UP:
+           - aiFeedback: 2-3 sentences of incisive feedback. Acknowledge what was technically sound, directly call out any gaps, misconceptions, or hand-waving, and state how a senior engineer would address the problem.
+        3. DYNAMIC ADAPTIVE GRADUAL PROGRESSION:
            - If turn >= %d: Set followUpQuestion to null and isComplete to true.
-           - If candidate performed STRONGLY (technicalScore >= 75): ESCALATE DIFFICULTY. Challenge their assumptions! Ask how their design holds up under 100x traffic scale, network partitions, thread deadlocks, cache stampedes, or strict latency SLAs.
-           - If candidate performed WEAKLY or gave incomplete answer (technicalScore < 60): DRILL INTO FUNDAMENTALS. Gently step back and ask them to clarify the core mechanism or primitive (e.g. underlying time complexity, lock contention, or transaction isolation level).
-           - Base the follow-up question DIRECTLY on the concepts and keywords the candidate just articulated.
+           - PROGRESS DIFFICULTY STEP-BY-STEP ACROSS TURNS:
+             * From Turn 1 to Turn 2: Gradually step up from Foundational/Easy to MEDIUM (practical implementation, component interaction, data flow, exception handling).
+             * From Turn 2 to Turn 3: If candidate answered well (technicalScore >= 65), step up to MEDIUM-TO-HARD (edge cases, error handling, performance considerations). If they struggled, gently clarify the foundational mechanics.
+             * From Turn 3 to Turn 4: Final deep dive or production trade-off scenario.
+           - Base the follow-up question DIRECTLY on the concepts and keywords the candidate just articulated. Avoid jarring, unrealistic jumps in difficulty.
 
         Return strictly valid JSON with exact keys:
         {
@@ -465,53 +487,138 @@ public class GeminiInterviewService {
     // =========================================================================
 
     private InitialQuestionResult generateFallbackInitialQuestion(String role, String type) {
+        return generateFallbackInitialQuestion(role, type, null);
+    }
+
+    private InitialQuestionResult generateFallbackInitialQuestion(String role, String type, CandidateContext candidate) {
+        int pastCount = candidate != null ? candidate.completedInterviewCount() : 0;
+        String level = candidate != null && candidate.currentLevel() != null ? candidate.currentLevel() : "FOUNDATIONAL_EASY";
+
         if ("BEHAVIORAL".equalsIgnoreCase(type)) {
-            List<String> bQuestions = List.of(
-                    "Tell me about a complex engineering project where unexpected technical roadblocks jeopardized an impending delivery date. Walk me through your situational diagnosis, priority triage, and measurable outcome.",
-                    "Describe a high-stakes scenario where you held a profound technical disagreement with a peer regarding architectural trade-offs. How did you reconcile differing viewpoints using empirical evidence?",
-                    "Give an example of a critical system failure or bug in production or coursework that slipped past testing. How did you isolate the root cause and engineer preventive guardrails?",
-                    "Walk me through a project where ambiguous requirements forced you to make bold technical assumptions. How did you balance rapid delivery against technical debt?"
-            );
-            String q = bQuestions.get(new Random().nextInt(bQuestions.size()));
-            return new InitialQuestionResult(q, "Behavioral Leadership & Engineering Ownership (STAR)", "MEDIUM", "gemini-intelligence-engine");
+            if (pastCount == 0 || "FOUNDATIONAL_EASY".equals(level)) {
+                List<String> easyBehavioral = List.of(
+                        "Can you walk me through a technical project or coursework you worked on that you are most proud of? What was the problem and what was your specific technical contribution?",
+                        "Tell me about a time when you had to learn a new programming language, library, or framework quickly for a class or project. How did you structure your learning?",
+                        "Describe an engineering team assignment where you had to collaborate with peers. How did your team divide tasks and ensure the project succeeded?"
+                );
+                String q = easyBehavioral.get(new Random().nextInt(easyBehavioral.size()));
+                return new InitialQuestionResult(q, "Behavioral & Project Experience (STAR)", "EASY", "gemini-intelligence-engine");
+            } else {
+                List<String> bQuestions = List.of(
+                        "Tell me about a complex engineering project where unexpected technical roadblocks jeopardized an impending delivery date. Walk me through your situational diagnosis, priority triage, and measurable outcome.",
+                        "Describe a high-stakes scenario where you held a profound technical disagreement with a peer regarding architectural trade-offs. How did you reconcile differing viewpoints using empirical evidence?",
+                        "Give an example of a critical system failure or bug in production or coursework that slipped past testing. How did you isolate the root cause and engineer preventive guardrails?"
+                );
+                String q = bQuestions.get(new Random().nextInt(bQuestions.size()));
+                return new InitialQuestionResult(q, "Behavioral Leadership & Engineering Ownership (STAR)", "MEDIUM", "gemini-intelligence-engine");
+            }
         }
 
+        // TIER 1: INITIAL INTERVIEWS (EASY & FOUNDATIONAL)
+        if (pastCount == 0 || "FOUNDATIONAL_EASY".equals(level)) {
+            Map<String, List<String>> easyBanks = Map.of(
+                    "Java Full Stack Developer", List.of(
+                            "In Java, what is the fundamental difference between an Abstract Class and an Interface? In what scenarios would you choose an interface over an abstract class?",
+                            "Can you explain the difference between method overloading and method overriding in Java, and how runtime polymorphism works?",
+                            "In Spring Boot, what is the purpose of Dependency Injection (Inversion of Control), and how does the @Autowired annotation facilitate this?",
+                            "In relational databases, what is the difference between an INNER JOIN and a LEFT JOIN? Could you give a simple real-world example?"
+                    ),
+                    "MERN Full Stack Developer", List.of(
+                            "In React, what is the difference between props and state, and why is component state treated as immutable?",
+                            "Can you explain the purpose of the useState and useEffect hooks in React functional components with a basic code example?",
+                            "In JavaScript and Node.js, what is the difference between synchronous code and asynchronous code using Promises or async/await?",
+                            "In MongoDB, what is a document and a collection, and how do they compare to tables and rows in relational SQL databases?"
+                    ),
+                    "AI / ML Engineer", List.of(
+                            "What is the primary difference between Supervised Learning and Unsupervised Learning? Can you give an example algorithm of each?",
+                            "In machine learning, what do we mean by 'overfitting' and 'underfitting', and how can you detect if your trained model is overfitting?",
+                            "Can you explain the difference between Precision and Recall in a binary classification problem? When is high recall more critical than high precision?",
+                            "What is the purpose of splitting a dataset into Training, Validation, and Testing subsets?"
+                    ),
+                    "Data Analyst", List.of(
+                            "In SQL queries, what is the operational difference between the WHERE clause and the HAVING clause?",
+                            "What are the common aggregate functions in SQL (such as COUNT, SUM, AVG, MAX, MIN), and why do they require a GROUP BY clause when paired with standard columns?",
+                            "In relational data analysis, what is the difference between an INNER JOIN and an OUTER JOIN?",
+                            "What is the difference between categorical data and numerical data, and what type of visualization would you choose to represent each?"
+                    ),
+                    "Cloud & DevOps Engineer", List.of(
+                            "What is the difference between a Virtual Machine (VM) and a Docker Container?",
+                            "What is continuous integration and continuous deployment (CI/CD), and why is it essential in modern software engineering teams?",
+                            "What is the difference between TCP and UDP protocols, and when would an application choose UDP over TCP?"
+                    )
+            );
+            List<String> list = easyBanks.getOrDefault(role, easyBanks.get("Java Full Stack Developer"));
+            String q = list.get(new Random().nextInt(list.size()));
+            return new InitialQuestionResult(q, role + " Foundations", "EASY", "gemini-intelligence-engine");
+        }
+
+        // TIER 2: INTERMEDIATE (MEDIUM)
+        if (pastCount == 1 || "INTERMEDIATE_PROGRESSIVE".equals(level)) {
+            Map<String, List<String>> mediumBanks = Map.of(
+                    "Java Full Stack Developer", List.of(
+                            "In Spring Boot, how does the IoC container manage the lifecycle of a Spring Bean, and what is the difference between singleton and prototype bean scopes?",
+                            "How does the @Transactional annotation work under the hood in Spring Boot, and what happens when an unchecked exception is thrown inside a transactional method?",
+                            "In Java Collections, how does HashMap work internally (hashing, buckets, and collision handling)? How was this improved in Java 8?",
+                            "In JPA and Hibernate, what causes the 'N+1 Select' problem and how can you resolve it using JOIN FETCH or Entity Graphs?"
+                    ),
+                    "MERN Full Stack Developer", List.of(
+                            "Explain how the React Virtual DOM Reconciliation algorithm works. When and why should you use useMemo and useCallback to optimize performance?",
+                            "In Express and Node.js, how does middleware chaining work with next(), and how should global error-handling middleware be structured?",
+                            "In MongoDB, when would you embed subdocuments versus creating separate referenced collections with populate()?",
+                            "How does JWT (JSON Web Token) authentication work in a full-stack React and Node application, and where should tokens be stored securely?"
+                    ),
+                    "AI / ML Engineer", List.of(
+                            "Explain how Gradient Descent works to minimize a loss function during model training. What is the role of the learning rate?",
+                            "How do L1 (Lasso) and L2 (Ridge) regularization prevent overfitting, and how do they differ in feature selection?",
+                            "What is Cross-Validation (e.g. K-Fold), and why is it preferred over a single train-test split for evaluating model generalization?",
+                            "In Random Forests, how does bagging (bootstrap aggregation) reduce variance compared to a single decision tree?"
+                    ),
+                    "Data Analyst", List.of(
+                            "In SQL, demonstrate the difference between ROW_NUMBER(), RANK(), and DENSE_RANK() with an example scenario.",
+                            "In SQL, when would you use a Common Table Expression (CTE) versus a Subquery or Temporary Table?",
+                            "In data cleaning, how do you detect and handle missing data (imputation vs deletion) and outliers?",
+                            "In business intelligence, what is the difference between a Star Schema and a Snowflake Schema?"
+                    ),
+                    "Cloud & DevOps Engineer", List.of(
+                            "How do Docker multi-stage builds help optimize production container images?",
+                            "In Kubernetes, what is the role of a Pod, a Service, and an Ingress controller?",
+                            "How does Infrastructure as Code (e.g. Terraform) ensure consistent and reproducible cloud environments?"
+                    )
+            );
+            List<String> list = mediumBanks.getOrDefault(role, mediumBanks.get("Java Full Stack Developer"));
+            String q = list.get(new Random().nextInt(list.size()));
+            return new InitialQuestionResult(q, role + " Core Competency", "MEDIUM", "gemini-intelligence-engine");
+        }
+
+        // TIER 3: ADVANCED / BAR-RAISER (HARD)
         Map<String, List<String>> roleBanks = Map.of(
                 "Java Full Stack Developer", List.of(
                         "How does the JVM Garbage Collector orchestrate generational memory across Eden, Survivor, and Tenured spaces? In high-throughput distributed microservices, how would you diagnose stop-the-world latency spikes and memory leaks?",
-                        "Compare Spring Boot's @Component, @Service, and @Repository annotations from an IoC container perspective. How does Spring manage bean lifecycles, circular dependency resolution, and proxy-based @Transactional boundaries?",
                         "Design an enterprise REST API microservice using Spring Boot and Spring Data JPA. Under peak concurrent writes, how do you handle dirty reads and phantom reads using optimistic vs pessimistic locking?",
                         "In microservices architecture, how do you implement stateless JWT authentication, distributed session invalidation, and rate limiting using Spring Cloud Gateway and Redis?"
                 ),
                 "MERN Full Stack Developer", List.of(
-                        "Explain how the React Virtual DOM Reconciliation algorithm uses Fiber architecture to prioritize updates. What anti-patterns cause redundant sub-tree re-renders, and how do useMemo, useCallback, and React.memo prevent them?",
+                        "Explain how the React Virtual DOM Reconciliation algorithm uses Fiber architecture to prioritize updates. What anti-patterns cause redundant sub-tree re-renders, and how do you profile them?",
                         "How does the Node.js Event Loop orchestrate asynchronous execution between the microtask queue (Promises, process.nextTick) and macrotask phases (Timers, Poll, Check)? Walk me through an asynchronous file IO lifecycle.",
-                        "In MongoDB document modeling, when should you choose embedded subdocuments versus normalized document references with populate()? How do compound indexes and write concerns (w: majority) impact ACID guarantees?",
-                        "Compare REST and GraphQL architectures under high-scale mobile network constraints. How do you design an optimistic UI state architecture with Apollo Client or React Query and centralized error boundaries?"
+                        "In MongoDB document modeling, how do compound indexes, index cardinality, and write concerns (w: majority) impact ACID guarantees and throughput under high concurrency?"
                 ),
                 "AI / ML Engineer", List.of(
-                        "Explain the bias-variance tradeoff in modern deep neural networks. How do architectural regularizations—such as Dropout, Weight Decay (L2), Batch Normalization, and Early Stopping—differentially influence the loss surface?",
                         "Derive the mathematical purpose of Backpropagation in multilayer perceptrons. Why is the chain rule of calculus essential for computing gradients, and how do modern optimizers (Adam vs SGD with Momentum) overcome saddle points?",
-                        "In an automated campus placement screening system or medical diagnostic classifier, how do you balance Precision versus Recall? Under severe 99:1 class imbalance, which evaluation metrics and loss functions would you choose?",
                         "Walk me through Transformer Self-Attention mechanisms: why does multi-head scaled dot-product attention conquer the sequential bottleneck of RNNs and LSTMs in large language model pipelines?"
                 ),
                 "Data Analyst", List.of(
-                        "In analytical SQL, demonstrate the operational difference between ROW_NUMBER(), RANK(), and DENSE_RANK() with PARTITION BY. How would you optimize complex window aggregations over billions of transaction records?",
-                        "In enterprise data warehousing, compare Star Schema versus Snowflake Schema. How do dimension table normalization and foreign key joins influence query latency in analytical OLAP workloads?",
-                        "How do you design a scalable ETL/ELT pipeline that validates schema conformity, handles data drift, and verifies automated freshness benchmarks before loading datasets into executive BI dashboards?",
-                        "Explain the statistical difference between correlation and causation in exploratory business analytics. Provide an industry case where Simpson's Paradox could lead an executive team to an incorrect strategic conclusion."
+                        "In analytical SQL, how would you optimize complex window aggregations over billions of transaction records with partition pruning and composite indexes?",
+                        "How do you design a scalable ETL/ELT pipeline that validates schema conformity, handles data drift, and verifies automated freshness benchmarks before loading datasets into executive BI dashboards?"
                 ),
                 "Cloud & DevOps Engineer", List.of(
                         "Explain how Linux cgroups and namespaces provide resource isolation for Docker containers. How does the kernel process scheduler (CFS) enforce CPU and memory limits during noisy-neighbor saturation?",
-                        "Walk me through a zero-downtime deployment strategy (Blue-Green vs Canary). How would you configure Kubernetes ingress routing, liveness/readiness probes, and automated rollback triggers during high-traffic updates?",
-                        "In high-scale distributed systems, explain the CAP theorem and PACELC trade-offs. How do modern cloud-native databases like DynamoDB or Cassandra maintain high write availability across multi-region availability zones?",
-                        "Describe your incident response workflow when a critical production Kubernetes microservice experiences an unhandled CrashLoopBackOff. How do you triage logs, heap dumps, and network policies under strict SLAs?"
+                        "Walk me through a zero-downtime deployment strategy (Blue-Green vs Canary). How would you configure Kubernetes ingress routing, liveness/readiness probes, and automated rollback triggers during high-traffic updates?"
                 )
         );
 
         List<String> list = roleBanks.getOrDefault(role, roleBanks.get("Java Full Stack Developer"));
         String q = list.get(new Random().nextInt(list.size()));
-        return new InitialQuestionResult(q, role + " Core Competency", "HARD", "gemini-intelligence-engine");
+        return new InitialQuestionResult(q, role + " Production Systems", "HARD", "gemini-intelligence-engine");
     }
 
     private AnswerEvaluationResult generateFallbackAnswerEvaluation(String role, String type, String questionText,
@@ -542,57 +649,70 @@ public class GeminiInterviewService {
             if (lower.contains(sw)) structHits++;
         }
 
-        double baseTech = 62.0 + Math.min(22.0, wordCount * 0.22) + Math.min(16.0, techKeywordHits * 3.5);
-        double baseComm = 65.0 + Math.min(20.0, wordCount * 0.20) + Math.min(15.0, structHits * 4.5);
+        double baseTech = 65.0 + Math.min(20.0, wordCount * 0.22) + Math.min(15.0, techKeywordHits * 3.5);
+        double baseComm = 68.0 + Math.min(18.0, wordCount * 0.20) + Math.min(14.0, structHits * 4.5);
 
         if (uniqueRatio < 0.45 && wordCount > 15) {
             baseTech -= 12.0;
             baseComm -= 10.0;
         }
 
-        double techScore = Math.min(96.0, Math.max(45.0, Math.round(baseTech)));
-        double commScore = Math.min(98.0, Math.max(50.0, Math.round(baseComm)));
+        double techScore = Math.min(96.0, Math.max(48.0, Math.round(baseTech)));
+        double commScore = Math.min(98.0, Math.max(52.0, Math.round(baseComm)));
 
         StringBuilder feedback = new StringBuilder();
         List<String> strengths = new ArrayList<>();
         List<String> areasForImprovement = new ArrayList<>();
 
-        if (techKeywordHits >= 3) {
-            strengths.add("Effective utilization of core domain architectural terminology");
-            feedback.append("Excellent technical precision and domain vocabulary articulated in your explanation. ");
+        if (techKeywordHits >= 2 || wordCount >= 30) {
+            strengths.add("Clear domain explanation and accurate foundational terminology");
+            feedback.append("Solid conceptual explanation. You communicated the core mechanics effectively. ");
         } else {
-            areasForImprovement.add("Incorporate concrete computational complexity (Big-O) and quantitative metrics");
-            feedback.append("Your response covers the general intuition. Quantifying architectural trade-offs will demonstrate senior-level depth. ");
+            areasForImprovement.add("Deepen explanation with specific real-world examples or code syntax");
+            feedback.append("Good start. Providing a concrete coding or architecture example will strengthen your response. ");
         }
 
-        if (wordCount >= 40 && structHits > 0) {
-            strengths.add("Clear, structured exposition following a logical problem-solving sequence");
+        if (wordCount >= 35 && structHits > 0) {
+            strengths.add("Structured articulation following a logical sequence");
             feedback.append("The structure was methodical and well-paced.");
-        } else if (wordCount < 25) {
-            areasForImprovement.add("Elaborate on production edge cases, failover strategies, and error handling");
-            feedback.append("Your response was concise. Deepen your explanation by addressing boundary conditions and high-concurrency failure modes.");
+        } else if (wordCount < 20) {
+            areasForImprovement.add("Elaborate on practical use cases and component interaction");
+            feedback.append("Your response was concise. Deepen your explanation by addressing how this works in an actual project.");
         } else {
-            strengths.add("Coherent rationale addressing the core premise");
-            feedback.append("Structured delivery was easy to follow.");
+            strengths.add("Coherent rationale addressing the core question");
+            feedback.append("Delivery was clear and easy to follow.");
         }
 
         boolean isComplete = turn >= maxTurns;
         String followUp = null;
 
         if (!isComplete) {
-            // Adaptive contextual follow-up based on candidate's actual words
-            if (lower.contains("cache") || lower.contains("redis")) {
-                followUp = "Building directly on your caching explanation: how would you protect your persistence layer against cache stampede (thundering herd) and cache penetration under peak concurrent bursts?";
-            } else if (lower.contains("database") || lower.contains("sql") || lower.contains("index")) {
-                followUp = "Following up on your database modeling: how do write-amplification and B-Tree rebalancing overhead affect system performance when indexing columns with high write frequency?";
-            } else if (lower.contains("thread") || lower.contains("concurrency") || lower.contains("lock")) {
-                followUp = "Since you referenced synchronization: what is priority inversion, and how do modern kernels or thread schedulers resolve deadlock hazards?";
-            } else if (lower.contains("api") || lower.contains("microservice") || lower.contains("gateway")) {
-                followUp = "In that distributed setup: how would you orchestrate distributed tracing across service boundaries and implement graceful degradation when an upstream dependency fails?";
-            } else if ("BEHAVIORAL".equalsIgnoreCase(type)) {
-                followUp = "Reflecting on that outcome: what quantitative KPIs did you evaluate to measure success, and what architectural safeguards did you introduce to prevent that issue from recurring?";
+            // Smooth turn-by-turn difficulty progression
+            if (turn == 1) {
+                // Stepping up to MEDIUM: Practical application & component interaction
+                if (lower.contains("interface") || lower.contains("abstract") || lower.contains("class") || lower.contains("java")) {
+                    followUp = "Building on your explanation: in Java 8 and later, interfaces can have default and static methods. How does this impact application design, and how would you resolve a conflict if a class implements two interfaces with identical default methods?";
+                } else if (lower.contains("props") || lower.contains("state") || lower.contains("react")) {
+                    followUp = "Great. Now, when a React component's state updates, how does React determine which DOM nodes need updating, and when would you use the useEffect dependency array to control side-effect execution?";
+                } else if (lower.contains("supervised") || lower.contains("unsupervised") || lower.contains("learning")) {
+                    followUp = "Following up on that: how do you prepare and preprocess raw tabular data before feeding it into a supervised learning algorithm (e.g. handling missing values, categorical encoding, and feature scaling)?";
+                } else if (lower.contains("join") || lower.contains("where") || lower.contains("having") || lower.contains("sql")) {
+                    followUp = "Good explanation. In an enterprise database with millions of student records, how does adding an index on a frequently searched column improve query performance, and what is the trade-off for write operations?";
+                } else {
+                    followUp = "Building on your answer: can you describe a practical project scenario where you utilized this concept, and what technical decisions or trade-offs you made?";
+                }
+            } else if (turn == 2) {
+                // Stepping up to MEDIUM-TO-HARD: Architecture, edge cases & error handling
+                if (lower.contains("cache") || lower.contains("redis")) {
+                    followUp = "In production systems using caching: how would you protect your database persistence layer against cache stampede (thundering herd) and cache penetration under peak traffic?";
+                } else if (lower.contains("database") || lower.contains("sql") || lower.contains("transaction")) {
+                    followUp = "Following up on database operations: how do optimistic locking using a version column and pessimistic locking differ in preventing lost updates during concurrent writes?";
+                } else {
+                    followUp = "If unexpected errors or network latency occur during that operation, how would you design proper exception handling, retry logic, or graceful fallback to keep the application reliable?";
+                }
             } else {
-                followUp = "If traffic increased 50x overnight, which component of your proposed solution would fail first, and how would you architect the system to scale horizontally without downtime?";
+                // Final turn challenge: Scale & trade-offs
+                followUp = "If user traffic grew 20x overnight, which part of your proposed architecture would become the bottleneck first, and what horizontal scaling strategy would you implement?";
             }
         }
 

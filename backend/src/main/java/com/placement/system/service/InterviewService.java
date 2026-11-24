@@ -51,7 +51,7 @@ public class InterviewService {
         if (student == null) {
             return new GeminiInterviewService.CandidateContext(
                     "Candidate", "Computer Science", "4th Year", "General Software Engineering",
-                    "No platform test history available", "First mock interview"
+                    "No platform test history available", "First mock interview", 0, "FOUNDATIONAL_EASY"
             );
         }
 
@@ -88,13 +88,13 @@ public class InterviewService {
 
         // 2. Gather prior mock interview rounds
         StringBuilder pastInterviews = new StringBuilder();
+        int completedPastCount = 0;
         try {
             List<MockInterviewSession> pastSessions = sessionRepository.findByStudentIdOrderByCreatedAtDesc(student.getId());
             if (pastSessions != null && !pastSessions.isEmpty()) {
-                int pastCount = 0;
                 for (MockInterviewSession s : pastSessions) {
                     if ("COMPLETED".equalsIgnoreCase(s.getStatus())) {
-                        pastCount++;
+                        completedPastCount++;
                         if (pastInterviews.length() > 0) pastInterviews.append("; ");
                         pastInterviews.append(s.getTargetRole()).append(" (")
                                 .append(String.format("%.0f%%", s.getOverallScore() != null ? s.getOverallScore() : 0.0))
@@ -103,7 +103,7 @@ public class InterviewService {
                             String shortFeedback = s.getFeedback().length() > 80 ? s.getFeedback().substring(0, 80) + "..." : s.getFeedback();
                             pastInterviews.append(" - ").append(shortFeedback);
                         }
-                        if (pastCount >= 3) break;
+                        if (completedPastCount >= 3) break;
                     }
                 }
             }
@@ -114,8 +114,16 @@ public class InterviewService {
             pastInterviews.append("First mock interview round");
         }
 
+        String currentLevel = "FOUNDATIONAL_EASY";
+        if (completedPastCount == 1) {
+            currentLevel = "INTERMEDIATE_PROGRESSIVE";
+        } else if (completedPastCount >= 2) {
+            currentLevel = "ADVANCED_CALIBRATED";
+        }
+
         return new GeminiInterviewService.CandidateContext(
-                name, dept, year, skills, testPerf.toString(), pastInterviews.toString()
+                name, dept, year, skills, testPerf.toString(), pastInterviews.toString(),
+                completedPastCount, currentLevel
         );
     }
 
@@ -149,7 +157,22 @@ public class InterviewService {
         respMap.put("aiModel", initialQ.aiModel());
         respMap.put("topic", initialQ.topic());
         respMap.put("difficulty", initialQ.difficulty());
+        respMap.put("completedCount", candidateCtx.completedInterviewCount());
+        respMap.put("currentLevel", candidateCtx.currentLevel());
         return respMap;
+    }
+
+    public void discardSession(String sessionId, String userId) {
+        String studentId = studentRepository.findByUserId(userId).map(Student::getId).orElse(null);
+        MockInterviewSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Interview session not found"));
+        if (studentId == null || !session.getStudentId().equals(studentId)) {
+            throw new IllegalStateException("You do not own this interview session");
+        }
+        if ("IN_PROGRESS".equalsIgnoreCase(session.getStatus())) {
+            session.setStatus("ABANDONED");
+            sessionRepository.save(session);
+        }
     }
 
     @Transactional(readOnly = true)

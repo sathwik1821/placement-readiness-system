@@ -149,12 +149,6 @@ public class DatabaseSeeder {
                 goal.setTargetIndustry("Technology");
                 careerGoalRepository.save(goal);
             } else {
-                userRepository.findByEmail("s210018@rguktsklm.ac.in").ifPresent(u -> {
-                    if (!passwordEncoder.matches("sathwik@18", u.getPassword()) && !passwordEncoder.matches("Student@123", u.getPassword())) {
-                        u.setPassword(passwordEncoder.encode("sathwik@18"));
-                        userRepository.save(u);
-                    }
-                });
                 User u = userRepository.findByEmail("s210018@rguktsklm.ac.in").orElse(null);
                 if (u != null) {
                     arjun = studentRepository.findByUserId(u.getId()).orElse(null);

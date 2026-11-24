@@ -95,4 +95,20 @@ public class InterviewController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/sessions/{id}/discard")
+    public ResponseEntity<?> discardSession(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+
+        String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
+        try {
+            interviewService.discardSession(id, userId);
+            return ResponseEntity.ok(Map.of("message", "Session discarded"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        }
+    }
 }
