@@ -1,5 +1,6 @@
 # === Backend (Spring Boot / Java) ===
 backend/target/
+target/
 backend/.mvn/
 backend/data/
 data/
@@ -8,6 +9,9 @@ uploads/
 backend/*.jar
 backend/mvnw
 backend/mvnw.cmd
+
+# === Scratch & Temporary Diagnostic Scripts ===
+scratch/
 
 # === Frontend (Node / Vite / React) ===
 frontend/node_modules/

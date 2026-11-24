@@ -1,9 +1,10 @@
 @echo off
-title AI Placement Readiness System
+title Ascend - AI Placement Readiness System
 echo ======================================================================
-echo   AI-Assisted Student Success and Placement Readiness System
-echo   Backend: Spring Boot 3.3.4 (Java 21) on Port 5000
-echo   Frontend: React 18 + Vite + Tailwind CSS on Port 5173
+echo   ASCEND: AI-Assisted Student Success and Placement Readiness System
+echo   Backend:  Spring Boot 3.3.4 (Java 21 LTS) on Port 5000
+echo   Frontend: React 19 + Vite + Tailwind CSS on Port 5173
+echo   Database: PostgreSQL 16 (placementdb) on Port 5432
 echo ======================================================================
 
 echo Starting Spring Boot Backend...
@@ -17,16 +18,16 @@ start "Frontend (Vite Port 5173)" cmd /k "cd /d %~dp0frontend && npm run dev"
 
 echo.
 echo ======================================================================
-echo System successfully started!
+echo Ascend successfully started!
 echo Frontend Application: http://localhost:5173
 echo Backend API Endpoint: http://localhost:5000/api
-echo H2 Database Console:  http://localhost:5000/h2-console
+echo PostgreSQL Database:  localhost:5432/placementdb
 echo.
-echo Login Credentials (Default Password: <Role>@123):
-echo   - Student (2027 Batch): s210018@rguktsklm.ac.in  (Password: Student@123)
-echo   - Student (2028 Batch): s220145@rguktsklm.ac.in  (Password: Student@123)
-echo   - Officer:              officer@college.edu       (Password: Officer@123)
-echo   - Recruiter:            hr@techcorp.com           (Password: Company@123)
-echo   - Admin:                admin@system.com          (Password: Admin@123)
+echo Login Credentials:
+echo   - Student (RGUKT E4): s210018@rguktsklm.ac.in  (Password: sathwik@18 or Student@123)
+echo   - Student (RGUKT E3): s220145@rguktsklm.ac.in  (Password: Student@123)
+echo   - Placement Officer:  officer@college.edu       (Password: Officer@123)
+echo   - Recruiter:          hr@techcorp.com           (Password: Company@123)
+echo   - System Admin:       admin@system.com          (Password: Admin@123)
 echo ======================================================================
 pause

@@ -42,8 +42,8 @@ Bridge the divide between academic university curricula and competitive industry
 ## Platform & Scope
 
 - **Platform:** Web application (Desktop-first responsive design, highly scannable layouts for data-dense dashboards).
-- **Frontend Stack:** React 18, Vite, Tailwind CSS v3, Axios, Zustand, Lucide React.
-- **Backend Stack:** Spring Boot 3.3.4 (Java 21 LTS), Spring Data JPA, Spring Security (Stateless JWT), H2 Persistent Database (`./data/placementdb`).
+- **Frontend Stack:** React 19, Vite, Tailwind CSS v3, Axios, Zustand, Lucide React.
+- **Backend Stack:** Spring Boot 3.3.4 (Java 21 LTS), Spring Data JPA, Spring Security (Stateless JWT), PostgreSQL 16 (`placementdb`).
 - **Scope:** Multi-portal institutional SaaS platform with segregated role routes (`/student/*`, `/officer/*`, `/company/*`, `/admin/*`).
 
 ---
@@ -52,7 +52,7 @@ Bridge the divide between academic university curricula and competitive industry
 
 - **Security & RBAC:** Strict Role-Based Access Control via stateless JSON Web Tokens. Subsystems must enforce route guards and server-side role validation.
 - **Eligibility Validation:** Deterministic filtering on all recruitment applications; students below CGPA thresholds or outside eligible branches must receive unambiguous disqualification reasons.
-- **Performance:** Sub-second client navigation, fast test submission feedback, and local persistent H2 database storage for instant zero-configuration demonstration.
+- **Performance:** Sub-second client navigation, fast test submission feedback, and robust relational persistence via PostgreSQL with Flyway schema versioning.
 - **Accessibility & Contrast:** High contrast text on all metrics, semantic status badges, and full keyboard-navigable form inputs.
 
 ---
