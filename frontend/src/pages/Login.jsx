@@ -127,8 +127,11 @@ export default function Login() {
       const res = await api.post('/auth/send-otp', { email: email.trim().toLowerCase() });
       setRegStep('OTP');
       setResendTimer(60);
-      setSuccessMsg('A 6-digit verification code has been dispatched to your RGUKT email.');
-      if (res.data?.devOtp) setDevOtpNotice(res.data.devOtp);
+      setSuccessMsg('A 6-digit verification code has been dispatched.');
+      if (res.data?.devOtp) {
+        setDevOtpNotice(res.data.devOtp);
+        setOtp(res.data.devOtp);
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to dispatch verification code');
     } finally {
@@ -172,7 +175,10 @@ export default function Login() {
       setForgotStep('OTP');
       setForgotResendTimer(60);
       setSuccessMsg('Verification OTP dispatched to your registered email.');
-      if (res.data?.devOtp) setForgotDevOtp(res.data.devOtp);
+      if (res.data?.devOtp) {
+        setForgotDevOtp(res.data.devOtp);
+        setForgotOtp(res.data.devOtp);
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send reset code');
     } finally {
