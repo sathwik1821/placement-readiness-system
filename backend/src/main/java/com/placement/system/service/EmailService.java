@@ -43,6 +43,9 @@ public class EmailService {
     @Value("${spring.mail.username:}")
     private String mailUsername;
 
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
     @Value("${spring.mail.host:}")
     private String mailHost;
 
@@ -72,12 +75,7 @@ public class EmailService {
         emailOtpRepository.save(otpEntity);
 
         // Visual Console Log for immediate debugging and local testing
-        System.out.println("================================================================================");
-        System.out.println(" [ASCEND RGUKT INSTITUTIONAL OTP DISPATCH]");
-        System.out.println(" Recipient Email : " + cleanEmail);
-        System.out.println(" One-Time Code   : " + otp);
-        System.out.println(" Expiration Time : " + expiry + " (10 Minutes)");
-        System.out.println("================================================================================");
+        logger.info("[ASCEND OTP DISPATCH] Email: {} | Expiry: {} (10 Minutes)", cleanEmail, expiry);
 
         boolean emailDispatched = false;
         String dispatchError = null;
@@ -86,7 +84,7 @@ public class EmailService {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom("ascend-noreply@rguktsklm.ac.in", "Ascend RGUKT Placement Cell");
+                helper.setFrom(mailUsername, "Ascend RGUKT Placement Cell");
                 helper.setTo(cleanEmail);
                 helper.setSubject("[Ascend RGUKT] Student Registration OTP: " + otp);
 
@@ -126,10 +124,8 @@ public class EmailService {
         response.put("email", cleanEmail);
         response.put("message", "A 6-digit verification code has been dispatched to " + cleanEmail);
         response.put("emailSent", emailDispatched);
-        // Expose devOtp for smooth developer evaluation & testing when local SMTP is not configured
-        response.put("devOtp", otp);
         if (dispatchError != null) {
-            response.put("mailStatus", "Dev fallback active: " + dispatchError);
+            response.put("mailStatus", "SMTP fallback active: " + dispatchError);
         }
         return response;
     }
@@ -156,12 +152,7 @@ public class EmailService {
         EmailOtp otpEntity = new EmailOtp(cleanEmail, otp, expiry);
         emailOtpRepository.save(otpEntity);
 
-        System.out.println("================================================================================");
-        System.out.println(" [ASCEND RGUKT PASSWORD RESET OTP DISPATCH]");
-        System.out.println(" Recipient Email : " + cleanEmail);
-        System.out.println(" One-Time Code   : " + otp);
-        System.out.println(" Expiration Time : " + expiry + " (10 Minutes)");
-        System.out.println("================================================================================");
+        logger.info("[ASCEND OTP DISPATCH] Password Reset Email: {} | Expiry: {} (10 Minutes)", cleanEmail, expiry);
 
         boolean emailDispatched = false;
         String dispatchError = null;
@@ -170,7 +161,7 @@ public class EmailService {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom("ascend-noreply@rguktsklm.ac.in", "Ascend RGUKT Placement Cell");
+                helper.setFrom(mailUsername, "Ascend RGUKT Placement Cell");
                 helper.setTo(cleanEmail);
                 helper.setSubject("[Ascend RGUKT] Password Reset Verification Code: " + otp);
 
@@ -208,9 +199,8 @@ public class EmailService {
         response.put("email", cleanEmail);
         response.put("message", "A 6-digit password reset code has been dispatched to " + cleanEmail);
         response.put("emailSent", emailDispatched);
-        response.put("devOtp", otp);
         if (dispatchError != null) {
-            response.put("mailStatus", "Dev fallback active: " + dispatchError);
+            response.put("mailStatus", "SMTP fallback active: " + dispatchError);
         }
         return response;
     }
@@ -318,7 +308,7 @@ public class EmailService {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom("ascend-noreply@rguktsklm.ac.in", "Ascend RGUKT Placement Cell");
+                helper.setFrom(mailUsername, "Ascend RGUKT Placement Cell");
                 helper.setTo(cleanEmail);
                 helper.setSubject(subject);
                 helper.setText(htmlContent, true);
@@ -370,7 +360,8 @@ public class EmailService {
 
     private boolean isSmtpConfigured() {
         return mailHost != null && !mailHost.isBlank() && !mailHost.equals("localhost")
-                && mailUsername != null && !mailUsername.isBlank() && !mailUsername.contains("dummy");
+                && mailUsername != null && !mailUsername.isBlank() && !mailUsername.contains("dummy")
+                && mailPassword != null && !mailPassword.isBlank();
     }
 
     private void printConsoleSimulation(String email, String name, String role, String subject, String type) {

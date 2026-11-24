@@ -132,10 +132,10 @@ export default function Login() {
       const res = await api.post('/auth/send-otp', { email: email.trim().toLowerCase() });
       setRegStep('OTP');
       setResendTimer(60);
-      setSuccessMsg('A 6-digit verification code has been dispatched.');
+      setSuccessMsg('A 6-digit verification code has been dispatched to your email.');
       if (res.data?.devOtp) {
         setDevOtpNotice(res.data.devOtp);
-        setOtp(res.data.devOtp);
+        // Don't auto-fill — user should check their email
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to dispatch verification code');
@@ -182,7 +182,7 @@ export default function Login() {
       setSuccessMsg('Verification OTP dispatched to your registered email.');
       if (res.data?.devOtp) {
         setForgotDevOtp(res.data.devOtp);
-        setForgotOtp(res.data.devOtp);
+        // Don't auto-fill — user should check their email
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send reset code');

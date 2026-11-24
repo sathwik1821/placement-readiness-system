@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, KeyRound, Loader2, RefreshCw, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function ForgotPasswordForm({
@@ -73,19 +73,11 @@ export default function ForgotPasswordForm({
           </div>
 
           {forgotDevOtp && (
-            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5 text-center">
-              <div className="flex items-center justify-center gap-1.5 text-amber-300 text-xs font-semibold">
-                <span>⚡ Dev Mode OTP Auto-Filled</span>
-              </div>
-              <p className="text-[11px] text-slate-300">
-                SMTP unconfigured in dev. Reset Code:{' '}
-                <span className="font-mono font-bold text-amber-300 text-sm tracking-wider px-1.5 py-0.5 bg-slate-900 rounded">
-                  {forgotDevOtp}
-                </span>
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-center">
+              <p className="text-xs text-emerald-300 font-medium">
+                ✓ Password reset code sent to your email inbox.
               </p>
-              <p className="text-[10px] text-slate-400">
-                (Code is auto-filled below. Set MAIL_USERNAME & MAIL_PASSWORD in production to receive real emails)
-              </p>
+              <p className="text-[11px] text-slate-400 mt-1">Check your inbox and spam folder. Valid for 10 minutes.</p>
             </div>
           )}
 
