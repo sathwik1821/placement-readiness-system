@@ -34,6 +34,9 @@ public class AnalysisController {
     private TestCategoryRepository categoryRepository;
 
     @Autowired
+    private MockInterviewSessionRepository sessionRepository;
+
+    @Autowired
     private JwtService jwtService;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -83,17 +86,20 @@ public class AnalysisController {
         for (TestAttempt a : completed) {
             categoryRepository.findById(a.getTestCategoryId()).ifPresent(cat -> {
                 double current = categoryScores.getOrDefault(cat.getName(), 0.0);
-                if (a.getPercentageScore() > current) {
+                if (a.getPercentageScore() != null && a.getPercentageScore() > current) {
                     categoryScores.put(cat.getName(), a.getPercentageScore());
                 }
             });
         }
 
+        // =========================================================================
+        // 1. PILLAR 1: TECHNICAL COMPETENCY ASSESSMENTS (WEIGHT: 45%)
+        // =========================================================================
         Map<String, Double> weights = getRoleWeights(targetRole);
         Map<String, Integer> benchmarks = getRoleBenchmarks(targetRole);
 
-        double weightedSum = 0.0;
-        double totalWeight = 0.0;
+        double rawTechWeightedSum = 0.0;
+        int completedRoleSkillsCount = 0;
         Map<String, Object> breakdown = new LinkedHashMap<>();
 
         for (Map.Entry<String, Double> entry : weights.entrySet()) {
@@ -103,32 +109,123 @@ public class AnalysisController {
             double sc = categoryScores.getOrDefault(cat, 0.0);
 
             if (attempted) {
-                weightedSum += sc * w;
+                rawTechWeightedSum += sc * w;
+                completedRoleSkillsCount++;
             }
-            totalWeight += w;
 
             breakdown.put(cat, Map.of(
                 "score", Math.round(sc),
                 "weight", w,
                 "attempted", attempted,
-                "benchmark", benchmarks.getOrDefault(cat, 70)
+                "benchmark", benchmarks.getOrDefault(cat, 70),
+                "pillar", "TECHNICAL"
             ));
         }
 
-        // Academic Factor (CGPA / 10 converted to 100-scale)
-        double cgpaFactor = Math.min(100.0, Math.max(0.0, (student.getCgpa() / 10.0) * 100.0));
-        weightedSum += cgpaFactor * 0.15;
-        totalWeight += 0.15;
-        breakdown.put("Academic Standing (CGPA)", Map.of(
-            "score", Math.round(cgpaFactor),
-            "weight", 0.15,
-            "attempted", true,
-            "benchmark", 70
+        // If the student also took a comprehensive Mock Assessment for this track, blend it into technical
+        String mockAssessmentName = switch (targetRole) {
+            case "MERN Full Stack Developer" -> "MERN Stack Mock Assessment";
+            case "AI / ML Engineer" -> "AI / ML Engineering Mock Assessment";
+            case "Data Analyst" -> "Data Analytics & BI Mock Assessment";
+            default -> "Java Full Stack Mock Assessment";
+        };
+        if (categoryScores.containsKey(mockAssessmentName)) {
+            double mockScore = categoryScores.get(mockAssessmentName);
+            rawTechWeightedSum = (rawTechWeightedSum * 0.75) + (mockScore * 0.25);
+        }
+
+        double rawTechScore = Math.min(100.0, Math.max(0.0, rawTechWeightedSum));
+
+        breakdown.put("Overall Technical Competencies", Map.of(
+            "score", Math.round(rawTechScore),
+            "weight", 0.45,
+            "attempted", rawTechScore > 0,
+            "benchmark", 70,
+            "pillar", "TECHNICAL_OVERALL"
         ));
 
-        double readinessScore = totalWeight > 0
-                ? Math.min(100.0, Math.max(10.0, Math.round(weightedSum / totalWeight)))
-                : 50.0;
+        // =========================================================================
+        // 2. PILLAR 2: AI MOCK INTERVIEW BAR-RAISER PERFORMANCE (WEIGHT: 25%)
+        // =========================================================================
+        List<MockInterviewSession> completedInterviews = sessionRepository
+                .findByStudentIdOrderByCreatedAtDesc(student.getId())
+                .stream()
+                .filter(s -> "COMPLETED".equalsIgnoreCase(s.getStatus()) && s.getOverallScore() != null && s.getOverallScore() > 0)
+                .toList();
+
+        double rawInterviewScore = 0.0;
+        if (!completedInterviews.isEmpty()) {
+            double avgInterview = completedInterviews.stream()
+                    .mapToDouble(MockInterviewSession::getOverallScore)
+                    .average().orElse(70.0);
+            // Experience factor: 1 interview = 65% weight factor, 2 = 85%, 3+ = 100%
+            double expFactor = Math.min(1.0, 0.45 + (0.20 * completedInterviews.size()));
+            rawInterviewScore = Math.min(100.0, avgInterview * expFactor);
+        }
+
+        breakdown.put("AI Mock Technical Interviews", Map.of(
+            "score", Math.round(rawInterviewScore),
+            "weight", 0.25,
+            "attempted", !completedInterviews.isEmpty(),
+            "benchmark", 75,
+            "completedRounds", completedInterviews.size(),
+            "pillar", "INTERVIEW"
+        ));
+
+        // =========================================================================
+        // 3. PILLAR 3: ACADEMIC STANDING & COURSEWORK (WEIGHT: 15%)
+        // =========================================================================
+        double rawCgpaFactor = Math.min(100.0, Math.max(0.0, ((student.getCgpa() != null ? student.getCgpa() : 7.0) / 10.0) * 100.0));
+        double academicScore = rawCgpaFactor;
+        if (student.getBacklogs() != null && student.getBacklogs() > 0) {
+            academicScore = Math.max(20.0, academicScore - (student.getBacklogs() * 10.0));
+        }
+
+        breakdown.put("Academic Standing (CGPA)", Map.of(
+            "score", Math.round(academicScore),
+            "weight", 0.15,
+            "attempted", true,
+            "benchmark", 70,
+            "cgpa", student.getCgpa() != null ? student.getCgpa() : 0.0,
+            "pillar", "ACADEMIC"
+        ));
+
+        // =========================================================================
+        // 4. PILLAR 4: PRACTICAL PROFILE & INDUSTRY PORTFOLIO READINESS (WEIGHT: 15%)
+        // =========================================================================
+        double profileScore = 0.0;
+        if (student.getSkills() != null && !student.getSkills().isBlank() && !student.getSkills().equals("[]")) {
+            profileScore += 35.0;
+        }
+        if (student.getResumeUrl() != null && !student.getResumeUrl().isBlank()) {
+            profileScore += 30.0;
+        }
+        if (student.getPortfolioLink() != null && !student.getPortfolioLink().isBlank()) {
+            profileScore += 20.0;
+        }
+        if (goal != null && goal.getTargetRole() != null && !goal.getTargetRole().isBlank()) {
+            profileScore += 15.0;
+        }
+
+        breakdown.put("Profile & Portfolio Readiness", Map.of(
+            "score", Math.round(profileScore),
+            "weight", 0.15,
+            "attempted", profileScore >= 50.0,
+            "benchmark", 75,
+            "hasResume", student.getResumeUrl() != null && !student.getResumeUrl().isBlank(),
+            "hasPortfolio", student.getPortfolioLink() != null && !student.getPortfolioLink().isBlank(),
+            "pillar", "PORTFOLIO"
+        ));
+
+        // =========================================================================
+        // 5. SYNTHESIZE MULTI-PILLAR DYNAMIC READINESS INDEX (0 - 100)
+        // =========================================================================
+        double calculatedReadiness = (rawTechScore * 0.45)
+                                   + (rawInterviewScore * 0.25)
+                                   + (academicScore * 0.15)
+                                   + (profileScore * 0.15);
+
+        double readinessScore = Math.min(100.0, Math.max(15.0, Math.round(calculatedReadiness)));
 
         List<Map<String, Object>> strengths = new ArrayList<>();
         List<Map<String, Object>> skillGaps = new ArrayList<>();
@@ -186,12 +283,19 @@ public class AnalysisController {
 
         // AI Feedback generation
         StringBuilder aiFeedback = new StringBuilder();
-        aiFeedback.append("Your calculated Placement Readiness Index is ")
-                .append(Math.round(readinessScore))
-                .append("/100 calibrated for ").append(targetRole).append(". ");
+        aiFeedback.append(String.format(
+            "Your Placement Readiness Index is %d/100 calibrated for %s across 4 pillars: " +
+            "Technical Assessments (%d%%), AI Mock Interviews (%d%%), Academic Standing (%d%%), and Industry Profile (%d%%). ",
+            Math.round(readinessScore), targetRole,
+            Math.round(rawTechScore), Math.round(rawInterviewScore), Math.round(academicScore), Math.round(profileScore)
+        ));
+
+        if (completedInterviews.isEmpty()) {
+            aiFeedback.append("Key Opportunity: Complete an AI Mock Technical Interview to verify your real-time architectural communication and boost your interview index. ");
+        }
 
         if (!strengths.isEmpty()) {
-            aiFeedback.append("Key verified strength: ").append(strengths.get(0).get("skill"))
+            aiFeedback.append("Top verified strength: ").append(strengths.get(0).get("skill"))
                     .append(" (").append(strengths.get(0).get("score")).append("%). ");
         }
 
@@ -199,7 +303,7 @@ public class AnalysisController {
             Map<String, Object> topGap = skillGaps.get(0);
             boolean att = (boolean) topGap.get("attempted");
             if (!att) {
-                aiFeedback.append("Primary bottleneck: Core domain competency '").append(topGap.get("skill"))
+                aiFeedback.append("Primary technical bottleneck: Core domain competency '").append(topGap.get("skill"))
                         .append("' is unattempted. Complete this diagnostic to enable full recruiter calibration.");
             } else {
                 aiFeedback.append("Primary lagging aspect: In '").append(topGap.get("skill"))

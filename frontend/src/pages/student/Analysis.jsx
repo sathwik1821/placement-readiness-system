@@ -18,7 +18,11 @@ import {
   Clock,
   Layers,
   WifiOff,
-  Compass
+  Compass,
+  Code2,
+  Bot,
+  GraduationCap,
+  Briefcase
 } from 'lucide-react';
 
 export default function Analysis() {
@@ -117,6 +121,29 @@ export default function Analysis() {
   const recommendations = report?.recommendations || [];
   const targetRole = report?.targetRole || 'Java Full Stack Developer';
   const cleanScore = report?.readinessScore || 0;
+
+  // Extract 4 Pillars for balanced evaluation
+  const techPillar = breakdown['Overall Technical Competencies'] || null;
+  const interviewPillar = breakdown['AI Mock Technical Interviews'] || null;
+  const academicPillar = breakdown['Academic Standing (CGPA)'] || null;
+  const portfolioPillar = breakdown['Profile & Portfolio Readiness'] || null;
+
+  const pillarKeys = new Set([
+    'Overall Technical Competencies',
+    'AI Mock Technical Interviews',
+    'Academic Standing (CGPA)',
+    'Profile & Portfolio Readiness'
+  ]);
+  const technicalBreakdown = Object.entries(breakdown).filter(([k]) => !pillarKeys.has(k));
+
+  const techScore = techPillar ? techPillar.score : (
+    technicalBreakdown.length > 0
+      ? Math.round(technicalBreakdown.reduce((acc, [, v]) => acc + (typeof v === 'object' ? (v.score || 0) : v), 0) / technicalBreakdown.length)
+      : 0
+  );
+  const interviewScore = interviewPillar ? (interviewPillar.score || 0) : 0;
+  const academicScore = academicPillar ? (academicPillar.score || 0) : 0;
+  const portfolioScore = portfolioPillar ? (portfolioPillar.score || 0) : 0;
 
   // Build a lookup of skill status
   const gapSkillsSet = new Set(skillGaps.map((g) => g.skill));
@@ -227,6 +254,154 @@ export default function Analysis() {
           <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <span className="font-semibold text-slate-700">Campus Placement Diagnostic Protocol:</span>
             <span>Synthesizes completed test attempts, role benchmarks, and academic standing.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 4-Pillar Comprehensive Placement Readiness Matrix */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5 pb-3 border-b border-slate-100">
+          <div>
+            <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-4 h-4 text-blue-600" />
+              <span>4-Pillar Dynamic Readiness Architecture</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Balanced multi-dimensional index prevents artificial single-test spikes and reflects holistic campus placement readiness.
+            </p>
+          </div>
+          <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            Weighted Recruiter Model (100%)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Pillar 1: Technical Assessments */}
+          <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/30 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-indigo-100 text-indigo-700">
+                  <Code2 className="w-4 h-4" />
+                </span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+                  45% Weight
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-800">Technical Domain Skills</h3>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl font-black text-indigo-950 font-mono">{techScore}%</span>
+                <span className="text-[11px] text-slate-500 font-medium">/ 100</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
+                <div
+                  className="h-2 rounded-full bg-indigo-600 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(3, techScore))}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-indigo-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 font-medium">Domain Tests</span>
+              <Link to="/student/tests" className="font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+                Attempt Tests →
+              </Link>
+            </div>
+          </div>
+
+          {/* Pillar 2: AI Mock Interviews */}
+          <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-blue-100 text-blue-700">
+                  <Bot className="w-4 h-4" />
+                </span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                  25% Weight
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-800">AI Mock Technical Rounds</h3>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl font-black text-blue-950 font-mono">{interviewScore}%</span>
+                <span className="text-[11px] text-slate-500 font-medium">/ 100</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
+                <div
+                  className="h-2 rounded-full bg-blue-600 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(3, interviewScore))}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-blue-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 font-medium">
+                {interviewPillar?.completedRounds > 0 ? `${interviewPillar.completedRounds} Completed` : '0 Rounds'}
+              </span>
+              <Link to="/student/interview" className="font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                Practice →
+              </Link>
+            </div>
+          </div>
+
+          {/* Pillar 3: Academic Standing */}
+          <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/30 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
+                  <GraduationCap className="w-4 h-4" />
+                </span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  15% Weight
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-800">Academic Standing</h3>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl font-black text-emerald-950 font-mono">{academicScore}%</span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {academicPillar?.cgpa ? `(CGPA: ${academicPillar.cgpa})` : ''}
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
+                <div
+                  className="h-2 rounded-full bg-emerald-600 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(3, academicScore))}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-emerald-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 font-medium">Eligibility Benchmark</span>
+              <span className="font-bold text-emerald-700">Target: 70%+</span>
+            </div>
+          </div>
+
+          {/* Pillar 4: Profile & Portfolio */}
+          <div className="p-4 rounded-xl border border-purple-100 bg-purple-50/30 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-purple-100 text-purple-700">
+                  <Briefcase className="w-4 h-4" />
+                </span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                  15% Weight
+                </span>
+              </div>
+              <h3 className="text-xs font-bold text-slate-800">Profile & Portfolio</h3>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl font-black text-purple-950 font-mono">{portfolioScore}%</span>
+                <span className="text-[11px] text-slate-500 font-medium">/ 100</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
+                <div
+                  className="h-2 rounded-full bg-purple-600 transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(3, portfolioScore))}%` }}
+                />
+              </div>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-purple-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 font-medium">
+                {portfolioPillar?.hasResume ? 'Resume Ready' : 'Add Resume'}
+              </span>
+              <Link to="/student/profile" className="font-bold text-purple-600 hover:text-purple-800 transition-colors">
+                Profile →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -449,7 +624,7 @@ export default function Analysis() {
           </div>
 
           <div className="space-y-4">
-            {Object.entries(breakdown).map(([key, val], idx) => {
+            {(technicalBreakdown.length > 0 ? technicalBreakdown : Object.entries(breakdown)).map(([key, val], idx) => {
               const sc = typeof val === 'object' ? val.score : val;
               const isAttempted = typeof val === 'object' ? val.attempted : true;
               const bm = typeof val === 'object' ? val.benchmark : 70;
