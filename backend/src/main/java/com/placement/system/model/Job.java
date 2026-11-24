@@ -27,6 +27,10 @@ public class Job {
     private String skills = "[]";
 
     private String salary = "";
+
+    @Column(name = "apply_url", length = 1024)
+    private String applyUrl = "";
+
     private LocalDateTime postedAt = LocalDateTime.now();
     private Boolean isActive = true;
 
@@ -54,6 +58,8 @@ public class Job {
     public void setSkills(String skills) { this.skills = skills; }
     public String getSalary() { return salary; }
     public void setSalary(String salary) { this.salary = salary; }
+    public String getApplyUrl() { return applyUrl; }
+    public void setApplyUrl(String applyUrl) { this.applyUrl = applyUrl; }
     public LocalDateTime getPostedAt() { return postedAt; }
     public void setPostedAt(LocalDateTime postedAt) { this.postedAt = postedAt; }
     public Boolean getIsActive() { return isActive; }

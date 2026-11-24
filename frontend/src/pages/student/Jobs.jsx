@@ -45,13 +45,6 @@ export default function Jobs() {
 
   // Student Context
   const [studentProfile, setStudentProfile] = useState(null);
-  const [appliedJobs, setAppliedJobs] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('applied_external_jobs') || '[]');
-    } catch {
-      return [];
-    }
-  });
 
   // Modal State
   const [detailJob, setDetailJob] = useState(null);
@@ -142,15 +135,6 @@ export default function Jobs() {
     } finally {
       setDiscovering(false);
     }
-  };
-
-  const handleApplyJob = (job) => {
-    const updated = [...appliedJobs, job.id];
-    setAppliedJobs(updated);
-    try {
-      localStorage.setItem('applied_external_jobs', JSON.stringify(updated));
-    } catch (ignored) {}
-    alert(`Application submitted successfully for ${job.title} at ${job.company}! Your profile dossier has been forwarded.`);
   };
 
   const parseJsonArray = (val) => {
@@ -402,7 +386,8 @@ export default function Jobs() {
             const reasons = item.matchReasons || [];
             const matchedSkills = item.matchedSkills || [];
             const allSkills = parseJsonArray(job.skills);
-            const isApplied = appliedJobs.includes(job.id);
+            const applyUrl = job.applyUrl || item.applyUrl || `https://www.google.com/search?q=${encodeURIComponent(job.company + ' careers ' + job.title)}`;
+            const displayDomain = applyUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
 
             return (
               <div
@@ -431,12 +416,25 @@ export default function Jobs() {
                     <h2 className="text-lg font-black text-slate-900 leading-snug">
                       {job.title}
                     </h2>
-                    <p className="text-xs font-bold text-blue-700 mt-0.5 flex items-center gap-1.5">
-                      <Building className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{job.company}</span>
+                    <div className="text-xs font-bold text-blue-700 mt-1 flex flex-wrap items-center gap-2">
+                      <span className="flex items-center gap-1 text-slate-800">
+                        <Building className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{job.company}</span>
+                      </span>
                       <span className="text-slate-300">•</span>
                       <span>Compensation: <strong className="text-slate-900">{job.salary}</strong></span>
-                    </p>
+                      <span className="text-slate-300">•</span>
+                      <a
+                        href={applyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 bg-blue-50/80 px-2 py-0.5 rounded-md border border-blue-200"
+                        title="Official Opportunity Portal"
+                      >
+                        <span>{displayDomain}</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
                   </div>
 
                   {/* AI Compatibility Fit Badge */}
@@ -507,31 +505,24 @@ export default function Jobs() {
                 )}
 
                 {/* Action Footer */}
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                   <button
                     onClick={() => setDetailJob(job)}
-                    className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1"
+                    className="text-xs font-bold text-slate-700 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
                   >
-                    <span>View Requirements & Responsibilities</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <span>View Role Requirements & Responsibilities</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
                   </button>
 
-                  <div className="flex items-center gap-2">
-                    {isApplied ? (
-                      <span className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
-                        <Check className="w-4 h-4 text-emerald-600" />
-                        <span>Application Submitted</span>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleApplyJob(job)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
-                      >
-                        <span>Express Interest / Direct Apply</span>
-                        <ArrowUpRight className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+                  <a
+                    href={applyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-sm transition-all shrink-0 cursor-pointer"
+                  >
+                    <span>View Opportunity Link</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               </div>
             );
@@ -677,19 +668,35 @@ export default function Jobs() {
               </div>
             </div>
 
+            {/* Official Opportunity Portal Link Panel */}
+            <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl space-y-1 text-xs">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 block">
+                Official Opportunity Portal
+              </span>
+              <a
+                href={detailJob.applyUrl || `https://www.google.com/search?q=${encodeURIComponent(detailJob.company + ' careers ' + detailJob.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-blue-700 hover:underline flex items-center gap-1.5 break-all"
+              >
+                <span>{detailJob.applyUrl || `https://www.google.com/search?q=${encodeURIComponent(detailJob.company + ' careers ' + detailJob.title)}`}</span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+              </a>
+            </div>
+
             <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <span className="text-xs font-bold text-slate-500">
                 Package CTC: <strong className="text-slate-900">{detailJob.salary}</strong>
               </span>
-              <button
-                onClick={() => {
-                  handleApplyJob(detailJob);
-                  setDetailJob(null);
-                }}
-                className="btn-primary text-xs py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white"
+              <a
+                href={detailJob.applyUrl || `https://www.google.com/search?q=${encodeURIComponent(detailJob.company + ' careers ' + detailJob.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary text-xs py-2.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold inline-flex items-center gap-2 rounded-xl shadow-sm cursor-pointer"
               >
-                Apply for Opening
-              </button>
+                <span>Open Opportunity Link</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
         </div>
