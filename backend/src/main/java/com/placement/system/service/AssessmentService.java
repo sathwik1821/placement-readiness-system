@@ -165,11 +165,17 @@ public class AssessmentService {
             map.put("id", q.getId());
             map.put("testCategoryId", q.getTestCategoryId());
             map.put("questionText", q.getQuestionText());
+            List<String> rawOptions = new ArrayList<>();
             try {
-                map.put("options", mapper.readValue(q.getOptions(), new TypeReference<List<String>>() {}));
+                rawOptions = mapper.readValue(q.getOptions(), new TypeReference<List<String>>() {});
             } catch (Exception e) {
-                map.put("options", List.of());
+                rawOptions = List.of();
             }
+            // Dynamically shuffle options so Option A is not always the correct choice
+            List<String> shuffledOptions = new ArrayList<>(rawOptions);
+            Collections.shuffle(shuffledOptions);
+            map.put("options", shuffledOptions);
+
             map.put("difficulty", q.getDifficulty());
             map.put("topic", q.getTopic());
             map.put("marks", q.getMarks());
@@ -290,6 +296,17 @@ public class AssessmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<TestAttempt> getStudentAttempts(String userId) {
+        Student student = studentRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found"));
+        List<TestAttempt> attempts = attemptRepository.findByStudentIdOrderByStartedAtDesc(student.getId());
+        for (TestAttempt a : attempts) {
+            categoryRepository.findById(a.getTestCategoryId()).ifPresent(a::setCategory);
+        }
+        return attempts;
+    }
+
+    @Transactional(readOnly = true)
     public Map<String, Object> getAttemptReview(String attemptId, String userId) {
         Student student = studentRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found"));
@@ -313,11 +330,17 @@ public class AssessmentService {
         payload.put("status", attempt.getStatus());
         payload.put("startedAt", attempt.getStartedAt());
         payload.put("completedAt", attempt.getCompletedAt());
+        payload.put("attempt", attempt);
 
-        categoryRepository.findById(attempt.getTestCategoryId()).ifPresent(cat -> {
-            payload.put("categoryName", cat.getName());
-            payload.put("categoryDescription", cat.getDescription());
-        });
+        String catName = "Assessment Test";
+        String catDesc = "";
+        Optional<TestCategory> catOpt = categoryRepository.findById(attempt.getTestCategoryId());
+        if (catOpt.isPresent()) {
+            catName = catOpt.get().getName();
+            catDesc = catOpt.get().getDescription();
+        }
+        payload.put("categoryName", catName);
+        payload.put("categoryDescription", catDesc);
 
         List<TestResponse> responses = responseRepository.findByTestAttemptId(attempt.getId());
         List<Map<String, Object>> responseDetails = new ArrayList<>();
@@ -329,8 +352,10 @@ public class AssessmentService {
             Map<String, Object> rMap = new HashMap<>();
             rMap.put("responseId", tr.getId());
             rMap.put("questionId", tr.getQuestionId());
-            rMap.put("selectedAnswer", tr.getSelectedAnswer());
-            rMap.put("isCorrect", tr.getIsCorrect());
+            rMap.put("selectedAnswer", tr.getSelectedAnswer() != null ? tr.getSelectedAnswer() : "");
+            rMap.put("isCorrect", Boolean.TRUE.equals(tr.getIsCorrect()));
+            boolean isAttempted = tr.getSelectedAnswer() != null && !tr.getSelectedAnswer().trim().isBlank();
+            rMap.put("isAttempted", isAttempted);
             rMap.put("timeTaken", tr.getTimeTaken());
 
             Question q = questionRepository.findById(tr.getQuestionId()).orElse(null);
@@ -340,23 +365,52 @@ public class AssessmentService {
                 rMap.put("difficulty", q.getDifficulty());
                 rMap.put("topic", q.getTopic());
                 rMap.put("explanation", q.getExplanation());
+                rMap.put("marks", q.getMarks() != null ? q.getMarks() : 1);
+                rMap.put("negativeMarks", q.getNegativeMarks() != null ? q.getNegativeMarks() : 0.25);
                 try {
                     rMap.put("options", mapper.readValue(q.getOptions(), new TypeReference<List<String>>() {}));
                 } catch (Exception e) {
                     rMap.put("options", List.of());
                 }
+            } else {
+                rMap.put("questionText", "Question details");
+                rMap.put("correctAnswer", "");
+                rMap.put("difficulty", "MEDIUM");
+                rMap.put("topic", "General");
+                rMap.put("explanation", "");
+                rMap.put("marks", 1);
+                rMap.put("negativeMarks", 0.25);
+                rMap.put("options", List.of());
             }
 
-            if (tr.getIsCorrect() != null && tr.getIsCorrect()) correctCount++;
-            else if (tr.getSelectedAnswer() != null && !tr.getSelectedAnswer().isBlank()) wrongCount++;
+            if (Boolean.TRUE.equals(tr.getIsCorrect())) correctCount++;
+            else if (isAttempted) wrongCount++;
             else unattemptedCount++;
 
             responseDetails.add(rMap);
         }
 
+        // Supply both "questions" and "responses" for full frontend compatibility
+        payload.put("questions", responseDetails);
         payload.put("responses", responseDetails);
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("totalScore", attempt.getTotalScore() != null ? attempt.getTotalScore() : 0.0);
+        summary.put("totalMarks", attempt.getTotalMarks() != null ? attempt.getTotalMarks() : responses.size());
+        summary.put("percentageScore", attempt.getPercentageScore() != null ? attempt.getPercentageScore() : 0.0);
+        summary.put("correctCount", correctCount);
+        summary.put("incorrectCount", wrongCount);
+        summary.put("wrongCount", wrongCount);
+        summary.put("skippedCount", unattemptedCount);
+        summary.put("unattemptedCount", unattemptedCount);
+        summary.put("totalQuestions", responses.size());
+        summary.put("categoryName", catName);
+
+        payload.put("summary", summary);
         payload.put("correctCount", correctCount);
         payload.put("wrongCount", wrongCount);
+        payload.put("incorrectCount", wrongCount);
+        payload.put("skippedCount", unattemptedCount);
         payload.put("unattemptedCount", unattemptedCount);
         payload.put("totalQuestions", responses.size());
         return payload;

@@ -46,13 +46,14 @@ export default function TakeTest() {
         // First check if attempt is already completed/submitted or retrieve category
         try {
           const revRes = await api.get(`/assessments/attempts/${attemptId}/review`);
-          if (revRes.data && (revRes.data.attempt?.status === 'COMPLETED' || revRes.data.attempt?.status === 'LATE_SUBMISSION')) {
+          const status = revRes.data?.attempt?.status || revRes.data?.status;
+          if (status === 'COMPLETED' || status === 'LATE_SUBMISSION') {
             setResult(revRes.data);
             setLoading(false);
             return;
           }
-          if (revRes.data?.attempt?.testCategoryId) {
-            resolvedCatId = revRes.data.attempt.testCategoryId;
+          if (revRes.data?.attempt?.testCategoryId || revRes.data?.testCategoryId) {
+            resolvedCatId = revRes.data.attempt?.testCategoryId || revRes.data.testCategoryId;
           }
         } catch {
           // If review not ready yet, continue to take test
@@ -140,21 +141,22 @@ export default function TakeTest() {
   // VIEW: POST-TEST ANALYSIS & DETAILED ANSWER KEY REVIEW
   // =========================================================================
   if (result) {
-    const summary = result.summary || {};
-    const questionReviews = result.questions || [];
-    const pct = Math.round(summary.percentageScore ?? result.attempt?.percentageScore ?? 0);
+    const summary = result.summary || result || {};
+    const questionReviews = result.questions || result.responses || [];
+    const pct = Math.round(summary.percentageScore ?? result.attempt?.percentageScore ?? result.percentageScore ?? 0);
     const totalQ = summary.totalQuestions || questionReviews.length || 20;
-    const correctCount = summary.correctCount || questionReviews.filter((q) => q.isCorrect).length;
-    const incorrectCount = summary.incorrectCount || questionReviews.filter((q) => q.isAttempted && !q.isCorrect).length;
-    const skippedCount = summary.skippedCount || questionReviews.filter((q) => !q.isAttempted).length;
-    const categoryName = summary.categoryName || 'Assessment Test';
+    const correctCount = summary.correctCount ?? questionReviews.filter((q) => q.isCorrect).length;
+    const incorrectCount = summary.incorrectCount ?? summary.wrongCount ?? questionReviews.filter((q) => (q.isAttempted ?? (q.selectedAnswer && q.selectedAnswer.trim().length > 0)) && !q.isCorrect).length;
+    const skippedCount = summary.skippedCount ?? summary.unattemptedCount ?? questionReviews.filter((q) => !(q.isAttempted ?? (q.selectedAnswer && q.selectedAnswer.trim().length > 0))).length;
+    const categoryName = summary.categoryName || result.categoryName || 'Assessment Test';
 
     const isPassed = pct >= 70;
 
     const filteredQuestions = questionReviews.filter((q) => {
-      if (reviewFilter === 'INCORRECT') return q.isAttempted && !q.isCorrect;
+      const isAttempted = q.isAttempted ?? (q.selectedAnswer && q.selectedAnswer.trim().length > 0);
+      if (reviewFilter === 'INCORRECT') return isAttempted && !q.isCorrect;
       if (reviewFilter === 'CORRECT') return q.isCorrect;
-      if (reviewFilter === 'SKIPPED') return !q.isAttempted;
+      if (reviewFilter === 'SKIPPED') return !isAttempted;
       return true;
     });
 
@@ -309,9 +311,9 @@ export default function TakeTest() {
             </div>
           ) : (
             filteredQuestions.map((q, idx) => {
-              const originalIndex = questionReviews.findIndex((item) => item.questionId === q.questionId);
-              const isCorrect = q.isCorrect;
-              const isAttempted = q.isAttempted;
+              const originalIndex = questionReviews.findIndex((item) => (item.questionId || item.id) === (q.questionId || q.id));
+              const isCorrect = Boolean(q.isCorrect);
+              const isAttempted = q.isAttempted ?? (q.selectedAnswer && q.selectedAnswer.trim().length > 0);
               const isWrong = isAttempted && !isCorrect;
 
               return (

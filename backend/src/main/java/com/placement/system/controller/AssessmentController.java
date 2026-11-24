@@ -97,6 +97,6 @@ public class AssessmentController {
     @GetMapping("/attempts")
     public ResponseEntity<?> getAttempts(@RequestHeader("Authorization") String authHeader) {
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
-        return ResponseEntity.ok(assessmentService.getCategoriesForStudent(userId));
+        return ResponseEntity.ok(assessmentService.getStudentAttempts(userId));
     }
 }

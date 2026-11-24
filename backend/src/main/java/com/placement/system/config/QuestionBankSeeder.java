@@ -1,5 +1,6 @@
 package com.placement.system.config;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.placement.system.model.Question;
 import com.placement.system.model.TestCategory;
@@ -43,7 +44,37 @@ public class QuestionBankSeeder implements CommandLineRunner {
         seedDataAnalytics();
         seedMockAssessments();
 
+        shuffleExistingQuestionOptions();
+
         System.out.println("✅ Question Bank Seeding Completed: All 13 categories and mock assessments seeded with questions!");
+    }
+
+    private void shuffleExistingQuestionOptions() {
+        try {
+            List<Question> allQuestions = questionRepository.findAll();
+            int shuffledCount = 0;
+            for (Question q : allQuestions) {
+                if (q.getOptions() == null || q.getOptions().isBlank()) continue;
+                try {
+                    List<String> opts = mapper.readValue(q.getOptions(), new TypeReference<List<String>>() {});
+                    if (opts != null && opts.size() > 1) {
+                        // If option 0 is the correct answer, shuffle to remove Option A bias
+                        if (q.getCorrectAnswer() != null && opts.get(0).trim().equalsIgnoreCase(q.getCorrectAnswer().trim())) {
+                            List<String> shuffled = new ArrayList<>(opts);
+                            Collections.shuffle(shuffled);
+                            q.setOptions(mapper.writeValueAsString(shuffled));
+                            questionRepository.save(q);
+                            shuffledCount++;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+            if (shuffledCount > 0) {
+                System.out.println("🔀 Shuffled options for " + shuffledCount + " questions in database where Option A was biased.");
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to shuffle existing question options: " + e.getMessage());
+        }
     }
 
     private void addQ(String categoryName, String text, List<String> options, String correct, String explanation, String diff, String topic) {
@@ -52,9 +83,12 @@ public class QuestionBankSeeder implements CommandLineRunner {
             return categoryRepository.save(newCat);
         });
 
+        List<String> shuffledOptions = new ArrayList<>(options);
+        Collections.shuffle(shuffledOptions);
+
         Question existing = questionRepository.findByTestCategoryIdAndQuestionText(cat.getId(), text).orElse(null);
         try {
-            String optJson = mapper.writeValueAsString(options);
+            String optJson = mapper.writeValueAsString(shuffledOptions);
             if (existing == null) {
                 Question q = new Question();
                 q.setTestCategoryId(cat.getId());
@@ -67,13 +101,25 @@ public class QuestionBankSeeder implements CommandLineRunner {
                 q.setMarks(1);
                 q.setNegativeMarks(0.25);
                 questionRepository.save(q);
-            } else if (existing.getExplanation() == null || existing.getExplanation().isBlank()) {
-                existing.setExplanation(explanation);
-                existing.setOptions(optJson);
-                existing.setCorrectAnswer(correct);
-                existing.setDifficulty(diff);
-                existing.setTopic(topic);
-                questionRepository.save(existing);
+            } else {
+                boolean needsUpdate = false;
+                if (existing.getExplanation() == null || existing.getExplanation().isBlank()) {
+                    existing.setExplanation(explanation);
+                    needsUpdate = true;
+                }
+                try {
+                    List<String> curOpts = mapper.readValue(existing.getOptions(), new TypeReference<List<String>>() {});
+                    if (curOpts != null && !curOpts.isEmpty() && existing.getCorrectAnswer() != null && curOpts.get(0).trim().equalsIgnoreCase(existing.getCorrectAnswer().trim())) {
+                        Collections.shuffle(curOpts);
+                        existing.setOptions(mapper.writeValueAsString(curOpts));
+                        needsUpdate = true;
+                    }
+                } catch (Exception ignored) {}
+                if (needsUpdate) {
+                    existing.setDifficulty(diff);
+                    existing.setTopic(topic);
+                    questionRepository.save(existing);
+                }
             }
         } catch (Exception e) {
             System.err.println("Error adding question: " + e.getMessage());

@@ -59,8 +59,8 @@ export default function Tests() {
 
   const getLatestAttempt = (catId) => {
     return attempts
-      .filter((a) => a.testCategoryId === catId && a.status === 'COMPLETED')
-      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0];
+      .filter((a) => a.testCategoryId === catId && (a.status === 'COMPLETED' || a.status === 'LATE_SUBMISSION'))
+      .sort((a, b) => new Date(b.completedAt || b.startedAt) - new Date(a.completedAt || a.startedAt))[0];
   };
 
   if (loading) {
@@ -228,7 +228,7 @@ export default function Tests() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => navigate(`/student/tests/${latest.id}`)}
+                            onClick={() => navigate(`/student/tests/${latest.id}?category=${cat.id}`)}
                             className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                           >
                             View Analysis →
@@ -334,7 +334,7 @@ export default function Tests() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => navigate(`/student/tests/${latest.id}`)}
+                          onClick={() => navigate(`/student/tests/${latest.id}?category=${cat.id}`)}
                           className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                         >
                           View Analysis →
@@ -434,7 +434,7 @@ export default function Tests() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => navigate(`/student/tests/${latest.id}`)}
+                          onClick={() => navigate(`/student/tests/${latest.id}?category=${cat.id}`)}
                           className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                         >
                           View Analysis →
