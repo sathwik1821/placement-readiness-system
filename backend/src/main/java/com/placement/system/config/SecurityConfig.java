@@ -79,8 +79,10 @@ public class SecurityConfig {
                 
                 // Student & shared authenticated features
                 .requestMatchers(
+                    "/api/students/**",
                     "/api/student/**",
                     "/api/assessments/**",
+                    "/api/interviews/**",
                     "/api/interview/**",
                     "/api/jobs/**",
                     "/api/placement/**",
@@ -108,7 +110,7 @@ public class SecurityConfig {
             "http://127.0.0.1:3000"
         ));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
+        config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

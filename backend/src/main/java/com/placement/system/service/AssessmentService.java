@@ -56,12 +56,17 @@ public class AssessmentService {
             if (student != null) {
                 if (c.getIsActive() != null && !c.getIsActive()) continue;
 
-                // Target Year filter
+                // Target Year filter (supports E1-E4, 1-4, and automatic fallback)
                 if (c.getTargetYears() != null && !c.getTargetYears().isBlank()) {
                     try {
                         List<Object> years = mapper.readValue(c.getTargetYears(), new TypeReference<List<Object>>() {});
                         if (!years.isEmpty()) {
-                            final int sYear = student.getYear() != null ? student.getYear() : 0;
+                            int resolvedYear = student.getYear() != null && student.getYear() > 0 
+                                ? student.getYear() 
+                                : (student.getGraduationYear() != null && student.getGraduationYear() > 0 
+                                    ? Math.max(1, 4 - (student.getGraduationYear() - 2027)) 
+                                    : 4);
+                            final int sYear = resolvedYear;
                             boolean match = years.stream().anyMatch(y -> {
                                 String yStr = String.valueOf(y).replace("E", "").replace("e", "").trim();
                                 try { return Integer.parseInt(yStr) == sYear; } catch (Exception ex) { return false; }
