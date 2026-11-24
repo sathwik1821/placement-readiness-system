@@ -14,7 +14,7 @@ import {
   Layers,
   Check
 } from 'lucide-react';
-import { ROLE_RECOMMENDED_TESTS } from '../../utils/careerStandards';
+import { ROLE_RECOMMENDED_TESTS, getCareerTrack } from '../../utils/careerStandards';
 
 export default function Tests() {
   const [categories, setCategories] = useState([]);
@@ -71,9 +71,37 @@ export default function Tests() {
     );
   }
 
-  const rawRole = profile?.careerGoal?.targetRole || 'Java Full Stack Developer';
-  const targetRole = ROLE_RECOMMENDED_TESTS[rawRole] ? rawRole : 'Java Full Stack Developer';
+  const rawRole = profile?.careerGoal?.targetRole || profile?.careerTrack || 'Java Full Stack Developer';
+  const canonicalTrack = getCareerTrack(rawRole);
+  const targetRole = canonicalTrack.role;
   const recommendedList = ROLE_RECOMMENDED_TESTS[targetRole] || [];
+
+  const isMockOrAssignment = (c) => {
+    const type = (c.type || '').toUpperCase();
+    if (type === 'MOCK' || type === 'ASSIGNMENT') return true;
+    const name = (c.name || '').toLowerCase();
+    return name.includes('mock') || name.includes('assignment');
+  };
+
+  const isCareerMockMatch = (catName, role) => {
+    if (!catName) return false;
+    const lower = catName.toLowerCase();
+    const rLower = (role || '').toLowerCase();
+
+    if (rLower.includes('java')) {
+      return lower.includes('java') || lower.includes('spring');
+    }
+    if (rLower.includes('mern')) {
+      return lower.includes('mern') || lower.includes('node') || lower.includes('react');
+    }
+    if (rLower.includes('ai') || rLower.includes('ml') || rLower.includes('machine learning')) {
+      return lower.includes('ai') || lower.includes('ml') || lower.includes('machine learning') || lower.includes('python');
+    }
+    if (rLower.includes('data')) {
+      return lower.includes('data') || lower.includes('analytics') || lower.includes('bi') || lower.includes('tableau');
+    }
+    return false;
+  };
 
   const getCatType = (c) => {
     if (c.type) return c.type.toUpperCase();
@@ -87,7 +115,7 @@ export default function Tests() {
     if (!catName) return false;
     const lower = catName.toLowerCase();
     if (recommendedList.some((r) => r.toLowerCase() === lower)) return true;
-    if (targetRole.toLowerCase().includes('java') && lower.includes('java')) return true;
+    if (targetRole.toLowerCase().includes('java') && (lower.includes('java') || lower.includes('spring'))) return true;
     if (targetRole.toLowerCase().includes('mern') && (lower.includes('mern') || lower.includes('node'))) return true;
     if (targetRole.toLowerCase().includes('ai') && (lower.includes('machine learning') || lower.includes('python'))) return true;
     if (targetRole.toLowerCase().includes('data') && (lower.includes('analytics') || lower.includes('tableau') || lower.includes('bi'))) return true;
@@ -95,16 +123,21 @@ export default function Tests() {
   };
 
   const filteredCategories = filterMode === 'RECOMMENDED'
-    ? categories.filter((c) => isRecommended(c.name) || getCatType(c) === 'MOCK' || getCatType(c) === 'ASSIGNMENT')
+    ? categories.filter((c) => {
+        if (isMockOrAssignment(c)) {
+          return isCareerMockMatch(c.name, targetRole);
+        }
+        return isRecommended(c.name);
+      })
     : categories;
 
   const displayedCategories = (filteredCategories.length === 0 && categories.length > 0)
     ? categories
     : filteredCategories;
 
-  const mockTests = displayedCategories.filter((c) => getCatType(c) === 'MOCK' || getCatType(c) === 'ASSIGNMENT');
-  const techTests = displayedCategories.filter((c) => getCatType(c) === 'TECHNICAL');
-  const commonTests = displayedCategories.filter((c) => getCatType(c) === 'COMMON');
+  const mockTests = displayedCategories.filter((c) => isMockOrAssignment(c));
+  const techTests = displayedCategories.filter((c) => !isMockOrAssignment(c) && getCatType(c) === 'TECHNICAL');
+  const commonTests = displayedCategories.filter((c) => !isMockOrAssignment(c) && getCatType(c) === 'COMMON');
 
   return (
     <div className="space-y-8 font-sans">

@@ -150,8 +150,8 @@ public class DatabaseSeeder {
                 careerGoalRepository.save(goal);
             } else {
                 userRepository.findByEmail("s210018@rguktsklm.ac.in").ifPresent(u -> {
-                    if (!passwordEncoder.matches("Student@123", u.getPassword())) {
-                        u.setPassword(passwordEncoder.encode("Student@123"));
+                    if (!passwordEncoder.matches("sathwik@18", u.getPassword()) && !passwordEncoder.matches("Student@123", u.getPassword())) {
+                        u.setPassword(passwordEncoder.encode("sathwik@18"));
                         userRepository.save(u);
                     }
                 });
