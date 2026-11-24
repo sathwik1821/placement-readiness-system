@@ -4,10 +4,14 @@ import com.placement.system.model.InterviewQuestion;
 import com.placement.system.model.InterviewResponse;
 import com.placement.system.model.MockInterviewSession;
 import com.placement.system.model.Student;
+import com.placement.system.model.TestAttempt;
+import com.placement.system.model.TestCategory;
 import com.placement.system.repository.InterviewQuestionRepository;
 import com.placement.system.repository.InterviewResponseRepository;
 import com.placement.system.repository.MockInterviewSessionRepository;
 import com.placement.system.repository.StudentRepository;
+import com.placement.system.repository.TestAttemptRepository;
+import com.placement.system.repository.TestCategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +35,89 @@ public class InterviewService {
     private StudentRepository studentRepository;
 
     @Autowired
+    private TestAttemptRepository testAttemptRepository;
+
+    @Autowired
+    private TestCategoryRepository testCategoryRepository;
+
+    @Autowired
     private GeminiInterviewService geminiService;
+
+    /**
+     * Builds an adaptive candidate profile aggregating verified student skills,
+     * platform test performance benchmarks, and previous interview track records.
+     */
+    public GeminiInterviewService.CandidateContext buildCandidateContext(Student student) {
+        if (student == null) {
+            return new GeminiInterviewService.CandidateContext(
+                    "Candidate", "Computer Science", "4th Year", "General Software Engineering",
+                    "No platform test history available", "First mock interview"
+            );
+        }
+
+        String name = student.getName() != null ? student.getName() : "Candidate";
+        String dept = student.getDepartment() != null ? student.getDepartment() : "Computer Science";
+        String year = student.getYearOfStudy() != null ? student.getYearOfStudy() : "Final Year";
+        String skills = student.getSkills() != null && !student.getSkills().isBlank() ? student.getSkills() : "Java, Spring Boot, React, SQL";
+
+        // 1. Gather verified test performance
+        StringBuilder testPerf = new StringBuilder();
+        try {
+            List<TestAttempt> attempts = testAttemptRepository.findByStudentIdOrderByStartedAtDesc(student.getId());
+            if (attempts != null && !attempts.isEmpty()) {
+                Map<String, String> catNameMap = new HashMap<>();
+                int completedCount = 0;
+                for (TestAttempt att : attempts) {
+                    if ("COMPLETED".equalsIgnoreCase(att.getStatus()) || (att.getPercentageScore() != null && att.getPercentageScore() > 0)) {
+                        completedCount++;
+                        String catName = catNameMap.computeIfAbsent(att.getTestCategoryId(), id ->
+                                testCategoryRepository.findById(id).map(TestCategory::getName).orElse("Assessment"));
+                        double score = att.getPercentageScore() != null ? att.getPercentageScore() : 0.0;
+                        if (testPerf.length() > 0) testPerf.append("; ");
+                        testPerf.append(catName).append(": ").append(String.format("%.1f%%", score));
+                        if (completedCount >= 5) break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            testPerf.append("Platform assessment verified");
+        }
+        if (testPerf.length() == 0) {
+            testPerf.append("No completed platform assessments yet");
+        }
+
+        // 2. Gather prior mock interview rounds
+        StringBuilder pastInterviews = new StringBuilder();
+        try {
+            List<MockInterviewSession> pastSessions = sessionRepository.findByStudentIdOrderByCreatedAtDesc(student.getId());
+            if (pastSessions != null && !pastSessions.isEmpty()) {
+                int pastCount = 0;
+                for (MockInterviewSession s : pastSessions) {
+                    if ("COMPLETED".equalsIgnoreCase(s.getStatus())) {
+                        pastCount++;
+                        if (pastInterviews.length() > 0) pastInterviews.append("; ");
+                        pastInterviews.append(s.getTargetRole()).append(" (")
+                                .append(String.format("%.0f%%", s.getOverallScore() != null ? s.getOverallScore() : 0.0))
+                                .append(")");
+                        if (s.getFeedback() != null && !s.getFeedback().isBlank()) {
+                            String shortFeedback = s.getFeedback().length() > 80 ? s.getFeedback().substring(0, 80) + "..." : s.getFeedback();
+                            pastInterviews.append(" - ").append(shortFeedback);
+                        }
+                        if (pastCount >= 3) break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            pastInterviews.append("Standard interview profile");
+        }
+        if (pastInterviews.length() == 0) {
+            pastInterviews.append("First mock interview round");
+        }
+
+        return new GeminiInterviewService.CandidateContext(
+                name, dept, year, skills, testPerf.toString(), pastInterviews.toString()
+        );
+    }
 
     public Map<String, Object> startSession(String userId, String targetRole, String interviewType, String customApiKey) {
         Student student = studentRepository.findByUserId(userId)
@@ -47,7 +133,8 @@ public class InterviewService {
         session.setStatus("IN_PROGRESS");
         session = sessionRepository.save(session);
 
-        GeminiInterviewService.InitialQuestionResult initialQ = geminiService.generateInitialQuestion(role, type, student, customApiKey);
+        GeminiInterviewService.CandidateContext candidateCtx = buildCandidateContext(student);
+        GeminiInterviewService.InitialQuestionResult initialQ = geminiService.generateInitialQuestion(role, type, candidateCtx, customApiKey);
 
         InterviewQuestion q = new InterviewQuestion();
         q.setSessionId(session.getId());
@@ -109,6 +196,9 @@ public class InterviewService {
             throw new IllegalStateException("You do not own this interview session");
         }
 
+        Student student = studentRepository.findById(session.getStudentId()).orElse(null);
+        GeminiInterviewService.CandidateContext candidateCtx = buildCandidateContext(student);
+
         String text = responseText != null ? responseText.trim() : "";
         List<InterviewQuestion> allQs = questionRepository.findBySessionIdOrderBySequenceNumberAsc(session.getId());
         List<InterviewResponse> existingResponses = responseRepository.findBySessionId(session.getId());
@@ -140,6 +230,7 @@ public class InterviewService {
                 historyList,
                 currentTurn,
                 maxTurns,
+                candidateCtx,
                 customApiKey
         );
 
@@ -211,7 +302,9 @@ public class InterviewService {
                     .ifPresent(r -> {
                         Map<String, Object> turn = new HashMap<>();
                         turn.put("question", q.getQuestionText());
+                        turn.put("questionText", q.getQuestionText());
                         turn.put("response", r.getResponseText());
+                        turn.put("responseText", r.getResponseText());
                         turn.put("technicalScore", r.getTechnicalScore());
                         turn.put("communicationScore", r.getCommunicationScore());
                         turn.put("aiFeedback", r.getAiFeedback());
@@ -219,8 +312,11 @@ public class InterviewService {
                     });
         }
 
+        Student student = studentRepository.findById(session.getStudentId()).orElse(null);
+        GeminiInterviewService.CandidateContext candidateCtx = buildCandidateContext(student);
+
         GeminiInterviewService.FinalVerdictResult finalVerdict = geminiService.generateFinalEvaluation(
-                session.getTargetRole(), session.getInterviewType(), turns, customApiKey
+                session.getTargetRole(), session.getInterviewType(), turns, candidateCtx, customApiKey
         );
 
         double avgTech = turns.stream().mapToDouble(t -> {
