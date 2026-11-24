@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { useAuthStore } from '../store/authStore';
 import { GraduationCap, AlertCircle, CheckCircle2 } from 'lucide-react';
 import PortalSelector, { PORTAL_OPTIONS } from './auth/components/PortalSelector';
-import RoleLoginView from './auth/components/RoleLoginView';
+import RoleLoginView, { validateRoleEmail } from './auth/components/RoleLoginView';
 import RegisterStudentForm from './auth/components/RegisterStudentForm';
 import ForgotPasswordForm from './auth/components/ForgotPasswordForm';
 
@@ -120,6 +120,11 @@ export default function Login() {
     setSuccessMsg('');
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+    const validation = validateRoleEmail('student', email);
+    if (!validation.valid) {
+      setError(validation.error);
       return;
     }
     setSendingOtp(true);

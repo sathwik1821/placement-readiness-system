@@ -266,13 +266,23 @@ public class AssessmentService {
         double accuracyPct = Math.min(100.0, Math.max(0.0, Math.round(((double) correctCount / totalQuestions) * 1000.0) / 10.0));
 
         if (lateSubmission) {
-            accuracyPct = Math.max(0.0, accuracyPct * 0.80);
-            score = Math.max(0.0, score * 0.80);
+            long elapsedSeconds = Duration.between(attempt.getStartedAt(), LocalDateTime.now()).toSeconds();
+            int limit = (attempt.getTimeLimitSeconds() != null ? attempt.getTimeLimitSeconds() : 1800);
+            if (elapsedSeconds > limit * 3) {
+                accuracyPct = 0.0;
+                score = 0.0;
+                attempt.setStatus("EXPIRED_SUBMISSION");
+            } else {
+                accuracyPct = Math.max(0.0, accuracyPct * 0.80);
+                score = Math.max(0.0, score * 0.80);
+                attempt.setStatus("LATE_SUBMISSION");
+            }
+        } else {
+            attempt.setStatus("COMPLETED");
         }
 
         attempt.setTotalScore(score);
         attempt.setPercentageScore(accuracyPct);
-        attempt.setStatus(lateSubmission ? "LATE_SUBMISSION" : "COMPLETED");
         attempt.setCompletedAt(LocalDateTime.now());
         attemptRepository.save(attempt);
 

@@ -28,14 +28,33 @@ public class AuthController {
     @Autowired
     private JwtService jwtService;
 
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> lastOtpRequestTime = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private Long checkRateLimit(String email) {
+        if (lastOtpRequestTime.size() > 10_000) lastOtpRequestTime.clear();
+        long now = System.currentTimeMillis();
+        Long lastTime = lastOtpRequestTime.get(email);
+        if (lastTime != null && (now - lastTime) < 45_000) {
+            return Math.max(1, (45_000 - (now - lastTime)) / 1000);
+        }
+        lastOtpRequestTime.put(email, now);
+        return null;
+    }
+
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
         }
+        String cleanEmail = email.trim().toLowerCase();
+        Long remainingCooldown = checkRateLimit(cleanEmail);
+        if (remainingCooldown != null) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "Rate limit exceeded. Please wait " + remainingCooldown + "s before requesting a new OTP."));
+        }
         try {
-            Map<String, Object> res = emailService.sendVerificationOtp(email.trim().toLowerCase());
+            Map<String, Object> res = emailService.sendVerificationOtp(cleanEmail);
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -63,8 +82,14 @@ public class AuthController {
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email address is required"));
         }
+        String cleanEmail = email.trim().toLowerCase();
+        Long remainingCooldown = checkRateLimit("FORGOT_" + cleanEmail);
+        if (remainingCooldown != null) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "Rate limit exceeded. Please wait " + remainingCooldown + "s before requesting another reset code."));
+        }
         try {
-            Map<String, Object> res = emailService.sendPasswordResetOtp(email.trim().toLowerCase());
+            Map<String, Object> res = emailService.sendPasswordResetOtp(cleanEmail);
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

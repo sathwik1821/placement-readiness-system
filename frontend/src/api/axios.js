@@ -43,10 +43,16 @@ api.interceptors.response.use(
       error.userMessage = 'Need internet connection. Please verify your network to continue.';
     }
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      const requestUrl = error.config?.url || '';
+      const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/send-otp') || requestUrl.includes('/auth/register');
+      
+      // Do not force-redirect on login/registration credential errors so the component can display the error message
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

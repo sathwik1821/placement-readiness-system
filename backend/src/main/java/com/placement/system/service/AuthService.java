@@ -126,11 +126,25 @@ public class AuthService {
         student.setUserId(user.getId());
         student.setEmail(cleanEmail);
         student.setName(req.getName() != null ? req.getName().trim() : "Student");
-        student.setRollNumber(req.getRollNumber() != null ? req.getRollNumber().trim() : "");
         student.setDepartment(req.getDepartment() != null ? req.getDepartment().trim() : "Computer Science & Engineering");
-        student.setGraduationYear(req.getGraduationYear() != null ? req.getGraduationYear() : 2027);
         student.setCollege(req.getCollege() != null ? req.getCollege().trim() : "RGUKT Srikakulam");
-        student.setBatch(student.getGraduationYear() + " Graduating Batch • B.Tech");
+
+        RguktUtils.RguktStudentInfo studentInfo = RguktUtils.parseStudentEmail(cleanEmail);
+        if (studentInfo != null) {
+            student.setRollNumber(req.getRollNumber() != null && !req.getRollNumber().isBlank() ? req.getRollNumber().trim() : studentInfo.getRollNumber());
+            student.setGraduationYear(studentInfo.getGraduationYear());
+            student.setYear(studentInfo.getYear());
+            student.setYearOfStudy(studentInfo.getYearOfStudy());
+            student.setBatch(studentInfo.getBatch());
+        } else {
+            student.setRollNumber(req.getRollNumber() != null ? req.getRollNumber().trim() : "");
+            int gradYear = req.getGraduationYear() != null && req.getGraduationYear() > 0 ? req.getGraduationYear() : 2027;
+            student.setGraduationYear(gradYear);
+            int currentStudyYear = Math.max(1, Math.min(4, 4 - (gradYear - 2027)));
+            student.setYear(currentStudyYear);
+            student.setYearOfStudy(currentStudyYear + "th Year (E" + currentStudyYear + ")");
+            student.setBatch(gradYear + " Graduating Batch • B.Tech");
+        }
         studentRepository.save(student);
 
         String token = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole());

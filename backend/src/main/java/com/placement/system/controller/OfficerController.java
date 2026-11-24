@@ -238,6 +238,19 @@ public class OfficerController {
         return ResponseEntity.ok(finalApp);
     }
 
+    @Autowired
+    private com.placement.system.scheduler.TpoDailyDigestScheduler digestScheduler;
+
+    @PostMapping("/digest/trigger")
+    public ResponseEntity<?> triggerDailyDigest() {
+        int dispatched = digestScheduler.dispatchDailyDigest();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Daily placement activity summary digest dispatched to " + dispatched + " officer(s)",
+                "officersContacted", dispatched
+        ));
+    }
+
     @PostMapping("/drives/{id}/feedback-report")
     public ResponseEntity<?> generateFeedbackReport(@RequestHeader("Authorization") String authHeader, @PathVariable String id) {
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));

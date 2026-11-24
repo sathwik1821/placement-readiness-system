@@ -1986,57 +1986,50 @@ public class QuestionBankSeeder implements CommandLineRunner {
         }
     }
 
+    private void copyQuestionsFromCategory(String sourceCategoryName, String targetCategoryName, int maxQuestions) {
+        TestCategory targetCat = categoryRepository.findByName(targetCategoryName).orElseGet(() -> {
+            TestCategory newCat = new TestCategory(targetCategoryName, "MOCK", "Practice", "Calibrated mock assessment.");
+            return categoryRepository.save(newCat);
+        });
+
+        TestCategory sourceCat = categoryRepository.findByName(sourceCategoryName).orElse(null);
+        if (sourceCat == null) return;
+
+        List<Question> sourceQuestions = questionRepository.findByTestCategoryId(sourceCat.getId());
+        int added = 0;
+        for (Question sq : sourceQuestions) {
+            if (added >= maxQuestions) break;
+            Optional<Question> existing = questionRepository.findByTestCategoryIdAndQuestionText(targetCat.getId(), sq.getQuestionText());
+            if (existing.isEmpty()) {
+                Question q = new Question();
+                q.setTestCategoryId(targetCat.getId());
+                q.setQuestionText(sq.getQuestionText());
+                q.setOptions(sq.getOptions());
+                q.setCorrectAnswer(sq.getCorrectAnswer());
+                q.setExplanation(sq.getExplanation());
+                q.setDifficulty(sq.getDifficulty());
+                q.setTopic(sq.getTopic());
+                q.setMarks(sq.getMarks() != null ? sq.getMarks() : 1);
+                q.setNegativeMarks(sq.getNegativeMarks() != null ? sq.getNegativeMarks() : 0.25);
+                questionRepository.save(q);
+                added++;
+            }
+        }
+    }
+
     private void seedMernMock() {
         String c = "MERN Stack Mock Assessment";
-        addQ(c, "In Node.js, what is the role of the Libuv thread pool in asynchronous event loop execution?",
-                List.of("Handles offloaded synchronous operations such as file system I/O, DNS lookup, and cryptographic calculations",
-                        "Executes all JavaScript functions in parallel",
-                        "Compiles React components",
-                        "Connects directly to HTML DOM elements"),
-                "Handles offloaded synchronous operations such as file system I/O, DNS lookup, and cryptographic calculations",
-                "Libuv provides an abstraction over OS non-blocking I/O and maintains a worker thread pool (UV_THREADPOOL_SIZE) for operations that cannot be done asynchronously on the OS level.", "MEDIUM", "Node.js Internals");
-
-        addQ(c, "In MongoDB, what does the $lookup aggregation stage accomplish?",
-                List.of("Performs a left outer join to an unsharded collection in the same database to filter in documents from the joined collection",
-                        "Deletes duplicate documents",
-                        "Encrypts fields with AES-256",
-                        "Creates a full-text search index"),
-                "Performs a left outer join to an unsharded collection in the same database to filter in documents from the joined collection",
-                "$lookup executes a relational left outer join between collections in aggregation pipelines, populating an array of matching child documents.", "MEDIUM", "MongoDB Aggregation");
+        copyQuestionsFromCategory("Node.js & Backend Architecture", c, 10);
+        copyQuestionsFromCategory("Web Frontend & React", c, 10);
     }
 
     private void seedAiMlMock() {
         String c = "AI / ML Engineering Mock Assessment";
-        addQ(c, "What is the mathematical cause of the 'Vanishing Gradient Problem' in deep neural networks with Sigmoid activation functions?",
-                List.of("The derivative of the sigmoid function maxes out at 0.25; backpropagating through many layers causes gradients to shrink exponentially toward zero",
-                        "Loss functions always reach infinity",
-                        "Weights become negative numbers",
-                        "Learning rate is multiplied by 100"),
-                "The derivative of the sigmoid function maxes out at 0.25; backpropagating through many layers causes gradients to shrink exponentially toward zero",
-                "Because sigmoid derivatives lie in [0, 0.25], multiplying them across deep layers during chain-rule backpropagation causes early layers to receive near-zero weight updates.", "HARD", "Deep Learning Foundations");
-
-        addQ(c, "In machine learning classification, when is the F1-Score preferred over Accuracy as the primary evaluation metric?",
-                List.of("When datasets exhibit significant class imbalance (e.g. fraud detection or rare disease diagnosis)",
-                        "When all classes have equal sample sizes",
-                        "When performing linear regression on continuous variables",
-                        "When training unsupervised k-means clustering"),
-                "When datasets exhibit significant class imbalance (e.g. fraud detection or rare disease diagnosis)",
-                "On severely skewed datasets (e.g. 99% negative, 1% positive), a dummy model predicting always negative achieves 99% accuracy. The harmonic mean F1-Score balances Precision and Recall.", "MEDIUM", "Evaluation Metrics");
+        copyQuestionsFromCategory("Machine Learning & Python", c, 20);
     }
 
     private void seedDataAnalyticsMock() {
         String c = "Data Analytics & BI Mock Assessment";
-        addQ(c, "In SQL, what is the functional difference between RANK() and DENSE_RANK() window functions?",
-                List.of("RANK() skips subsequent rank numbers after ties (e.g. 1, 2, 2, 4); DENSE_RANK() leaves no gaps (e.g. 1, 2, 2, 3)",
-                        "RANK() sorts ascending; DENSE_RANK() sorts descending",
-                        "DENSE_RANK() can only be used on strings",
-                        "RANK() eliminates duplicate rows"),
-                "RANK() skips subsequent rank numbers after ties (e.g. 1, 2, 2, 4); DENSE_RANK() leaves no gaps (e.g. 1, 2, 2, 3)",
-                "Both assign ranks based on ORDER BY within PARTITION. When ties occur, RANK() increments the counter by tied count, whereas DENSE_RANK() advances sequentially by 1.", "MEDIUM", "Advanced SQL Window Functions");
-
-        addQ(c, "In business analytics, what does the acronym ETL stand for?",
-                List.of("Extract, Transform, Load", "Estimate, Track, Leverage", "Execute, Test, Launch", "Enterprise Transaction Log"),
-                "Extract, Transform, Load",
-                "ETL is the fundamental data pipeline paradigm where raw data is extracted from heterogeneous sources, transformed/cleaned, and loaded into a centralized data warehouse.", "EASY", "Data Warehousing");
+        copyQuestionsFromCategory("Data Analytics & BI (SQL/Tableau)", c, 20);
     }
 }

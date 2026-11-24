@@ -727,14 +727,24 @@ export default function MockInterview() {
                   <button
                     type="button"
                     onClick={toggleListening}
+                    disabled={!speechSupported}
+                    title={!speechSupported ? "Speech recognition is only supported in Chromium browsers (Chrome/Edge)" : ""}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
-                      isListening
-                        ? 'bg-rose-100 text-rose-800 border border-rose-300 animate-pulse'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                      !speechSupported
+                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                        : isListening
+                          ? 'bg-rose-100 text-rose-800 border border-rose-300 animate-pulse'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 cursor-pointer'
                     }`}
                   >
-                    {isListening ? <MicOff className="w-3.5 h-3.5 text-rose-600" /> : <Mic className="w-3.5 h-3.5 text-indigo-600" />}
-                    <span>{isListening ? 'Listening (Click to Stop)' : 'Speak with Microphone'}</span>
+                    {isListening ? <MicOff className="w-3.5 h-3.5 text-rose-600" /> : <Mic className={`w-3.5 h-3.5 ${speechSupported ? 'text-indigo-600' : 'text-slate-400'}`} />}
+                    <span>
+                      {!speechSupported
+                        ? 'Mic Unavailable (Type below)'
+                        : isListening
+                          ? 'Listening (Click to Stop)'
+                          : 'Speak with Microphone'}
+                    </span>
                   </button>
                 </div>
 
