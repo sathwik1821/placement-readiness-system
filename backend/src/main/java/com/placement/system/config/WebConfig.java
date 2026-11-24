@@ -9,7 +9,16 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000")
+                .allowedOriginPatterns(
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                    "http://localhost:3000",
+                    "https://*.ngrok-free.app",
+                    "https://*.ngrok-free.dev",
+                    "https://*.ngrok.io",
+                    "https://*.ngrok.app",
+                    "*"
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true);

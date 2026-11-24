@@ -67,7 +67,7 @@ public class InterviewController {
 
         String userId = jwtService.extractUserId(authHeader.replace("Bearer ", ""));
         String questionId = body.get("questionId");
-        String text = body.getOrDefault("responseText", "").trim();
+        String text = body.getOrDefault("responseText", body.getOrDefault("answer", "")).trim();
 
         try {
             Map<String, Object> eval = interviewService.answerQuestion(id, userId, questionId, text, customApiKey);
